@@ -3,7 +3,8 @@
     "version": "1.0.0",
     "description": "Root package for AERO productivity suite",
     "scripts": {
-        "install:all": "npm install --prefix backend && npm install --prefix dashboard",
-        "dev": "npx -y concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix dashboard\""
+        "install:all": "npm install --prefix backend-services/auth-service && npm install --prefix backend-services/tracking-service && npm install --prefix backend-services/realtime-service && npm install --prefix backend-services/api-gateway && npm install --prefix dashboard",
+        "dev": "npx -y concurrently -n \"auth,track,real,gate,dash\" -c \"bgBlue,bgGreen,bgMagenta,bgCyan,bgYellow\" \"npm start --prefix backend-services/auth-service\" \"npm start --prefix backend-services/tracking-service\" \"npm start --prefix backend-services/realtime-service\" \"npm start --prefix backend-services/api-gateway\" \"npm run dev --prefix dashboard\"",
+        "dev:bg": "powershell -ExecutionPolicy Bypass -File ./start-all.ps1"
     }
 }
