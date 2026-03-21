@@ -73,14 +73,14 @@ export default function InsightsPage() {
         <div className="p-8 max-w-6xl mx-auto space-y-8">
             <header className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-4xl font-bold flex items-center gap-4">
+                    <h1 className="text-4xl font-bold font-outfit tracking-tight flex items-center gap-4">
                         <BrainCircuit className="text-primary" size={40} />
                         AI Neural Engine
                     </h1>
-                    <p className="text-muted mt-2">Personalized insights based on your real browsing patterns.</p>
+                    <p className="text-muted mt-2 font-inter text-sm">Personalized insights based on your real browsing patterns.</p>
                 </div>
                 <div className="flex gap-2 bg-foreground/5 border border-foreground/10 p-1.5 rounded-2xl">
-                    <span className="px-4 py-1.5 text-xs font-bold rounded-xl bg-primary text-background">Active Analysis</span>
+                    <span className="px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-xl bg-primary text-background shadow-lg shadow-primary/20">Active Analysis</span>
                 </div>
             </header>
 
@@ -106,7 +106,7 @@ export default function InsightsPage() {
                             )}
                         </p>
                         <Link href="/pomodoro" className="flex w-fit items-center gap-2 bg-foreground text-background px-6 py-3 rounded-2xl font-bold hover:scale-105 transition-all shadow-xl">
-                            Start Focus Session <ChevronRight size={18} />
+                            Start Deep Work Session <ChevronRight size={18} />
                         </Link>
                     </div>
                     <div className="absolute top-1/2 -right-10 -translate-y-1/2 w-64 h-64 bg-primary/20 rounded-full blur-[100px] group-hover:bg-primary/30 transition-all duration-1000" />
@@ -131,12 +131,12 @@ export default function InsightsPage() {
 
             {/* D3 Advanced Visualizations Panel */}
             <div className="glass-card p-8 border border-foreground/10 mt-8 mb-8">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-8 pb-4 border-b border-foreground/5">
                     <div>
-                        <h3 className="text-2xl font-bold flex items-center gap-2">
+                        <h3 className="text-xl font-bold font-outfit flex items-center gap-3">
                             <Activity className="text-secondary" /> Cognitive Load Over Time
                         </h3>
-                        <p className="text-muted text-sm mt-1">D3.js visualization of your mental fatigue based on inference data (tab-switching frequency, idle blocks).</p>
+                        <p className="text-muted text-[10px] font-black uppercase tracking-widest mt-1">D3.js visualization of mental fatigue patterns</p>
                     </div>
                 </div>
                 <div className="bg-background rounded-2xl border border-foreground/10 p-4 flex items-center justify-center min-h-[300px]">

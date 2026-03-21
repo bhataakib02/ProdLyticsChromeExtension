@@ -9,7 +9,8 @@ import {
     Cloud,
     Trash2,
     Save,
-    Loader2
+    Loader2,
+    Timer
 } from "lucide-react";
 import { useAuth, API_URL } from "@/context/AuthContext";
 import { motion } from "framer-motion";
@@ -22,6 +23,8 @@ export default function SettingsPage() {
     const [theme, setTheme] = useState("dark");
     const [notifications, setNotifications] = useState({ focus: true, daily: true });
     const [weeklyGoalHours, setWeeklyGoalHours] = useState(40);
+    const [deepWorkMinutes, setDeepWorkMinutes] = useState(25);
+    const [breakMinutes, setBreakMinutes] = useState(5);
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
 
@@ -31,6 +34,8 @@ export default function SettingsPage() {
             setEmail(user.email || "");
             setTheme(user.preferences?.theme || "dark");
             setWeeklyGoalHours(user.preferences?.weeklyGoalHours || 40);
+            setDeepWorkMinutes(user.preferences?.deepWorkMinutes || 25);
+            setBreakMinutes(user.preferences?.breakMinutes || 5);
 
             // Handle transition from boolean to object if necessary
             const userNotifs = user.preferences?.notifications;
@@ -54,8 +59,14 @@ export default function SettingsPage() {
             // 1. Update Profile (Name/Email)
             await axios.put(`${API_URL}/auth/profile`, { name, email }, { headers });
 
-            // 2. Update Preferences (Theme/Notifications/Goals)
-            await axios.put(`${API_URL}/auth/preferences`, { theme, notifications, weeklyGoalHours }, { headers });
+            // 2. Update Preferences (Theme/Notifications/Goals/Pomodoro)
+            await axios.put(`${API_URL}/auth/preferences`, {
+                theme,
+                notifications,
+                weeklyGoalHours,
+                deepWorkMinutes,
+                breakMinutes
+            }, { headers });
 
             await checkUser(); // Refresh user data in context
             alert("Settings saved successfully!");
@@ -90,8 +101,8 @@ export default function SettingsPage() {
     return (
         <div className="p-8 max-w-4xl mx-auto space-y-8">
             <header>
-                <h1 className="text-4xl font-bold font-outfit">Settings</h1>
-                <p className="text-muted mt-2 font-inter">Manage your account and app preferences.</p>
+                <h1 className="text-4xl font-bold font-outfit tracking-tight">Settings</h1>
+                <p className="text-muted mt-2 font-inter text-sm">Manage your account, synchronization, and platform preferences.</p>
             </header>
 
             <div className="flex flex-col gap-6">
@@ -154,16 +165,46 @@ export default function SettingsPage() {
                     </div>
                 </div>
 
+                {/* Deep Work Settings */}
+                <div className="glass-card overflow-hidden">
+                    <div className="p-6 border-b border-foreground/5 flex items-center gap-3 bg-foreground/[0.02]">
+                        <Timer className="text-primary" size={20} />
+                        <h2 className="font-bold font-outfit uppercase tracking-wider text-sm">Deep Work Cycles</h2>
+                    </div>
+                    <div className="p-8 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-muted uppercase tracking-[0.2em]">Deep Work (Minutes)</label>
+                                <input
+                                    type="number"
+                                    className="w-full bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 outline-none focus:border-primary focus:bg-foreground/[0.08] transition-all font-inter text-sm"
+                                    value={deepWorkMinutes}
+                                    onChange={(e) => setDeepWorkMinutes(parseInt(e.target.value) || 0)}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-muted uppercase tracking-[0.2em]">Break Time (Minutes)</label>
+                                <input
+                                    type="number"
+                                    className="w-full bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 outline-none focus:border-primary focus:bg-foreground/[0.08] transition-all font-inter text-sm"
+                                    value={breakMinutes}
+                                    onChange={(e) => setBreakMinutes(parseInt(e.target.value) || 0)}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Danger Zone */}
-                <div className="p-8 bg-red-500/5 border border-red-500/10 rounded-[40px] flex flex-col md:flex-row items-center justify-between gap-6 group hover:border-red-500/30 transition-all duration-500">
+                <div className="p-8 bg-accent/5 border border-accent/10 rounded-[40px] flex flex-col md:flex-row items-center justify-between gap-6 group hover:border-accent/30 transition-all duration-500">
                     <div className="text-center md:text-left">
-                        <h3 className="font-bold text-red-500 font-outfit text-lg">Delete Account</h3>
-                        <p className="text-xs text-muted font-inter">Permanently remove all your tracking data and account information.</p>
+                        <h3 className="font-bold text-accent font-outfit text-lg">Delete Account</h3>
+                        <p className="text-[10px] text-muted font-inter uppercase tracking-widest mt-1">Permanently remove all your tracking data</p>
                     </div>
                     <button
                         onClick={handleDeleteAccount}
                         disabled={deleting}
-                        className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-500 px-8 py-3 rounded-2xl font-bold hover:bg-red-500 hover:text-foreground transition-all active:scale-95 disabled:opacity-50"
+                        className="flex items-center gap-2 bg-accent/10 border border-accent/20 text-accent px-8 py-3 rounded-2xl font-bold hover:bg-accent hover:text-background transition-all active:scale-95 disabled:opacity-50 text-sm font-outfit"
                     >
                         {deleting ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
                         Delete Account

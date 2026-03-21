@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     function updateUI() {
         chrome.storage.local.get(
-            ["activeTab", "startTime", "productivityScore", "focusModeEnabled", "pomodoroActive", "pomodoroEndTime"],
+            ["activeTab", "startTime", "productivityScore", "focusModeEnabled", "deepWorkActive", "deepWorkEndTime"],
             (data) => {
                 // Update Current Site
                 if (data.activeTab) {
@@ -36,11 +36,11 @@ document.addEventListener("DOMContentLoaded", async () => {
                 // Update Focus Mode
                 focusToggle.checked = !!data.focusModeEnabled;
 
-                // Update Pomodoro
-                if (data.pomodoroActive) {
+                // Update Deep Work
+                if (data.deepWorkActive) {
                     pomoBtn.textContent = "STOP";
                     pomoBtn.classList.add("danger");
-                    startPomoUIUpdate(data.pomodoroEndTime);
+                    startPomoUIUpdate(data.deepWorkEndTime);
                 } else {
                     pomoBtn.textContent = "START";
                     pomoBtn.classList.remove("danger");
@@ -73,17 +73,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     pomoBtn.addEventListener("click", () => {
-        chrome.storage.local.get(["pomodoroActive"], (data) => {
-            if (data.pomodoroActive) {
-                // Stop Pomodoro
-                chrome.alarms.clear("pomodoro");
-                chrome.storage.local.set({ pomodoroActive: false });
+        chrome.storage.local.get(["deepWorkActive"], (data) => {
+            if (data.deepWorkActive) {
+                // Stop Deep Work
+                chrome.alarms.clear("deepWork");
+                chrome.storage.local.set({ deepWorkActive: false });
                 updateUI();
             } else {
-                // Start Pomodoro
-                chrome.runtime.sendMessage({ action: "startPomodoro", minutes: 25 }, (response) => {
+                // Start Deep Work
+                chrome.runtime.sendMessage({ action: "startDeepWork", minutes: 25 }, (response) => {
                     if (chrome.runtime.lastError) {
-                        console.error("Pomodoro error:", chrome.runtime.lastError.message);
+                        console.error("Deep Work error:", chrome.runtime.lastError.message);
                     } else if (response && response.success) {
                         updateUI();
                     }

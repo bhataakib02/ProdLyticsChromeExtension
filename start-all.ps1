@@ -20,6 +20,7 @@ foreach ($s in $services) {
         Invoke-Expression $cmd
     } -ArgumentList "$root\$($s.Dir)", $s.Cmd | Out-Null
 }
+
 Write-Host ""
 Write-Host "✅ All services starting in background!" -ForegroundColor Cyan
 Write-Host ""

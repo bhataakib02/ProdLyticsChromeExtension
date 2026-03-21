@@ -84,8 +84,8 @@ export default function AnalyticsPage() {
         <div className="p-8 space-y-8 max-w-7xl mx-auto">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-4xl font-bold tracking-tight">Analytics</h1>
-                    <p className="text-muted mt-2">Deep dive into your productivity trends and platform usage.</p>
+                    <h1 className="text-4xl font-bold font-outfit tracking-tight">Analytics</h1>
+                    <p className="text-muted mt-2 font-inter text-sm">Deep dive into your productivity trends and platform usage.</p>
                 </div>
                 <div className="flex items-center gap-3 bg-foreground/5 p-1.5 rounded-2xl border border-foreground/10">
                     {["today", "week", "month"].map((r) => (
@@ -196,28 +196,28 @@ export default function AnalyticsPage() {
 
             {/* Top Sites Table */}
             <div className="glass-card overflow-hidden">
-                <div className="p-8 border-b border-foreground/5 flex justify-between items-center">
-                    <h2 className="text-xl font-bold flex items-center gap-3">
+                <div className="p-8 border-b border-foreground/5 flex justify-between items-center bg-foreground/[0.01]">
+                    <h2 className="text-xl font-bold font-outfit flex items-center gap-3 uppercase tracking-wider text-sm">
                         <TrendingUp size={24} className="text-primary" />
                         Most Visited Platforms
                     </h2>
                 </div>
                 {loading ? (
-                    <div className="p-20 text-center text-muted italic">Loading your activity...</div>
+                    <div className="p-20 text-center text-muted italic font-inter">Loading your activity...</div>
                 ) : sites.length === 0 ? (
-                    <div className="p-20 text-center text-muted italic">No activity tracked for this range yet.</div>
+                    <div className="p-20 text-center text-muted italic font-inter">No activity tracked for this range yet.</div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead>
-                                <tr className="bg-foreground/[0.02] text-muted text-[10px] uppercase tracking-widest">
+                                <tr className="bg-foreground/[0.03] text-muted text-[10px] font-black uppercase tracking-[0.2em]">
                                     <th className="px-8 py-5">Website</th>
                                     <th className="px-8 py-5">Category</th>
                                     <th className="px-8 py-5">Time Spent</th>
-                                    <th className="px-8 py-5">Freq</th>
+                                    <th className="px-8 py-5">Frequency</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-white/5">
+                            <tbody className="divide-y divide-white/5 font-inter">
                                 {sites.slice(0, 10).map((site) => (
                                     <tr key={site._id} className="hover:bg-foreground/[0.02] transition-all group">
                                         <td className="px-8 py-5">

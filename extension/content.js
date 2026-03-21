@@ -4,12 +4,21 @@
  * Tracks scroll and interaction activity for engagement proxy
  */
 
-chrome.runtime.sendMessage({
-    action: "pageLoaded",
-    url: window.location.href,
-    title: document.title,
-    content: document.body.innerText.substring(0, 500) // Send snippet for AI
-});
+const sendPageLoaded = () => {
+    if (document.body) {
+        chrome.runtime.sendMessage({
+            action: "pageLoaded",
+            url: window.location.href,
+            title: document.title,
+            content: document.body.innerText.substring(0, 500) // Send snippet for AI
+        });
+    } else {
+        // Wait for body to be available
+        setTimeout(sendPageLoaded, 100);
+    }
+};
+
+sendPageLoaded();
 
 const observer = new MutationObserver(() => {
     chrome.runtime.sendMessage({

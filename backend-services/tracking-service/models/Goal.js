@@ -14,7 +14,7 @@ const GoalSchema = new mongoose.Schema(
         },
         type: {
             type: String,
-            enum: ["daily_productive_hours", "daily_limit_site", "weekly_productive_hours", "reduce_site"],
+            enum: ["daily_productive_hours", "daily_limit_site", "weekly_productive_hours", "reduce_site", "productive", "unproductive"],
             required: true,
         },
         // For site-specific goals

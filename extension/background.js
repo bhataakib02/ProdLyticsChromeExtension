@@ -2,12 +2,12 @@
  * =====================================================
  * PRODUCTIVITY PLATFORM - BACKGROUND SERVICE WORKER (V3)
  * =====================================================
- * Handles time tracking, Pomodoro, Focus Mode,
+ * Handles time tracking, Deep Work, Focus Mode,
  * and authenticated API communication.
  * =====================================================
  */
 
-const API_URL = "http://127.0.0.1:5010/api";
+const API_URL = "http://localhost:5010/api";
 let activeTab = null;
 let activeTitle = "";
 let startTime = null;
@@ -219,30 +219,30 @@ async function syncBlocklist() {
 // ==================== ALARMS & EVENTS ====================
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
-    if (alarm.name === "pomodoro") {
-        const { pomodoroState, pomodoroSessionId } = await chrome.storage.local.get(["pomodoroState", "pomodoroSessionId"]);
-        const isWork = pomodoroState === "work";
+    if (alarm.name === "deepWork") {
+        const { deepWorkState, deepWorkSessionId } = await chrome.storage.local.get(["deepWorkState", "deepWorkSessionId"]);
+        const isWork = deepWorkState === "work";
 
         // Update backend
-        if (pomodoroSessionId) {
-            authenticatedFetch(`/pomodoro/end/${pomodoroSessionId}`, {
+        if (deepWorkSessionId) {
+            authenticatedFetch(`/deepwork/end/${deepWorkSessionId}`, {
                 method: "PUT",
                 body: JSON.stringify({ completed: true, actualMinutes: isWork ? 25 : 5 }) // Simplification
             });
         }
 
-        chrome.notifications.create("pomodoro-finished", {
+        chrome.notifications.create("deepwork-finished", {
             type: "basic",
             iconUrl: "icons/icon128.png",
-            title: isWork ? "🎉 Work Session Finished" : "☕ Break Finished",
+            title: isWork ? "🎉 Deep Work Session Finished" : "☕ Break Finished",
             message: isWork ? "Time for a short break!" : "Back to work!",
             requireInteraction: true,
         });
 
         await chrome.storage.local.set({
-            pomodoroState: isWork ? "break" : "idle",
-            pomodoroActive: false,
-            pomodoroSessionId: null
+            deepWorkState: isWork ? "break" : "idle",
+            deepWorkActive: false,
+            deepWorkSessionId: null
         });
     } else if (alarm.name === "sync-blocklist") {
         syncBlocklist();
@@ -291,12 +291,12 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     } else if (request.action === "syncAll") {
         syncBlocklist().then(() => sendResponse({ success: true }));
         return true;
-    } else if (request.action === "startPomodoro") {
+    } else if (request.action === "startDeepWork") {
         const minutes = request.minutes || 25;
-        chrome.alarms.create("pomodoro", { delayInMinutes: minutes });
+        chrome.alarms.create("deepWork", { delayInMinutes: minutes });
 
         // Start session in backend
-        authenticatedFetch("/pomodoro/start", {
+        authenticatedFetch("/deepwork/start", {
             method: "POST",
             body: JSON.stringify({
                 type: "work",
@@ -307,16 +307,16 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
             if (res.ok) {
                 const session = await res.json();
                 chrome.storage.local.set({
-                    pomodoroActive: true,
-                    pomodoroState: "work",
-                    pomodoroEndTime: Date.now() + minutes * 60000,
-                    pomodoroSessionId: session._id
+                    deepWorkActive: true,
+                    deepWorkState: "work",
+                    deepWorkEndTime: Date.now() + minutes * 60000,
+                    deepWorkSessionId: session._id
                 });
-                console.log("✅ Pomodoro session started in backend:", session._id);
+                console.log("✅ Deep Work session started in backend:", session._id);
             } else {
-                console.warn(`⚠️ Backend failed to start pomodoro: ${res.status}`);
+                console.warn(`⚠️ Backend failed to start deep work: ${res.status}`);
             }
-        }).catch(err => console.error("Could not start pomodoro in backend:", err));
+        }).catch(err => console.error("Could not start deep work in backend:", err));
 
         sendResponse({ success: true });
         return false;

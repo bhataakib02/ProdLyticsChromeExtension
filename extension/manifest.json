@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "AI Productivity Platform",
     "version": "3.0.0",
-    "description": "SaaS-level productivity tracker with AI insights, Pomodoro timer, and focus mode.",
+    "description": "SaaS-level productivity tracker with AI insights, Deep Work timer, and focus mode.",
     "permissions": [
         "storage",
         "tabs",
@@ -17,6 +17,8 @@
     "host_permissions": [
         "http://localhost:5000/*",
         "http://127.0.0.1:5000/*",
+        "http://localhost:5010/*",
+        "http://127.0.0.1:5010/*",
         "<all_urls>"
     ],
     "background": {
@@ -60,7 +62,8 @@
     ],
     "externally_connectable": {
         "matches": [
-            "http://localhost:3000/*"
+            "http://localhost:3000/*",
+            "http://127.0.0.1:3000/*"
         ]
     }
 }

@@ -6,7 +6,7 @@
 import { useEffect, useState } from "react";
 import { useAuth, API_URL } from "@/context/AuthContext";
 import axios from "axios";
-import { Activity, TrendingUp, Clock, Target, Zap, ArrowUpRight, Search, Bell } from "lucide-react";
+import { Activity, TrendingUp, Clock, Target, Zap, ArrowUpRight, Search, Bell, X, Plus, Pencil } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { io } from "socket.io-client";
@@ -23,6 +23,14 @@ export default function DashboardPage() {
     const [goals, setGoals] = useState([]);
     const [loading, setLoading] = useState(true);
     const [notifications, setNotifications] = useState([]);
+    const [showNewGoal, setShowNewGoal] = useState(false);
+    const [editingGoal, setEditingGoal] = useState(null);
+    const [newGoal, setNewGoal] = useState({
+        label: "",
+        targetSeconds: 3600,
+        type: "productive",
+        website: ""
+    });
 
     useEffect(() => {
         if (user) {
@@ -67,6 +75,41 @@ export default function DashboardPage() {
             setLoading(false);
         }
     }
+
+    const handleCreateGoal = async (e) => {
+        e.preventDefault();
+        try {
+            const token = localStorage.getItem("accessToken");
+            let res;
+            if (editingGoal) {
+                res = await axios.put(`${API_URL}/goals/${editingGoal._id}`, newGoal, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setGoals(goals.map(g => g._id === res.data._id ? res.data : g));
+            } else {
+                res = await axios.post(`${API_URL}/goals/`, newGoal, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setGoals([...goals, res.data]);
+            }
+            setShowNewGoal(false);
+            setEditingGoal(null);
+            setNewGoal({ label: "", targetSeconds: 3600, type: "productive", website: "" });
+        } catch (err) {
+            console.error("❌ Error creating/updating goal:", err.response?.data || err.message);
+        }
+    };
+
+    const openEditModal = (goal) => {
+        setEditingGoal(goal);
+        setNewGoal({
+            label: goal.label,
+            targetSeconds: goal.targetSeconds,
+            type: goal.type,
+            website: goal.website || ""
+        });
+        setShowNewGoal(true);
+    };
 
     const formatPeakHour = (hour) => {
         if (hour === null || hour === undefined) return "Calculating...";
@@ -200,7 +243,7 @@ export default function DashboardPage() {
                             <h3 className="font-bold">Daily Tip</h3>
                         </div>
                         <p className="text-sm text-muted leading-relaxed">
-                            {stats.score > 80 ? "You're in the elite flow zone! Take a 5-min break every hour to maintain this pace." : "Try using the Pomodoro timer to build your focus endurance."}
+                            {stats.score > 80 ? "You're in the elite flow zone! Take a 5-min break every hour to maintain this pace." : "Try using the Deep Work timer to build your focus endurance."}
                         </p>
                     </div>
 
@@ -210,12 +253,48 @@ export default function DashboardPage() {
                                 <Target size={18} className="text-secondary" />
                                 Active Goals
                             </h3>
-                            <Link href="/goals" className="text-[10px] font-bold text-muted hover:text-foreground transition-colors">SET GOALS</Link>
+                            <button
+                                onClick={() => setShowNewGoal(true)}
+                                className="text-[10px] font-bold text-primary hover:text-primary/80 transition-colors uppercase tracking-widest"
+                            >
+                                + Set New Goal
+                            </button>
                         </div>
                         <div className="space-y-5">
                             {goals.length > 0 ? (
                                 goals.slice(0, 3).map(goal => (
-                                    <GoalProgress key={goal._id} label={goal.label || goal.website} current={0} total={goal.targetSeconds / 3600} />
+                                    <div key={goal._id} className="group relative">
+                                        <GoalProgress
+                                            label={goal.label || goal.website}
+                                            current={goal.currentSeconds / 3600}
+                                            total={goal.targetSeconds / 3600}
+                                        />
+                                        <div className="absolute top-0 right-0 flex items-center gap-2">
+                                            <button
+                                                onClick={() => openEditModal(goal)}
+                                                className="p-1.5 text-muted hover:text-primary transition-all opacity-0 group-hover:opacity-100"
+                                                title="Edit"
+                                            >
+                                                <Pencil size={14} />
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    if (window.confirm("Delete this goal?")) {
+                                                        const token = localStorage.getItem("accessToken");
+                                                        axios.delete(`${API_URL}/goals/${goal._id}`, {
+                                                            headers: { Authorization: `Bearer ${token}` }
+                                                        }).then(() => {
+                                                            setGoals(goals.filter(g => g._id !== goal._id));
+                                                        });
+                                                    }
+                                                }}
+                                                className="p-1.5 text-muted hover:text-accent transition-all opacity-0 group-hover:opacity-100"
+                                                title="Delete"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        </div>
+                                    </div>
                                 ))
                             ) : (
                                 <>
@@ -227,6 +306,113 @@ export default function DashboardPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Modal for New Goal */}
+            <AnimatePresence>
+                {showNewGoal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="glass-card w-full max-w-md p-8 relative shadow-2xl border-primary/20"
+                        >
+                            <button
+                                onClick={() => {
+                                    setShowNewGoal(false);
+                                    setEditingGoal(null);
+                                    setNewGoal({ label: "", targetSeconds: 3600, type: "productive", website: "" });
+                                }}
+                                className="absolute top-6 right-6 text-muted hover:text-foreground transition-colors"
+                            >
+                                <X size={24} />
+                            </button>
+
+                            <div className="mb-8">
+                                <h2 className="text-3xl font-bold font-outfit text-foreground">{editingGoal ? "Edit Goal" : "Set New Goal"}</h2>
+                                <p className="text-sm text-muted font-inter mt-1">{editingGoal ? "Refine your productivity target." : "Define your target and start tracking."}</p>
+                            </div>
+
+                            <form onSubmit={handleCreateGoal} className="space-y-6">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-muted uppercase tracking-[0.2em]">Goal Name</label>
+                                    <input
+                                        required
+                                        className="w-full bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 outline-none focus:border-primary focus:bg-foreground/[0.08] transition-all font-inter text-sm text-foreground"
+                                        placeholder="e.g. Deep Work Session"
+                                        value={newGoal.label}
+                                        onChange={e => setNewGoal({ ...newGoal, label: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-muted uppercase tracking-[0.2em]">Target Time</label>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="relative group">
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                className="w-full bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 outline-none focus:border-primary focus:bg-foreground/[0.08] transition-all font-inter text-sm pr-12 text-foreground"
+                                                placeholder="0"
+                                                value={Math.floor(newGoal.targetSeconds / 3600)}
+                                                onChange={e => {
+                                                    const h = parseInt(e.target.value) || 0;
+                                                    const m = Math.floor((newGoal.targetSeconds % 3600) / 60);
+                                                    setNewGoal({ ...newGoal, targetSeconds: (h * 3600) + (m * 60) });
+                                                }}
+                                            />
+                                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] text-muted font-black group-focus-within:text-primary uppercase">HRS</span>
+                                        </div>
+                                        <div className="relative group">
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="59"
+                                                className="w-full bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 outline-none focus:border-primary focus:bg-foreground/[0.08] transition-all font-inter text-sm pr-12 text-foreground"
+                                                placeholder="0"
+                                                value={Math.floor((newGoal.targetSeconds % 3600) / 60)}
+                                                onChange={e => {
+                                                    const m = parseInt(e.target.value) || 0;
+                                                    const h = Math.floor(newGoal.targetSeconds / 3600);
+                                                    setNewGoal({ ...newGoal, targetSeconds: (h * 3600) + (m * 60) });
+                                                }}
+                                            />
+                                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] text-muted font-black group-focus-within:text-primary uppercase">MIN</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-muted uppercase tracking-[0.2em]">Goal Type</label>
+                                        <select
+                                            className="w-full bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 outline-none focus:border-primary focus:bg-foreground/[0.08] transition-all font-inter text-sm appearance-none cursor-pointer text-foreground"
+                                            value={newGoal.type}
+                                            onChange={e => setNewGoal({ ...newGoal, type: e.target.value })}
+                                        >
+                                            <option value="productive" className="bg-background text-foreground">Productive</option>
+                                            <option value="unproductive" className="bg-background text-foreground">Limit (Max)</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-muted uppercase tracking-[0.2em]">Website (Optional)</label>
+                                        <input
+                                            className="w-full bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 outline-none focus:border-primary focus:bg-foreground/[0.08] transition-all font-inter text-sm text-foreground"
+                                            placeholder="e.g. github.com"
+                                            value={newGoal.website}
+                                            onChange={e => setNewGoal({ ...newGoal, website: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <button type="submit" className="w-full bg-primary text-background font-bold py-4 rounded-2xl hover:scale-[1.02] transition-all shadow-xl shadow-primary/20 active:scale-95 text-sm mt-4">
+                                    {editingGoal ? "Update Goal Target" : "Create Goal Target"}
+                                </button>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

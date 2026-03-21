@@ -19,7 +19,7 @@ const Tracking = require("../models/Tracking");
 const Category = require("../models/Category");
 const Goal = require("../models/Goal");
 const FocusBlock = require("../models/FocusBlock");
-const PomodoroSession = require("../models/PomodoroSession");
+const DeepWorkSession = require("../models/DeepWorkSession");
 const { protect, generateAccessToken, generateRefreshToken } = require("../middleware/auth");
 const { authRateLimit } = require("../middleware/rateLimit");
 
@@ -152,7 +152,7 @@ router.get("/me", protect, (req, res) => {
 
 router.put("/preferences", protect, async (req, res, next) => {
     try {
-        const { theme, notifications, pomodoroWork, pomodoroBreak, weeklyGoalHours, strictMode, smartBlock, breakReminders } = req.body;
+        const { theme, notifications, deepWorkMinutes, breakMinutes, weeklyGoalHours, strictMode, smartBlock, breakReminders } = req.body;
 
         // 1. Force-delete the potentially corrupted field from the database
         if (notifications !== undefined) {
@@ -173,8 +173,8 @@ router.put("/preferences", protect, async (req, res, next) => {
                 daily: typeof notifications.daily === "boolean" ? notifications.daily : true,
             };
         }
-        if (pomodoroWork) user.preferences.pomodoroWork = pomodoroWork;
-        if (pomodoroBreak) user.preferences.pomodoroBreak = pomodoroBreak;
+        if (deepWorkMinutes) user.preferences.deepWorkMinutes = deepWorkMinutes;
+        if (breakMinutes) user.preferences.breakMinutes = breakMinutes;
         if (weeklyGoalHours) user.preferences.weeklyGoalHours = weeklyGoalHours;
 
         if (strictMode !== undefined) user.preferences.strictMode = strictMode;
@@ -237,7 +237,7 @@ router.delete("/account", protect, async (req, res, next) => {
             Category.deleteMany({ userId }),
             Goal.deleteMany({ userId }),
             FocusBlock.deleteMany({ userId }),
-            PomodoroSession.deleteMany({ userId }),
+            DeepWorkSession.deleteMany({ userId }),
             User.findByIdAndDelete(userId)
         ]);
 

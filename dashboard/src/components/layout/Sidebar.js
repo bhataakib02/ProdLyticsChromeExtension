@@ -14,7 +14,9 @@ import {
     LogOut,
     Sun,
     Moon,
-    Chrome
+    Chrome,
+    User as UserIcon,
+    ExternalLink
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
@@ -24,7 +26,7 @@ const menuItems = [
     { icon: BarChart3, label: "Analytics", href: "/analytics" },
     { icon: Target, label: "Goals", href: "/goals" },
     { icon: ShieldAlert, label: "Focus Mode", href: "/focus" },
-    { icon: Timer, label: "Pomodoro", href: "/pomodoro" },
+    { icon: Timer, label: "Deep Work", href: "/pomodoro" },
     { icon: Lightbulb, label: "AI Insights", href: "/insights" },
 ];
 
@@ -62,12 +64,41 @@ export default function Sidebar() {
                 ))}
             </nav>
 
-            <div className="pt-6 border-t border-foreground/5 space-y-4">
+            <div className="pt-6 border-t border-foreground/5 space-y-2">
+                <Link
+                    href="/profile"
+                    className={cn(
+                        "flex items-center gap-3 px-4 py-3 rounded-xl transition-all group",
+                        pathname === "/profile"
+                            ? "bg-primary/10 text-primary border border-primary/20"
+                            : "text-muted hover:text-foreground hover:bg-foreground/5"
+                    )}
+                >
+                    <UserIcon size={20} className={cn("transition-transform group-hover:scale-110", pathname === "/profile" && "text-primary")} />
+                    <span className="font-medium">My Profile</span>
+                </Link>
+                <Link
+                    href="/extension"
+                    className={cn(
+                        "flex items-center gap-3 px-4 py-3 rounded-xl transition-all group",
+                        pathname === "/extension"
+                            ? "bg-primary/10 text-primary border border-primary/20"
+                            : "text-muted hover:text-foreground hover:bg-foreground/5"
+                    )}
+                >
+                    <ExternalLink size={20} className={cn("transition-transform group-hover:scale-110", pathname === "/extension" && "text-primary")} />
+                    <span className="font-medium">Extension Setup</span>
+                </Link>
                 <Link
                     href="/settings"
-                    className="flex items-center gap-3 px-4 py-3 text-muted hover:text-foreground transition-all"
+                    className={cn(
+                        "flex items-center gap-3 px-4 py-3 rounded-xl transition-all group",
+                        pathname === "/settings"
+                            ? "bg-primary/10 text-primary border border-primary/20"
+                            : "text-muted hover:text-foreground hover:bg-foreground/5"
+                    )}
                 >
-                    <Settings size={20} />
+                    <Settings size={20} className={cn("transition-transform group-hover:scale-110", pathname === "/settings" && "text-primary")} />
                     <span className="font-medium">Settings</span>
                 </Link>
                 <button

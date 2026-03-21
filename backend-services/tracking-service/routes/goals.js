@@ -1,7 +1,8 @@
 /**
  * Goals Routes
  * GET  /api/goals        — get user goals
- * POST /api/goals        — create/update a goal
+ * POST /api/goals        — create/update a goal (upsert by type)
+ * PUT  /api/goals/:id    — update a specific goal by ID
  * DELETE /api/goals/:id   — delete a goal
  */
 
@@ -41,6 +42,31 @@ router.post("/", async (req, res, next) => {
             { upsert: true, new: true }
         );
 
+        res.json(goal);
+    } catch (err) {
+        next(err);
+    }
+});
+
+// UPDATE a specific goal
+router.put("/:id", async (req, res, next) => {
+    try {
+        const { type, website, targetSeconds, label, repeat, isActive } = req.body;
+        const update = {};
+        if (type) update.type = type;
+        if (website !== undefined) update.website = website.toLowerCase();
+        if (targetSeconds !== undefined) update.targetSeconds = targetSeconds;
+        if (label !== undefined) update.label = label;
+        if (repeat) update.repeat = repeat;
+        if (isActive !== undefined) update.isActive = isActive;
+
+        const goal = await Goal.findOneAndUpdate(
+            { _id: req.params.id, userId: req.user._id },
+            { $set: update },
+            { new: true }
+        );
+
+        if (!goal) return res.status(404).json({ error: "Goal not found" });
         res.json(goal);
     } catch (err) {
         next(err);

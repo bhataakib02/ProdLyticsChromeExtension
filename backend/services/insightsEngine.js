@@ -76,7 +76,7 @@ const generateInsights = async (userId) => {
     insights.push({
         type: "motivation",
         title: "Consistency is Key",
-        content: "You've completed 3 Pomodoro sessions today. Keep the momentum going!",
+        content: "You've completed 3 Deep Work sessions today. Keep the momentum going!",
         icon: "🔥",
         color: "orange",
     });

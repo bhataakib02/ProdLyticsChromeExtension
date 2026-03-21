@@ -1,11 +1,11 @@
 /**
- * PomodoroSession Model
- * Tracks each Pomodoro work/break session
+ * DeepWorkSession Model
+ * Tracks each Deep Work work/break session
  */
 
 const mongoose = require("mongoose");
 
-const PomodoroSessionSchema = new mongoose.Schema(
+const DeepWorkSessionSchema = new mongoose.Schema(
     {
         userId: {
             type: mongoose.Schema.Types.ObjectId,
@@ -26,12 +26,12 @@ const PomodoroSessionSchema = new mongoose.Schema(
         // Optional: what was the user working on?
         task: { type: String, default: "" },
 
-        // Active website during this pomodoro
+        // Active website during this session
         website: { type: String, default: "" },
     },
     { timestamps: true }
 );
 
-PomodoroSessionSchema.index({ userId: 1, startedAt: -1 });
+DeepWorkSessionSchema.index({ userId: 1, startedAt: -1 });
 
-module.exports = mongoose.model("PomodoroSession", PomodoroSessionSchema);
+module.exports = mongoose.model("DeepWorkSession", DeepWorkSessionSchema);

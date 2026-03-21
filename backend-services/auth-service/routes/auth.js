@@ -147,7 +147,7 @@ router.get("/me", protect, (req, res) => {
 
 router.put("/preferences", protect, async (req, res, next) => {
     try {
-        const { theme, notifications, pomodoroWork, pomodoroBreak, weeklyGoalHours, strictMode, smartBlock, breakReminders } = req.body;
+        const { theme, notifications, deepWorkMinutes, breakMinutes, weeklyGoalHours, strictMode, smartBlock, breakReminders } = req.body;
 
         // 1. Force-delete the potentially corrupted field from the database
         if (notifications !== undefined) {
@@ -168,9 +168,9 @@ router.put("/preferences", protect, async (req, res, next) => {
                 daily: typeof notifications.daily === "boolean" ? notifications.daily : true,
             };
         }
-        if (pomodoroWork) user.preferences.pomodoroWork = pomodoroWork;
-        if (pomodoroBreak) user.preferences.pomodoroBreak = pomodoroBreak;
-        if (weeklyGoalHours) user.preferences.weeklyGoalHours = weeklyGoalHours;
+        if (deepWorkMinutes !== undefined) user.preferences.deepWorkMinutes = deepWorkMinutes;
+        if (breakMinutes !== undefined) user.preferences.breakMinutes = breakMinutes;
+        if (weeklyGoalHours !== undefined) user.preferences.weeklyGoalHours = weeklyGoalHours;
 
         if (strictMode !== undefined) user.preferences.strictMode = strictMode;
         if (smartBlock !== undefined) user.preferences.smartBlock = smartBlock;

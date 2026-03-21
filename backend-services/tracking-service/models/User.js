@@ -42,9 +42,13 @@ const UserSchema = new mongoose.Schema(
                 focus: { type: Boolean, default: true },
                 daily: { type: Boolean, default: true },
             },
-            pomodoroWork: { type: Number, default: 25 },   // minutes
-            pomodoroBreak: { type: Number, default: 5 },    // minutes
+            deepWorkMinutes: { type: Number, default: 25 },
+            breakMinutes: { type: Number, default: 5 },
             weeklyGoalHours: { type: Number, default: 40 }, // hours of productive time per week
+            // Focus Mode Advanced Settings
+            strictMode: { type: Boolean, default: false },
+            smartBlock: { type: Boolean, default: false },
+            breakReminders: { type: Boolean, default: false },
         },
 
         // Account status

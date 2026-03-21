@@ -10,8 +10,7 @@ import {
     Globe,
     Plus,
     X,
-    Trash2,
-    RefreshCw
+    Trash2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -20,7 +19,6 @@ export default function FocusPage() {
     const [sites, setSites] = useState([]);
     const [newSite, setNewSite] = useState("");
     const [loading, setLoading] = useState(true);
-    const [syncing, setSyncing] = useState(false);
 
     const updatePreference = async (key, value) => {
         try {
@@ -45,7 +43,7 @@ export default function FocusPage() {
         setLoading(true);
         try {
             const token = localStorage.getItem("accessToken");
-            const res = await axios.get(`${API_URL}/focus`, {
+            const res = await axios.get(`${API_URL}/focus/`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             // Keep full objects to have _id
@@ -61,7 +59,7 @@ export default function FocusPage() {
         if (newSite && !sites.find(s => s.website === newSite)) {
             try {
                 const token = localStorage.getItem("accessToken");
-                const res = await axios.post(`${API_URL}/focus`, { website: newSite }, {
+                const res = await axios.post(`${API_URL}/focus/`, { site: newSite }, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setSites([...sites, res.data]);
@@ -87,7 +85,6 @@ export default function FocusPage() {
     };
 
     const syncWithExtension = () => {
-        setSyncing(true);
         const extensionId = "dfbcfgkpgbfbdjabippomkelpkboffen";
         console.log(`📡 Syncing blocklist to extension: ${extensionId}`);
         if (typeof window !== "undefined" && window.chrome && window.chrome.runtime) {
@@ -97,55 +94,45 @@ export default function FocusPage() {
                 } else {
                     console.log("✅ Blocklist synced successfully");
                 }
-                setTimeout(() => setSyncing(false), 1000);
             });
-        } else {
-            setSyncing(false);
         }
     };
 
     if (!user) return null;
 
     return (
-        <div className="p-8 max-w-4xl mx-auto space-y-8">
+        <div className="p-8 max-w-6xl mx-auto space-y-8">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-4xl font-bold flex items-center gap-4">
+                    <h1 className="text-4xl font-bold font-outfit tracking-tight flex items-center gap-4">
                         <ShieldAlert className="text-accent" size={40} />
                         Focus Mode
                     </h1>
-                    <p className="text-muted mt-2">Manage your blocklist and eliminate distractions locally and in the extension.</p>
+                    <p className="text-muted mt-2 font-inter text-sm">Manage your blocklist and eliminate distractions locales across synced browsers.</p>
                 </div>
-                <button
-                    onClick={syncWithExtension}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-foreground/5 border border-foreground/10 hover:bg-foreground/10 transition-all ${syncing ? 'opacity-50' : ''}`}
-                >
-                    <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
-                    {syncing ? 'Syncing...' : 'Sync Extension'}
-                </button>
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Blocklist Management */}
-                <div className="glass-card p-8 space-y-6">
-                    <h2 className="text-xl font-bold flex items-center gap-3">
-                        <Lock className="text-muted" size={20} />
+                <div className="glass-card p-8 space-y-8">
+                    <h2 className="text-[10px] font-black uppercase text-muted tracking-[0.2em] flex items-center gap-3 border-b border-foreground/5 pb-4">
+                        <Lock className="text-primary" size={16} />
                         Active Blocklist
                     </h2>
 
-                    <div className="relative">
-                        <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" size={18} />
+                    <div className="relative group">
+                        <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-primary transition-colors" size={18} />
                         <input
                             type="text"
                             value={newSite}
                             onChange={(e) => setNewSite(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && addSite()}
                             placeholder="Add website (e.g. reddit.com)..."
-                            className="w-full bg-foreground/5 border border-foreground/10 rounded-xl py-3 pl-12 pr-12 focus:outline-none focus:border-primary transition-all text-sm"
+                            className="w-full bg-foreground/5 border border-foreground/10 rounded-xl py-4 pl-12 pr-12 focus:outline-none focus:border-primary focus:bg-foreground/[0.08] transition-all text-sm font-inter"
                         />
                         <button
                             onClick={addSite}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary text-background p-2 rounded-lg hover:scale-110 transition-all"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 bg-primary text-background p-2.5 rounded-xl hover:scale-110 active:scale-95 transition-all shadow-lg shadow-primary/20"
                         >
                             <Plus size={18} />
                         </button>

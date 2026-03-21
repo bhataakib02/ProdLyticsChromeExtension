@@ -35,7 +35,7 @@ const services = [
         target: process.env.TRACKING_SERVICE_URL || 'http://localhost:5002'
     },
     {
-        route: '/api/pomodoro',
+        route: '/api/deepwork',
         target: process.env.TRACKING_SERVICE_URL || 'http://localhost:5002'
     },
     {

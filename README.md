@@ -18,7 +18,7 @@
 ---
 
 ## 🌟 Our Vision
-In an age of digital distraction, AERO's mission is to give you back your focus. By leveraging **Neural Inference**, we don't just track *where* you spend time, but *how* that time impacts your cognitive state. AERO is built to be the "Second Brain" for your productivity, auto-adjusting your environment to keep you in the Flow Zone.
+In an age of digital distraction, AERO's mission is to give you back your focus. By leveraging **Neural Inference**, we don't just track *where* you spend time, but *how* that time impacts your cognitive state. AERO is built to be the "Second Brain" for your productivity, auto-adjusting your environment to keep you in the Deep Work Zone.
 
 ---
 
@@ -68,7 +68,7 @@ The core tracking engine resides in the extension's background service worker an
 Manages the user lifecycle and security.
 - **JWT Implementation**: Uses short-lived access tokens and long-lived refresh tokens.
 - **Google OAuth**: Integrated Passport strategy for one-click onboarding.
-- **Preference Sync**: Stores theme, notification, and Pomodoro settings centrally.
+- **Preference Sync**: Stores theme, notification, and Deep Work settings centrally.
 
 ### **3. Tracking Service (`:5002`)**
 The high-velocity data ingestion engine.
@@ -106,7 +106,7 @@ FastAPI-based Python engine for cognitive analysis.
 ## 💾 Database Schema (MongoDB Atlas)
 
 ### **User Document**
-- `preferences`: { `theme`, `notifications`, `pomodoroWork`, `strictMode`, etc. }
+- `preferences`: { `theme`, `notifications`, `pomoWork` (Internal), `strictMode`, etc. }
 - `googleId`: (Optional) for OAuth users.
 - `lastSeen`: Updated on every dashboard visit.
 

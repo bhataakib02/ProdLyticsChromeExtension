@@ -21,7 +21,7 @@ const trackingRoutes = require("./routes/tracking");
 const categoriesRoutes = require("./routes/categories");
 const goalsRoutes = require("./routes/goals");
 const focusRoutes = require("./routes/focus");
-const pomodoroRoutes = require("./routes/pomodoro");
+const pomodoroRoutes = require("./routes/deepwork");
 const insightsRoutes = require("./routes/insights");
 
 // Middleware imports
@@ -86,7 +86,7 @@ app.use("/api/tracking", trackingRoutes);
 app.use("/api/categories", categoriesRoutes);
 app.use("/api/goals", goalsRoutes);
 app.use("/api/focus", focusRoutes);
-app.use("/api/pomodoro", pomodoroRoutes);
+app.use("/api/deepwork", pomodoroRoutes);
 app.use("/api/insights", insightsRoutes);
 
 // Health check

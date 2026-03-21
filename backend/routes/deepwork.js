@@ -1,13 +1,13 @@
 /**
- * Pomodoro Routes
- * GET  /api/pomodoro        — get session history
- * POST /api/pomodoro/start  — start a new session
- * PUT  /api/pomodoro/end    — complete/interrupt a session
+ * Deep Work Routes
+ * GET  /api/deepwork        — get session history
+ * POST /api/deepwork/start  — start a new session
+ * PUT  /api/deepwork/end    — complete/interrupt a session
  */
 
 const express = require("express");
 const router = express.Router();
-const PomodoroSession = require("../models/PomodoroSession");
+const DeepWorkSession = require("../models/DeepWorkSession");
 const { protect } = require("../middleware/auth");
 
 router.use(protect);
@@ -15,7 +15,7 @@ router.use(protect);
 // GET history
 router.get("/", async (req, res, next) => {
     try {
-        const history = await PomodoroSession.find({ userId: req.user._id })
+        const history = await DeepWorkSession.find({ userId: req.user._id })
             .sort({ startedAt: -1 })
             .limit(50);
         res.json(history);
@@ -28,7 +28,7 @@ router.get("/", async (req, res, next) => {
 router.post("/start", async (req, res, next) => {
     try {
         const { type, durationMinutes, task, website } = req.body;
-        const session = await PomodoroSession.create({
+        const session = await DeepWorkSession.create({
             userId: req.user._id,
             type: type || "work",
             durationMinutes: durationMinutes || 25,
@@ -46,7 +46,7 @@ router.post("/start", async (req, res, next) => {
 router.put("/end/:id", async (req, res, next) => {
     try {
         const { completed, actualMinutes } = req.body;
-        const session = await PomodoroSession.findOneAndUpdate(
+        const session = await DeepWorkSession.findOneAndUpdate(
             { _id: req.params.id, userId: req.user._id },
             { completed, actualMinutes, endedAt: new Date() },
             { new: true }
