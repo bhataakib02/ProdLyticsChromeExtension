@@ -11,15 +11,18 @@ export function Providers({ children }) {
     useEffect(() => {
         const savedTheme = localStorage.getItem("theme") || "dark";
         setTheme(savedTheme);
-        document.documentElement.classList.toggle("dark", savedTheme === "dark");
         setMounted(true);
     }, []);
 
+    useEffect(() => {
+        if (!mounted) return;
+        localStorage.setItem("theme", theme);
+        // Toggle 'light' class because 'dark' is the default root style in globals.css
+        document.documentElement.classList.toggle("light", theme === "light");
+    }, [theme, mounted]);
+
     const toggleTheme = () => {
-        const newTheme = theme === "dark" ? "light" : "dark";
-        setTheme(newTheme);
-        localStorage.setItem("theme", newTheme);
-        document.documentElement.classList.toggle("dark", newTheme === "dark");
+        setTheme(prev => prev === "dark" ? "light" : "dark");
     };
 
     if (!mounted) {

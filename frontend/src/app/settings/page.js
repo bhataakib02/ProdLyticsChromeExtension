@@ -15,12 +15,13 @@ import {
 import { useAuth, API_URL } from "@/context/AuthContext";
 import { motion } from "framer-motion";
 import axios from "axios";
+import { useTheme } from "@/components/layout/Providers";
 
 export default function SettingsPage() {
     const { user, checkUser, logout } = useAuth();
+    const { theme, setTheme: setGlobalTheme } = useTheme();
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
-    const [theme, setTheme] = useState("dark");
     const [notifications, setNotifications] = useState({ focus: true, daily: true });
     const [weeklyGoalHours, setWeeklyGoalHours] = useState(40);
     const [deepWorkMinutes, setDeepWorkMinutes] = useState(25);
@@ -32,7 +33,7 @@ export default function SettingsPage() {
         if (user) {
             setName(user.name || "");
             setEmail(user.email || "");
-            setTheme(user.preferences?.theme || "dark");
+            setGlobalTheme(user.preferences?.theme || "dark");
             setWeeklyGoalHours(user.preferences?.weeklyGoalHours || 40);
             setDeepWorkMinutes(user.preferences?.deepWorkMinutes || 25);
             setBreakMinutes(user.preferences?.breakMinutes || 5);

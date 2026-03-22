@@ -33,7 +33,7 @@ const menuItems = [
 export default function Sidebar() {
     const pathname = usePathname();
     const { logout, user } = useAuth();
-    const { theme, setTheme } = useTheme();
+    const { theme, toggleTheme } = useTheme();
 
     if (!user) return null;
 
@@ -102,7 +102,7 @@ export default function Sidebar() {
                     <span className="font-medium">Settings</span>
                 </Link>
                 <button
-                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                    onClick={toggleTheme}
                     className="flex items-center gap-3 px-4 py-3 w-full text-muted hover:text-foreground transition-all"
                 >
                     {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
