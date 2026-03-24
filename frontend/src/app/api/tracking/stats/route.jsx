@@ -1,24 +1,42 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@backend/db/mongodb';
-import Tracking from '@backend/models/Tracking';
+import mongoose from 'mongoose';
+import dbConnect from '../../../../../../backend/db/mongodb.jsx';
+import Tracking from '../../../../../../backend/models/Tracking.jsx';
 
 const MOCK_USER_ID = "65f1a2b3c4d5e6f7a8b9c0d1";
 
 export async function GET(req) {
     try {
+        console.log("📊 [STATS] Fetching tracking stats...");
         await dbConnect();
+        console.log("🔌 [STATS] Database connected. ReadyState:", mongoose.connection.readyState);
+
         const { searchParams } = new URL(req.url);
         const range = searchParams.get('range') || 'today';
+        console.log(`🔍 [STATS] Range: ${range}`);
 
         const now = new Date();
+        console.log(`🕒 [STATS] Current Time (Server): ${now.toISOString()}`);
+
         let start;
         if (range === 'today') start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         else if (range === 'week') start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         else if (range === 'month') start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         else start = new Date(0);
 
+        if (isNaN(start.getTime())) {
+            console.error("❌ [STATS] Invalid Start Date calculated:", start);
+            throw new Error("Invalid Start Date calculated");
+        }
+        console.log(`📅 [STATS] Start Date: ${start.toISOString()}`);
+
+        console.log(`👤 [STATS] Using MOCK_USER_ID: ${MOCK_USER_ID}`);
+        const userObjectId = new mongoose.Types.ObjectId(MOCK_USER_ID);
+        console.log(`🆔 [STATS] User ObjectId: ${userObjectId}`);
+
+        console.log("🧬 [STATS] Running aggregation...");
         const data = await Tracking.aggregate([
-            { $match: { userId: MOCK_USER_ID, date: { $gte: start } } },
+            { $match: { userId: userObjectId, date: { $gte: start } } },
             {
                 $group: {
                     _id: "$category",
@@ -26,20 +44,28 @@ export async function GET(req) {
                 },
             },
         ]);
+        console.log("📈 [STATS] Aggregation result:", JSON.stringify(data, null, 2));
 
         let productiveTime = 0, unproductiveTime = 0, neutralTime = 0;
         data.forEach(({ _id, totalTime }) => {
             if (_id === "productive") productiveTime = totalTime;
             else if (_id === "unproductive") unproductiveTime = totalTime;
-            else neutralTime = totalTime;
+            else neutralTime = (neutralTime || 0) + totalTime;
         });
 
         const totalTime = productiveTime + unproductiveTime + neutralTime;
         const denominator = productiveTime + unproductiveTime + neutralTime * 0.5;
         const score = denominator > 0 ? Math.round((productiveTime / denominator) * 100) : 0;
 
+        console.log(`✅ [STATS] Returning totals: Prod=${productiveTime}, Unprod=${unproductiveTime}, Neut=${neutralTime}, Score=${score}`);
+
         return NextResponse.json({ score, totalTime, productiveTime, unproductiveTime, neutralTime });
     } catch (err) {
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        console.error("❌ [STATS] Tracking Stats API Error:", err.message);
+        console.error("❌ [STATS] Stack Trace:", err.stack);
+        return NextResponse.json({
+            error: err.message,
+            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        }, { status: 500 });
     }
 }

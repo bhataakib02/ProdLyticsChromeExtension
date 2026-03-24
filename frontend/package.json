@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@aero/backend": "file:../backend",
+    "aero-productivity-suite": "file:..",
     "axios": "^1.13.6",
     "clsx": "^2.1.1",
     "d3": "^7.9.0",

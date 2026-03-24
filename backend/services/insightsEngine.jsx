@@ -84,4 +84,4 @@ const generateInsights = async (userId) => {
     return insights;
 };
 
-export const insightsEngine = { generateInsights };
+export default { generateInsights };

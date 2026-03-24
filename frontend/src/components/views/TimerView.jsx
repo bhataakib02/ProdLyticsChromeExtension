@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Zap, Coffee, Play, Pause, RotateCcw } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { trackingService } from "@/services/tracking.service";
 

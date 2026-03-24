@@ -1,10 +1,5 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/aero-productivity';
-
-if (!MONGODB_URI) {
-    throw new Error('Please define the MONGO_URI environment variable inside .env');
-}
 
 let cached = global.mongoose;
 
@@ -13,7 +8,14 @@ if (!cached) {
 }
 
 async function dbConnect() {
+    const MONGODB_URI = process.env.MONGO_URI;
+
+    if (!MONGODB_URI) {
+        console.error("❌ MONGO_URI is missing from process.env!");
+        throw new Error('Please define the MONGO_URI environment variable inside .env');
+    }
     if (cached.conn) {
+        console.log("✅ Using cached MongoDB connection");
         return cached.conn;
     }
 
@@ -22,12 +24,18 @@ async function dbConnect() {
             bufferCommands: false,
         };
 
+        console.log("📡 Connecting to MongoDB:", MONGODB_URI);
         cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+            console.log("🟢 New MongoDB connection established");
             return mongoose;
+        }).catch(err => {
+            console.error("🔴 MongoDB connection error:", err);
+            cached.promise = null;
+            throw err;
         });
     }
     cached.conn = await cached.promise;
     return cached.conn;
 }
 
-export default connectDB;
+export default dbConnect;

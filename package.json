@@ -3,8 +3,11 @@
     "version": "1.0.0",
     "description": "Root package for AERO productivity suite",
     "scripts": {
-        "install:all": "npm install --prefix extension && npm install --prefix frontend",
+        "install:all": "npm install --prefix extension && npm install --prefix frontend && npm install --prefix backend",
         "dev": "npx -y concurrently -n \"front,ext\" -c \"bgYellow,bgCyan\" \"npm run dev --prefix frontend\" \"npm run dev --prefix extension\"",
         "build:ext": "npm run build --prefix extension"
+    },
+    "dependencies": {
+        "mongoose": "^9.3.1"
     }
 }

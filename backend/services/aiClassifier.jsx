@@ -86,4 +86,4 @@ const classify = (url, title = "", content = "") => {
     return { category: "neutral", confidence: 0.5, tags: [] };
 };
 
-export const aiClassifier = { classify };
+export default { classify };

@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@backend/db/mongodb';
-import Tracking from '@backend/models/Tracking';
-import Category from '@backend/models/Category';
-import aiClassifier from '@backend/services/aiClassifier';
+import mongoose from 'mongoose';
+import dbConnect from '../../../../../backend/db/mongodb.jsx';
+import Tracking from '../../../../../backend/models/Tracking.jsx';
+import Category from '../../../../../backend/models/Category.jsx';
+import aiClassifier from '../../../../../backend/services/aiClassifier.jsx';
 
 // Mock user ID for now since auth is mocked in frontend
 const MOCK_USER_ID = "65f1a2b3c4d5e6f7a8b9c0d1";
@@ -76,7 +77,7 @@ export async function GET(req) {
         else start = new Date(0);
 
         const data = await Tracking.aggregate([
-            { $match: { userId: MOCK_USER_ID, date: { $gte: start } } },
+            { $match: { userId: new mongoose.Types.ObjectId(MOCK_USER_ID), date: { $gte: start } } },
             {
                 $group: {
                     _id: "$website",
@@ -91,6 +92,7 @@ export async function GET(req) {
 
         return NextResponse.json(data);
     } catch (err) {
+        console.error("Tracking GET Error:", err);
         return NextResponse.json({ error: err.message }, { status: 500 });
     }
 }
@@ -101,6 +103,7 @@ export async function DELETE(req) {
         await Tracking.deleteMany({ userId: MOCK_USER_ID });
         return NextResponse.json({ success: true, message: "Cleared all data" });
     } catch (err) {
+        console.error("Tracking DELETE Error:", err);
         return NextResponse.json({ error: err.message }, { status: 500 });
     }
 }

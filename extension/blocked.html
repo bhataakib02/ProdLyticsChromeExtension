@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AERO | Focus Restricted</title>
+    <link rel="stylesheet" href="blocked.css">
+</head>
+<body class="dark">
+    <div class="glow-container">
+        <div class="glow glow-1"></div>
+        <div class="glow glow-2"></div>
+    </div>
+
+    <div class="content-wrapper">
+        <div class="card glass">
+            <div class="icon-wrapper bg-accent">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lock-icon"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            
+            <h1 class="font-times">Focus Mode Active</h1>
+            <p class="description font-times">This destination has been restricted by your <strong>Neural Blocklist</strong> to preserve your productivity flow.</p>
+            
+            <div class="stats-row">
+                <div class="stat-item">
+                    <span class="stat-label">MODE</span>
+                    <span class="stat-value text-accent">STRICT LOCK</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <span class="stat-label">STATUS</span>
+                    <span class="stat-value text-success">SHIELDED</span>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button id="backBtn" class="btn btn-primary font-times">Return to Dashboard</button>
+                <p class="footer-note font-times">Your time is your most valuable currency.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="blocked.js"></script>
+</body>
+</html>
