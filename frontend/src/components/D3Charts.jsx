@@ -7,7 +7,7 @@ export default function BurnoutRiskChart({ data }) {
     const svgRef = useRef(null);
 
     useEffect(() => {
-        if (!data || data.length === 0 || !svgRef.current) return;
+        if (!data || !Array.isArray(data) || data.length === 0 || !svgRef.current) return;
 
         // Clear previous chart on re-render
         d3.select(svgRef.current).selectAll("*").remove();

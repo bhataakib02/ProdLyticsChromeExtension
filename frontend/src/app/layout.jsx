@@ -1,7 +1,5 @@
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
-import Sidebar from "@/components/layout/Sidebar";
-import Navbar from "@/components/layout/Navbar";
 import { Providers } from "@/components/layout/Providers";
 import { DashboardProvider } from "@/context/DashboardContext";
 
@@ -10,10 +8,13 @@ export const metadata = {
   description: "Advanced time tracking and productivity analytics",
 };
 
+import Sidebar from "@/components/layout/Sidebar";
+import Navbar from "@/components/layout/Navbar";
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="antialiased">
+      <body className="antialiased font-outfit">
         <Providers>
           <AuthProvider>
             <DashboardProvider>

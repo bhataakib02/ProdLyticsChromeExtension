@@ -75,11 +75,10 @@ TrackingSchema.index({ userId: 1, date: -1 });
 TrackingSchema.index({ userId: 1, website: 1, date: -1 });
 
 // Auto-fill hour and dayOfWeek before saving
-TrackingSchema.pre("save", function (next) {
+TrackingSchema.pre("save", function () {
     const d = this.date || new Date();
     this.hour = d.getHours();
     this.dayOfWeek = d.getDay();
-    next();
 });
 
 export default mongoose.models.Tracking || mongoose.model("Tracking", TrackingSchema);

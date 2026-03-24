@@ -12,21 +12,12 @@ import InsightsView from "@/components/views/InsightsView";
 import ProfileView from "@/components/views/ProfileView";
 import SettingsView from "@/components/views/SettingsView";
 import SetupView from "@/components/views/SetupView";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 export default function DashboardSPA() {
   const { user, loading } = useAuth();
   const { activeTab, setActiveTab } = useDashboard();
-  const router = useRouter();
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
-    }
-  }, [user, loading, router]);
-
-  if (loading || !user) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />

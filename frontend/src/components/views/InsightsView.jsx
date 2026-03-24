@@ -32,7 +32,7 @@ export default function InsightsView() {
                 trackingService.getCognitiveLoad()
             ]);
             setMetrics(metricsData);
-            setCognitiveMetrics(cognitiveData);
+            setCognitiveMetrics(Array.isArray(cognitiveData) ? cognitiveData : []);
         } catch (err) { console.error("error fetching insights:", err); }
     }
 

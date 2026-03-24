@@ -41,14 +41,21 @@ export default function OverviewView({ onTabChange }) {
     async function synchronizeOverview() {
         setLoading(true);
         try {
-            const [metricsData, objectivesData, domainsData] = await Promise.all([
+            const [metricsData, objectivesData, domainsData] = await Promise.allSettled([
                 trackingService.getSummary(),
                 goalsService.getObjectives(),
                 trackingService.getMetrics("today")
             ]);
-            setMetrics(metricsData);
-            setObjectives(objectivesData);
-            setTopDomains(domainsData.slice(0, 5));
+
+            if (metricsData.status === "fulfilled" && metricsData.value && !metricsData.value.error) {
+                setMetrics(prev => ({ ...prev, ...metricsData.value }));
+            }
+            if (objectivesData.status === "fulfilled" && Array.isArray(objectivesData.value)) {
+                setObjectives(objectivesData.value);
+            }
+            if (domainsData.status === "fulfilled" && Array.isArray(domainsData.value)) {
+                setTopDomains(domainsData.value.slice(0, 5));
+            }
         } catch (err) {
             console.error("error fetching overview data:", err);
         } finally {

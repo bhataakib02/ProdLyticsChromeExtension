@@ -1,18 +1,14 @@
-/** @type {import('next').NextConfig} */
 import { fileURLToPath } from "url";
-
-const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const __projectRoot = fileURLToPath(new URL("..", import.meta.url));
 
+/** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ["@backend"],
-  // Next.js moved `experimental.serverComponentsExternalPackages` -> `serverExternalPackages`
+  transpilePackages: ["@aero/backend"],
   serverExternalPackages: ["mongoose"],
   experimental: {
-    externalDir: true,
+    // Disabled experimental features to resolve SSR hang
   },
   turbopack: {
-    // Allow resolving local shared code (backend folder) inside this monorepo
     root: __projectRoot,
   },
 };

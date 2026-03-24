@@ -25,10 +25,6 @@ export function Providers({ children }) {
         setTheme(prev => prev === "dark" ? "light" : "dark");
     };
 
-    if (!mounted) {
-        return <div style={{ visibility: "hidden" }}>{children}</div>;
-    }
-
     return (
         <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
             {children}
@@ -40,7 +36,7 @@ export const useTheme = () => {
     const context = useContext(ThemeContext);
     if (!context) {
         // Fallback to avoid crash in Sidebar if it's rendered outside or during weird HMR
-        return { theme: "dark", setTheme: () => {}, toggleTheme: () => {} };
+        return { theme: "dark", setTheme: () => { }, toggleTheme: () => { } };
     }
     return context;
 };

@@ -27,8 +27,8 @@ async function dbConnect() {
         console.error("❌ MONGO_URI is missing from process.env!");
         throw new Error('Please define the MONGO_URI environment variable inside .env');
     }
-    if (cached.conn) {
-        console.log("✅ Using cached MongoDB connection");
+    if (cached.conn && mongoose.connection.readyState === 1) {
+        console.log("✅ Using active cached MongoDB connection");
         return cached.conn;
     }
 
@@ -41,10 +41,10 @@ async function dbConnect() {
     if (!cached.promise) {
         const opts = {
             bufferCommands: false,
-            // Fail fast when MongoDB DNS/network is unreachable
-            serverSelectionTimeoutMS: 1500,
-            connectTimeoutMS: 1500,
-            socketTimeoutMS: 3000,
+            // Increased timeouts to prevent fake failures under heavy Next.js dev server CPU load
+            serverSelectionTimeoutMS: 10000,
+            connectTimeoutMS: 10000,
+            socketTimeoutMS: 20000,
         };
 
         console.log("📡 Connecting to MongoDB:", MONGODB_URI);

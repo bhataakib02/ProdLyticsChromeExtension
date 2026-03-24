@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
-import dbConnect, { isDbUnavailableError } from '../../../../../backend/db/mongodb.jsx';
-import Tracking from '../../../../../backend/models/Tracking.jsx';
-import Category from '../../../../../backend/models/Category.jsx';
-import aiClassifier from '../../../../../backend/services/aiClassifier.jsx';
+import dbConnect, { isDbUnavailableError } from '../../../../../backend/db/mongodb.js';
+import Tracking from '../../../../../backend/models/Tracking.js';
+import Category from '../../../../../backend/models/Category.js';
+import aiClassifier from '../../../../../backend/services/aiClassifier.js';
+import { withCors, corsOptions } from '@/lib/cors';
+
+export async function OPTIONS() {
+    return corsOptions();
+}
 
 // Mock user ID for now since auth is mocked in frontend
 const MOCK_USER_ID = "65f1a2b3c4d5e6f7a8b9c0d1";
@@ -12,9 +17,10 @@ export async function POST(req) {
         await dbConnect();
         const body = await req.json();
         const { website, time, pageTitle, scrolls, clicks, content } = body;
+        console.log(`📡 [API] Received tracking data for: ${website} (${time}s)`);
 
         if (!website || typeof time !== 'number' || time <= 0) {
-            return NextResponse.json({ error: "Invalid data" }, { status: 400 });
+            return withCors(NextResponse.json({ error: "Invalid data" }, { status: 400 }));
         }
 
         // Determine category
@@ -54,14 +60,14 @@ export async function POST(req) {
             date: new Date(),
         });
 
-        return NextResponse.json({ success: true, category });
+        return withCors(NextResponse.json({ success: true, category }));
     } catch (err) {
         console.error("Tracking POST Error:", err);
         if (isDbUnavailableError(err)) {
             // Keep extension flow usable when MongoDB is temporarily unreachable.
-            return NextResponse.json({ success: true, category: "neutral", offline: true });
+            return withCors(NextResponse.json({ success: true, category: "neutral", offline: true }));
         }
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        return withCors(NextResponse.json({ error: err.message }, { status: 500 }));
     }
 }
 
@@ -93,13 +99,13 @@ export async function GET(req) {
             { $limit: 50 },
         ]);
 
-        return NextResponse.json(data);
+        return withCors(NextResponse.json(data));
     } catch (err) {
         console.error("Tracking GET Error:", err);
         if (isDbUnavailableError(err)) {
-            return NextResponse.json([]);
+            return withCors(NextResponse.json([]));
         }
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        return withCors(NextResponse.json({ error: err.message }, { status: 500 }));
     }
 }
 
@@ -107,12 +113,12 @@ export async function DELETE(req) {
     try {
         await dbConnect();
         await Tracking.deleteMany({ userId: MOCK_USER_ID });
-        return NextResponse.json({ success: true, message: "Cleared all data" });
+        return withCors(NextResponse.json({ success: true, message: "Cleared all data" }));
     } catch (err) {
         console.error("Tracking DELETE Error:", err);
         if (isDbUnavailableError(err)) {
-            return NextResponse.json({ success: true, message: "Cleared all data (offline mode)" });
+            return withCors(NextResponse.json({ success: true, message: "Cleared all data (offline mode)" }));
         }
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        return withCors(NextResponse.json({ error: err.message }, { status: 500 }));
     }
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
-import dbConnect, { isDbUnavailableError } from '../../../../../../backend/db/mongodb.jsx';
-import Tracking from '../../../../../../backend/models/Tracking.jsx';
+import dbConnect, { isDbUnavailableError } from '../../../../../../backend/db/mongodb.js';
+import Tracking from '../../../../../../backend/models/Tracking.js';
 
 const MOCK_USER_ID = "65f1a2b3c4d5e6f7a8b9c0d1";
 

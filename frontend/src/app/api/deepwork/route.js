@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
-import dbConnect, { isDbUnavailableError } from '../../../../../backend/db/mongodb.jsx';
-import DeepWorkSession from '../../../../../backend/models/DeepWorkSession.jsx';
+import dbConnect, { isDbUnavailableError } from '../../../../../backend/db/mongodb.js';
+import DeepWorkSession from '../../../../../backend/models/DeepWorkSession.js';
 
 const MOCK_USER_ID = "65f1a2b3c4d5e6f7a8b9c0d1";
 
