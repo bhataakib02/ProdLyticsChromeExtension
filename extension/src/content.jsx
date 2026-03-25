@@ -6,12 +6,14 @@
 
 const sendPageLoaded = () => {
     if (document.body) {
-        chrome.runtime.sendMessage({
-            action: "pageLoaded",
-            url: window.location.href,
-            title: document.title,
-            content: document.body.innerText.substring(0, 500) // Send snippet for AI
-        });
+        try {
+            chrome.runtime.sendMessage({
+                action: "pageLoaded",
+                url: window.location.href,
+                title: document.title,
+                content: document.body.innerText.substring(0, 500) // Send snippet for AI
+            });
+        } catch (err) { }
     } else {
         // Wait for body to be available
         setTimeout(sendPageLoaded, 100);
@@ -21,10 +23,12 @@ const sendPageLoaded = () => {
 sendPageLoaded();
 
 const observer = new MutationObserver(() => {
-    chrome.runtime.sendMessage({
-        action: "titleChanged",
-        title: document.title,
-    });
+    try {
+        chrome.runtime.sendMessage({
+            action: "titleChanged",
+            title: document.title,
+        });
+    } catch (err) { }
 });
 
 const titleNode = document.querySelector("title");
@@ -42,12 +46,16 @@ window.addEventListener("click", () => clickCount++);
 // Send activity metrics every 15 seconds
 setInterval(() => {
     if (scrollCount > 0 || clickCount > 0) {
-        chrome.runtime.sendMessage({
-            action: "engagementActivity",
-            scrolls: scrollCount,
-            clicks: clickCount,
-            url: window.location.href
-        });
+        try {
+            chrome.runtime.sendMessage({
+                action: "engagementActivity",
+                scrolls: scrollCount,
+                clicks: clickCount,
+                url: window.location.href
+            });
+        } catch (err) {
+            console.warn("ProdLytics Extension reloaded in the background. Please refresh this page to resume tracking.");
+        }
         scrollCount = 0;
         clickCount = 0;
     }

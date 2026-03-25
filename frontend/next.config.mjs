@@ -3,7 +3,7 @@ const __projectRoot = fileURLToPath(new URL("..", import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ["@aero/backend"],
+  transpilePackages: ["@prodlytics/backend"],
   serverExternalPackages: ["mongoose"],
   experimental: {
     // Disabled experimental features to resolve SSR hang

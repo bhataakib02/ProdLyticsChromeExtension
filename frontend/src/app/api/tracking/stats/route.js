@@ -57,14 +57,50 @@ export async function GET(req) {
         const denominator = productiveTime + unproductiveTime + neutralTime * 0.5;
         const score = denominator > 0 ? Math.round((productiveTime / denominator) * 100) : 0;
 
-        console.log(`✅ [STATS] Returning totals: Prod=${productiveTime}, Unprod=${unproductiveTime}, Neut=${neutralTime}, Score=${score}`);
+        console.log("🧬 [STATS] Running Peak Hour aggregation...");
+        const peakHourData = await Tracking.aggregate([
+            { $match: { userId: userObjectId, date: { $gte: start }, category: "productive" } },
+            { $group: { _id: "$hour", totalTime: { $sum: "$time" } } },
+            { $sort: { totalTime: -1 } },
+            { $limit: 1 }
+        ]);
+        const peakHour = peakHourData.length > 0 ? peakHourData[0]._id : null;
 
-        return NextResponse.json({ score, totalTime, productiveTime, unproductiveTime, neutralTime });
+        console.log("🧬 [STATS] Running Streak aggregation...");
+        const activeDaysData = await Tracking.aggregate([
+            { $match: { userId: userObjectId, category: "productive" } },
+            { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } } } },
+            { $sort: { _id: -1 } }
+        ]);
+
+        let streak = 0;
+        let todayStr = new Date().toISOString().split('T')[0];
+        let yesterdayStr = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+        let hasToday = activeDaysData.some(d => d._id === todayStr);
+        let hasYesterday = activeDaysData.some(d => d._id === yesterdayStr);
+
+        if (hasToday || hasYesterday) {
+            let currentCheckDate = hasToday ? new Date() : new Date(Date.now() - 86400000);
+            while (true) {
+                const checkStr = currentCheckDate.toISOString().split('T')[0];
+                if (activeDaysData.some(d => d._id === checkStr)) {
+                    streak++;
+                    currentCheckDate.setDate(currentCheckDate.getDate() - 1);
+                } else {
+                    break;
+                }
+            }
+        }
+
+        console.log(`✅ [STATS] Returning totals: Prod=${productiveTime}, Unprod=${unproductiveTime}, Neut=${neutralTime}, Score=${score}, Streak=${streak}, PeakHour=${peakHour}`);
+
+        return NextResponse.json({ score, totalTime, productiveTime, unproductiveTime, neutralTime, streak, peakHour });
     } catch (err) {
         console.error("❌ [STATS] Tracking Stats API Error:", err.message);
         console.error("❌ [STATS] Stack Trace:", err.stack);
         if (isDbUnavailableError(err)) {
-            return NextResponse.json({ score: 0, totalTime: 0, productiveTime: 0, unproductiveTime: 0, neutralTime: 0 });
+            return NextResponse.json({ score: 0, totalTime: 0, productiveTime: 0, unproductiveTime: 0, neutralTime: 0, streak: 0, peakHour: null });
         }
         return NextResponse.json({
             error: err.message,

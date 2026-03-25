@@ -57,7 +57,7 @@ export default function ProfileView() {
 
                 <div className="glass-card overflow-hidden">
                     <div className="p-6 border-b border-white/5 flex items-center gap-3 bg-white/[0.02]">
-                        <Target className="text-accent" size={20} />
+                        <Target className="text-secondary" size={20} />
                         <h2 className="font-bold uppercase tracking-wider text-sm">Productivity Goals</h2>
                     </div>
                     <div className="p-8">

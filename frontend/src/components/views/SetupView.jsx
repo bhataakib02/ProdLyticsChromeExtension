@@ -20,14 +20,14 @@ export default function SetupView() {
     return (
         <div className="p-8 max-w-5xl mx-auto space-y-16 relative">
             <header className="text-center space-y-6">
-                <div className="w-20 h-20 rounded-[2rem] bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mx-auto mb-8 shadow-2xl border border-white/10"><Chrome className="text-primary" size={40} /></div>
-                <h1 className="text-6xl font-black tracking-tighter bg-gradient-to-r from-white to-white/40 bg-clip-text text-transparent">AERO Extension</h1>
+                <div className="w-20 h-20 rounded-[2rem] bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center mx-auto mb-8 shadow-2xl border border-white/10"><Chrome className="text-primary" size={40} /></div>
+                <h1 className="text-6xl font-black tracking-tighter bg-gradient-to-r from-white to-white/40 bg-clip-text text-transparent">ProdLytics Extension</h1>
                 <p className="text-muted text-lg max-w-2xl mx-auto font-medium">The bridge between your focused work and advanced deep-learning analytics.</p>
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <StepCard index={1} title="Download" desc="Install the lightweight monitoring extension." icon={Download} color="primary" />
-                <StepCard index={2} title="Quick Pin" desc="Pin AERO to your toolbar for status visibility." icon={Laptop} color="accent" />
+                <StepCard index={2} title="Quick Pin" desc="Pin ProdLytics to your toolbar for status visibility." icon={Laptop} color="warning" />
                 <StepCard index={3} title="Active Sync" desc="Securely link your dashboard account." icon={RefreshCw} color="secondary" />
             </div>
 
@@ -49,7 +49,7 @@ export default function SetupView() {
 }
 
 function StepCard({ index, title, desc, icon: Icon, color }) {
-    const colors = { primary: 'text-primary bg-primary/10', accent: 'text-accent bg-accent/10', secondary: 'text-green-400 bg-green-500/10' };
+    const colors = { primary: 'text-primary bg-primary/10', warning: 'text-warning bg-warning/10', secondary: 'text-secondary bg-secondary/10' };
     return (
         <div className="glass-card p-10 flex flex-col items-center text-center space-y-6 hover:border-primary/40 transition-all">
             <div className={`w-16 h-16 rounded-3xl flex items-center justify-center border border-white/5 ${colors[color]}`}><Icon size={28} /></div>

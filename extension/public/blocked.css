@@ -1,12 +1,14 @@
 :root {
-    --bg-dark: #0a0a0c;
-    --accent: #f43f5e;
+    --bg-dark: #0d0f17;
     --primary: #6366f1;
+    --secondary: #ec4899;
     --success: #10b981;
-    --text: #ffffff;
-    --text-dim: rgba(255, 255, 255, 0.6);
-    --glass: rgba(255, 255, 255, 0.03);
-    --border: rgba(255, 255, 255, 0.08);
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --text: #f9fafb;
+    --text-dim: rgba(249, 250, 251, 0.6);
+    --glass: rgba(255, 255, 255, 0.1);
+    --border: rgba(255, 255, 255, 0.2);
 }
 
 * {
@@ -48,7 +50,7 @@ body {
     left: -10%;
     width: 50%;
     height: 50%;
-    background: var(--accent);
+    background: var(--secondary);
 }
 
 .glow-2 {
@@ -88,16 +90,16 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 0 30px rgba(244, 63, 94, 0.2);
+    box-shadow: 0 0 30px rgba(236, 72, 153, 0.2);
 }
 
-.bg-accent {
-    background: rgba(244, 63, 94, 0.15);
-    border: 1px solid rgba(244, 63, 94, 0.3);
+.bg-secondary-soft {
+    background: rgba(236, 72, 153, 0.15);
+    border: 1px solid rgba(236, 72, 153, 0.3);
 }
 
 .lock-icon {
-    color: var(--accent);
+    color: var(--secondary);
 }
 
 h1 {
@@ -147,8 +149,13 @@ strong {
     font-weight: 700;
 }
 
-.text-accent { color: var(--accent); }
-.text-success { color: var(--success); }
+.text-secondary {
+    color: var(--secondary);
+}
+
+.text-success {
+    color: var(--success);
+}
 
 .stat-divider {
     width: 1px;

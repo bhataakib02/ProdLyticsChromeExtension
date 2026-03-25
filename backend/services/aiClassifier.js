@@ -20,8 +20,9 @@ const categories = {
         "linkedin.com", // can be argued, but often professional
         "medium.com",
         "dev.to",
-        "aws.amazon.com",
-        "console.cloud.google.com",
+        "infosys.com",
+        "infyspringboard.onwingspan.com",
+        "onwingspan.com",
         "azure.microsoft.com",
     ],
     unproductive: [

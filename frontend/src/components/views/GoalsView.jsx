@@ -116,17 +116,17 @@ export default function GoalsView() {
                     objectives.map((goal) => (
                         <div key={goal._id} className="glass-card p-8 group hover:border-primary/50 transition-all">
                             <div className="flex justify-between items-start mb-6">
-                                <div className={`p-3 rounded-2xl ${goal.type === 'productive' ? 'bg-primary/10 text-primary' : 'bg-accent/10 text-accent'}`}>
+                                <div className={`p-3 rounded-2xl ${goal.type === 'productive' ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'}`}>
                                     {goal.type === 'productive' ? <Zap size={24} /> : <Target size={24} />}
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <button onClick={() => openEditModal(goal)} className="p-2 text-muted hover:text-primary"><Pencil size={18} /></button>
-                                    <button onClick={() => removeObjective(goal._id)} className="p-2 text-muted hover:text-accent"><Trash2 size={18} /></button>
+                                    <button onClick={() => removeObjective(goal._id)} className="p-2 text-muted hover:text-danger"><Trash2 size={18} /></button>
                                 </div>
                             </div>
                             <h3 className="text-xl font-bold  mb-2">{goal.label || goal.website}</h3>
                             <div className="flex items-center gap-2 text-[10px] text-muted font-black uppercase tracking-widest mb-6">
-                                <span className={goal.type === 'productive' ? 'text-primary' : 'text-accent'}>{goal.type}</span>
+                                <span className={goal.type === 'productive' ? 'text-primary' : 'text-secondary'}>{goal.type}</span>
                                 <span>•</span>
                                 <span>{Math.floor(goal.targetSeconds / 3600)}h {Math.floor((goal.targetSeconds % 3600) / 60)}m Target</span>
                             </div>

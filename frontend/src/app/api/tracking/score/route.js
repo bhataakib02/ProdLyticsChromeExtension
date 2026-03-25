@@ -39,11 +39,17 @@ export async function GET(req) {
         const denominator = productiveTime + unproductiveTime + (neutralTime * 0.5);
         const score = denominator > 0 ? Math.round((productiveTime / denominator) * 100) : 0;
 
-        return NextResponse.json({ score, totalTime });
+        return NextResponse.json({
+            score,
+            total: totalTime,
+            productive: productiveTime,
+            neutral: neutralTime,
+            unproductive: unproductiveTime
+        });
     } catch (err) {
         console.error("❌ Score API Error:", err);
         if (isDbUnavailableError(err)) {
-            return NextResponse.json({ score: 0, totalTime: 0 });
+            return NextResponse.json({ score: 0, total: 0 });
         }
         return NextResponse.json({ error: err.message }, { status: 500 });
     }

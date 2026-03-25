@@ -59,9 +59,9 @@ export default function AnalyticsView() {
             setMetrics(metricsData);
 
             const distData = [
-                { name: "Productive", value: metricsData.productive, color: "#22c55e", glow: "rgba(34, 197, 94, 0.4)" },
-                { name: "Neutral", value: metricsData.neutral, color: "#64748b", glow: "rgba(100, 116, 139, 0.2)" },
-                { name: "Unproductive", value: metricsData.unproductive, color: "#ef4444", glow: "rgba(239, 68, 68, 0.4)" }
+                { name: "Productive", value: metricsData.productive, color: "var(--color-success)", glow: "rgba(16, 185, 129, 0.4)" },
+                { name: "Neutral", value: metricsData.neutral, color: "var(--color-muted)", glow: "rgba(156, 163, 175, 0.2)" },
+                { name: "Unproductive", value: metricsData.unproductive, color: "var(--color-danger)", glow: "rgba(239, 68, 68, 0.4)" }
             ].filter(d => d.value > 0);
             setDistribution(distData);
 
@@ -151,7 +151,7 @@ export default function AnalyticsView() {
                     label="Productive"
                     value={formatTime(metrics.productive)}
                     subLabel="Deep Work"
-                    color="green"
+                    color="success"
                     loading={loading}
                 />
                 <PremiumStatCard
@@ -159,7 +159,7 @@ export default function AnalyticsView() {
                     label="Domains Active"
                     value={domains.length.toString()}
                     subLabel="Total Active"
-                    color="blue"
+                    color="warning"
                     loading={loading}
                 />
                 <PremiumStatCard
@@ -167,7 +167,7 @@ export default function AnalyticsView() {
                     label="Efficiency"
                     value={`${metrics.score}%`}
                     subLabel="Focus Score"
-                    color="accent"
+                    color="secondary"
                     loading={loading}
                 />
             </div>
@@ -179,7 +179,7 @@ export default function AnalyticsView() {
                     animate={{ opacity: 1, x: 0 }}
                     className="lg:col-span-2 glass-card p-8 border-white/10 group overflow-hidden"
                 >
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-accent opacity-30 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-secondary opacity-30 group-hover:opacity-100 transition-opacity duration-500" />
                     <div className="flex justify-between items-center mb-10">
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-primary/20 rounded-2xl text-primary shadow-[0_0_15px_rgba(99,102,241,0.2)]">
@@ -231,7 +231,7 @@ export default function AnalyticsView() {
                     className="glass-card p-8 flex flex-col border-white/10 group relative"
                 >
                     <div className="flex items-center gap-4 mb-10 w-full">
-                        <div className="p-3 bg-accent/20 rounded-2xl text-accent shadow-[0_0_15px_rgba(139,92,246,0.2)]">
+                        <div className="p-3 bg-secondary/20 rounded-2xl text-secondary shadow-[0_0_15px_rgba(236,72,153,0.2)]">
                             <PieChart size={24} />
                         </div>
                         <div>
@@ -343,9 +343,9 @@ export default function AnalyticsView() {
 function PremiumStatCard({ icon, label, value, subLabel, color, loading }) {
     const colorClasses = {
         primary: "bg-primary/10 text-primary border-primary/20",
-        green: "bg-green-500/10 text-green-400 border-green-500/20",
-        blue: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-        accent: "bg-accent/10 text-accent border-accent/20"
+        success: "bg-success/10 text-success border-success/20",
+        warning: "bg-warning/10 text-warning border-warning/20",
+        secondary: "bg-secondary/10 text-secondary border-secondary/20"
     };
 
     return (

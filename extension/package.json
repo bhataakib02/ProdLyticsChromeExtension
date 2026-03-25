@@ -10,8 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "aero-productivity-suite": "file:..",
     "axios": "^1.13.6",
+    "prodlytics-suite": "file:..",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },

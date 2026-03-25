@@ -92,8 +92,8 @@ export default function FocusView() {
             >
                 <div className="space-y-4">
                     <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-accent/20 flex items-center justify-center shadow-lg shadow-accent/10 border border-accent/20">
-                            <ShieldAlert className="text-accent" size={32} />
+                        <div className="w-14 h-14 rounded-2xl bg-secondary/20 flex items-center justify-center shadow-lg shadow-secondary/10 border border-secondary/20">
+                            <ShieldAlert className="text-secondary" size={32} />
                         </div>
                         <h1 className="text-6xl font-black tracking-tighter bg-gradient-to-r from-white via-white to-white/40 bg-clip-text text-transparent">
                             Focus Mode
@@ -143,7 +143,7 @@ export default function FocusView() {
                                                     <img src={`https://www.google.com/s2/favicons?domain=${domain.website}&sz=64`} alt="" className="w-6 h-6 rounded-md" />
                                                     <span className="font-black text-white/90 block text-lg">{domain.website}</span>
                                                 </div>
-                                                <button onClick={() => removeDomain(domain._id)} className="p-3 text-muted hover:text-accent hover:bg-accent/10 rounded-xl transition-all opacity-0 group-hover:opacity-100">
+                                                <button onClick={() => removeDomain(domain._id)} className="p-3 text-muted hover:text-danger hover:bg-danger/10 rounded-xl transition-all opacity-0 group-hover:opacity-100">
                                                     <Trash2 size={20} />
                                                 </button>
                                             </motion.div>
@@ -162,9 +162,39 @@ export default function FocusView() {
                             <h3 className="text-2xl font-black tracking-tight">Advanced Guard</h3>
                         </div>
                         <div className="space-y-8">
-                            <ToggleSetting icon={<Lock className="text-accent" size={18} />} label="Strict Lock" description="Force activation across all synced devices" checked={user.preferences?.strictMode} onChange={(val) => updatePreference('strictMode', val)} accentColor="accent" />
-                            <ToggleSetting icon={<BrainCircuit className="text-primary" size={18} />} label="AI Smart Block" description="Detect adaptive distraction patterns" checked={user.preferences?.smartBlock} onChange={(val) => updatePreference('smartBlock', val)} accentColor="primary" />
-                            <ToggleSetting icon={<Zap className="text-yellow-400" size={18} />} label="Flow Reminders" description="Neuro-optimized break intervals" checked={user.preferences?.breakReminders} onChange={(val) => updatePreference('breakReminders', val)} accentColor="yellow" />
+                            <ToggleSetting
+                                icon={<Lock className="text-secondary" size={18} />}
+                                label="Strict Lock"
+                                description="Force activation across all synced devices"
+                                checked={user.preferences?.strictMode}
+                                onChange={async (val) => {
+                                    await updatePreference('strictMode', val);
+                                    dispatchExtensionSync();
+                                }}
+                                themeColor="secondary"
+                            />
+                            <ToggleSetting
+                                icon={<BrainCircuit className="text-primary" size={18} />}
+                                label="AI Smart Block"
+                                description="Detect adaptive distraction patterns"
+                                checked={user.preferences?.smartBlock}
+                                onChange={async (val) => {
+                                    await updatePreference('smartBlock', val);
+                                    dispatchExtensionSync();
+                                }}
+                                themeColor="primary"
+                            />
+                            <ToggleSetting
+                                icon={<Zap className="text-yellow-400" size={18} />}
+                                label="Flow Reminders"
+                                description="Neuro-optimized break intervals"
+                                checked={user.preferences?.breakReminders}
+                                onChange={async (val) => {
+                                    await updatePreference('breakReminders', val);
+                                    dispatchExtensionSync();
+                                }}
+                                themeColor="yellow"
+                            />
                         </div>
                     </div>
                 </motion.div>
@@ -179,7 +209,7 @@ export default function FocusView() {
                 .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.05); transition: .4s; border: 1px solid rgba(255,255,255,0.1); border-radius: 34px; }
                 .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
                 input:checked + .slider { background-color: #6366f1; }
-                input:checked + .slider.accent { background-color: #f43f5e; }
+                input:checked + .slider.secondary { background-color: #ec4899; }
                 input:checked + .slider.yellow { background-color: #f59e0b; }
                 input:checked + .slider:before { transform: translateX(24px); }
             `}</style>
@@ -187,7 +217,7 @@ export default function FocusView() {
     );
 }
 
-function ToggleSetting({ icon, label, description, checked, onChange, accentColor }) {
+function ToggleSetting({ icon, label, description, checked, onChange, themeColor }) {
     return (
         <div className="flex items-center justify-between group/toggle p-4 rounded-3xl hover:bg-white/[0.02] transition-colors">
             <div className="flex items-center gap-5">
@@ -199,7 +229,7 @@ function ToggleSetting({ icon, label, description, checked, onChange, accentColo
             </div>
             <label className="switch">
                 <input type="checkbox" checked={!!checked} onChange={(e) => onChange(e.target.checked)} />
-                <span className={`slider round ${accentColor}`}></span>
+                <span className={`slider round ${themeColor}`}></span>
             </label>
         </div>
     );

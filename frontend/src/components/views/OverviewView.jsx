@@ -54,7 +54,7 @@ export default function OverviewView({ onTabChange }) {
                 setObjectives(objectivesData.value);
             }
             if (domainsData.status === "fulfilled" && Array.isArray(domainsData.value)) {
-                setTopDomains(domainsData.value.slice(0, 5));
+                setTopDomains(domainsData.value);
             }
         } catch (err) {
             console.error("error fetching overview data:", err);
@@ -78,9 +78,9 @@ export default function OverviewView({ onTabChange }) {
     if (!user) return null;
 
     const distribution = [
-        { name: "Productive", value: metrics.productiveTime || 0, color: "#22c55e" },
-        { name: "Neutral", value: metrics.neutralTime || 0, color: "#94a3b8" },
-        { name: "Unproductive", value: metrics.unproductiveTime || 0, color: "#ef4444" }
+        { name: "Productive", value: metrics.productiveTime || 0, color: "var(--color-success)" },
+        { name: "Neutral", value: metrics.neutralTime || 0, color: "var(--color-muted)" },
+        { name: "Unproductive", value: metrics.unproductiveTime || 0, color: "var(--color-danger)" }
     ].filter(d => d.value > 0);
 
     return (
@@ -91,7 +91,7 @@ export default function OverviewView({ onTabChange }) {
                         Welcome back, {user?.name.split(' ')[0]}
                     </h1>
                     <p className="text-muted mt-3 font-medium tracking-wide flex items-center gap-2">
-                        <Activity size={14} className="text-primary" /> AERO AI is monitoring your Productivity Momentum
+                        <Activity size={14} className="text-primary" /> ProdLytics AI is monitoring your Productivity Momentum
                     </p>
                 </div>
                 <button onClick={() => onTabChange('analytics')} className="bg-white text-black px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl">Detailed Report</button>
@@ -99,9 +99,9 @@ export default function OverviewView({ onTabChange }) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard icon={<Zap size={24} />} label="Focus Score" value={`${metrics.score}%`} trend={metrics.score > 70 ? "OPTIMAL" : "NEEDS FOCUS"} color="primary" />
-                <StatCard icon={<Clock size={24} />} label="Total Focus" value={formatTime(metrics.totalTime)} trend={`${formatTime(metrics.productiveTime)} prod.`} color="accent" />
-                <StatCard icon={<Target size={24} />} label="Streak" value={`${metrics.streak} Days`} trend="RESISTANCE" color="secondary" />
-                <StatCard icon={<Activity size={24} />} label="Peak Period" value={metrics.peakHour ? `${metrics.peakHour % 12 || 12} ${metrics.peakHour >= 12 ? 'PM' : 'AM'}` : "..."} trend="IDEAL ZONE" color="blue" />
+                <StatCard icon={<Clock size={24} />} label="Total Focus" value={formatTime(metrics.totalTime)} trend={`${formatTime(metrics.productiveTime)} prod.`} color="secondary" />
+                <StatCard icon={<Target size={24} />} label="Streak" value={`${metrics.streak} Days`} trend="RESISTANCE" color="success" />
+                <StatCard icon={<Activity size={24} />} label="Peak Period" value={metrics.peakHour ? `${metrics.peakHour % 12 || 12} ${metrics.peakHour >= 12 ? 'PM' : 'AM'}` : "..."} trend="IDEAL ZONE" color="warning" />
             </div>
 
             <div className="glass-card overflow-hidden border-white/5 shadow-2xl">
@@ -115,9 +115,9 @@ export default function OverviewView({ onTabChange }) {
                     <div className="lg:col-span-7 space-y-6">
                         <h3 className="text-xs font-black text-muted uppercase tracking-widest flex items-center gap-2"><Clock size={14} /> Usage Breakdown</h3>
                         <div className="space-y-4">
-                            <ActivityRow label="Deep Work" time={metrics.productiveTime} color="green" total={metrics.totalTime} />
-                            <ActivityRow label="Distraction" time={metrics.unproductiveTime} color="red" total={metrics.totalTime} />
-                            <ActivityRow label="Neutral" time={metrics.neutralTime} color="slate" total={metrics.totalTime} />
+                            <ActivityRow label="Deep Work" time={metrics.productiveTime} color="success" total={metrics.totalTime} />
+                            <ActivityRow label="Distraction" time={metrics.unproductiveTime} color="danger" total={metrics.totalTime} />
+                            <ActivityRow label="Neutral" time={metrics.neutralTime} color="muted" total={metrics.totalTime} />
                         </div>
                     </div>
                     <div className="lg:col-span-5 flex flex-col items-center justify-center p-6 bg-white/[0.02] border border-white/5 rounded-[40px]">
@@ -139,10 +139,48 @@ export default function OverviewView({ onTabChange }) {
                 </div>
             </div>
 
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="glass-card p-8 border-white/5">
+                    <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+                        <div className="p-2 bg-green-500/10 rounded-xl text-green-500"><Zap size={18} /></div>
+                        <h3 className="text-sm font-black uppercase tracking-widest text-white/90">Top Productive</h3>
+                    </div>
+                    <div className="space-y-4">
+                        {topDomains.filter(d => d.category === "productive").slice(0, 5).map((domain) => (
+                            <div key={domain._id} className="flex items-center justify-between p-3 rounded-2xl hover:bg-white/[0.02] transition-colors border border-transparent hover:border-white/5">
+                                <div className="flex items-center gap-4">
+                                    <img src={`https://www.google.com/s2/favicons?domain=${domain._id}&sz=64`} className="w-8 h-8 rounded-lg" alt="" />
+                                    <span className="text-sm font-bold text-white/80">{domain._id}</span>
+                                </div>
+                                <span className="text-sm font-black font-mono text-green-500">{formatTime(domain.totalTime)}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="glass-card p-8 border-white/5">
+                    <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+                        <div className="p-2 bg-red-500/10 rounded-xl text-red-500"><MousePointer2 size={18} /></div>
+                        <h3 className="text-sm font-black uppercase tracking-widest text-white/90">Top Distractions</h3>
+                    </div>
+                    <div className="space-y-4">
+                        {topDomains.filter(d => d.category === "unproductive").slice(0, 5).map((domain) => (
+                            <div key={domain._id} className="flex items-center justify-between p-3 rounded-2xl hover:bg-white/[0.02] transition-colors border border-transparent hover:border-white/5">
+                                <div className="flex items-center gap-4">
+                                    <img src={`https://www.google.com/s2/favicons?domain=${domain._id}&sz=64`} className="w-8 h-8 rounded-lg" alt="" />
+                                    <span className="text-sm font-bold text-white/80">{domain._id}</span>
+                                </div>
+                                <span className="text-sm font-black font-mono text-red-500">{formatTime(domain.totalTime)}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
             <section className="space-y-6 mb-20">
-                <h3 className="text-xs font-black text-muted uppercase tracking-[0.3em] flex items-center gap-3"><MousePointer2 size={16} /> Top Activity</h3>
+                <h3 className="text-xs font-black text-muted uppercase tracking-[0.3em] flex items-center gap-3"><TrendingUp size={16} /> Activity History</h3>
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                    {topDomains.map((domain, i) => (
+                    {topDomains.slice(0, 5).map((domain) => (
                         <div key={domain._id} className="glass-card p-5 group hover:bg-white/5 transition-all">
                             <div className="flex items-center gap-3 mb-3">
                                 <img src={`https://www.google.com/s2/favicons?domain=${domain._id}&sz=64`} className="w-6 h-6 rounded" alt="" />
@@ -158,7 +196,12 @@ export default function OverviewView({ onTabChange }) {
 }
 
 function StatCard({ icon, label, value, trend, color }) {
-    const colors = { primary: "text-primary bg-primary/10", accent: "text-accent bg-accent/10", secondary: "text-green-500 bg-green-500/10", blue: "text-blue-400 bg-blue-500/10" };
+    const colors = {
+        primary: "text-primary bg-primary/10",
+        secondary: "text-secondary bg-secondary/10",
+        success: "text-success bg-success/10",
+        warning: "text-warning bg-warning/10"
+    };
     return (
         <div className="glass-card p-7 relative group border-white/5 transition-all hover:scale-105">
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border border-white/5 mb-4 ${colors[color]}`}>{icon}</div>
@@ -183,7 +226,12 @@ function ActivityRow({ label, time, color, total }) {
         res += `${s}s`;
         return res;
     };
-    const colors = { green: "bg-green-500", red: "bg-red-500", slate: "bg-slate-500", primary: "bg-primary" };
+    const colors = {
+        success: "bg-success",
+        danger: "bg-danger",
+        muted: "bg-muted",
+        primary: "bg-primary"
+    };
     return (
         <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">

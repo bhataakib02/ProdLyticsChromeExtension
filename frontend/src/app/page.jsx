@@ -9,8 +9,6 @@ import GoalsView from "@/components/views/GoalsView";
 import FocusView from "@/components/views/FocusView";
 import TimerView from "@/components/views/TimerView";
 import InsightsView from "@/components/views/InsightsView";
-import ProfileView from "@/components/views/ProfileView";
-import SettingsView from "@/components/views/SettingsView";
 import SetupView from "@/components/views/SetupView";
 
 export default function DashboardSPA() {
@@ -33,8 +31,6 @@ export default function DashboardSPA() {
       case "focus": return <FocusView />;
       case "timer": return <TimerView />;
       case "insights": return <InsightsView />;
-      case "profile": return <ProfileView />;
-      case "settings": return <SettingsView />;
       case "setup": return <SetupView />;
       default: return <OverviewView onTabChange={setActiveTab} />;
     }

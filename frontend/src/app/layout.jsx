@@ -4,7 +4,7 @@ import { Providers } from "@/components/layout/Providers";
 import { DashboardProvider } from "@/context/DashboardContext";
 
 export const metadata = {
-  title: "AERO | AI Productivity Platform",
+  title: "ProdLytics | AI Productivity Platform",
   description: "Advanced time tracking and productivity analytics",
 };
 

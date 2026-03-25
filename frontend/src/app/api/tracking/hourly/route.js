@@ -22,22 +22,26 @@ export async function GET(req) {
             { $match: { userId: new mongoose.Types.ObjectId(MOCK_USER_ID), date: { $gte: start } } },
             {
                 $group: {
-                    _id: "$hour",
+                    _id: { hour: "$hour", category: "$category" },
                     totalTime: { $sum: "$time" },
                 },
             },
-            { $sort: { _id: 1 } }
         ]);
 
-        // Map to 24-hour array
+        // Map to 24-hour array with categories
         const hourlyData = Array(24).fill(0).map((_, i) => ({
             hour: i,
-            time: 0
+            productive: 0,
+            neutral: 0,
+            unproductive: 0
         }));
 
         data.forEach(item => {
-            if (item._id >= 0 && item._id < 24) {
-                hourlyData[item._id].time = Math.round(item.totalTime / 60); // Convert to minutes
+            const h = item._id.hour;
+            const cat = item._id.category || "neutral";
+            if (h >= 0 && h < 24) {
+                // frontend expects minutes for h.productive, etc.
+                hourlyData[h][cat] = Math.round(item.totalTime / 60);
             }
         });
 

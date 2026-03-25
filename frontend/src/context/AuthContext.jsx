@@ -68,8 +68,8 @@ export function AuthProvider({ children }) {
     useEffect(() => {
         // Automatically mock a logged-in user to bypass the login system entirely
         setUser({
-            name: "AERO User",
-            email: "local@aero.com",
+            name: "ProdLytics User",
+            email: "local@prodlytics.com",
             isActive: true,
             avatar: "",
             preferences: {

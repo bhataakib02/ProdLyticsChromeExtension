@@ -45,7 +45,7 @@ export default function Sidebar() {
                 <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/40">
                     <Chrome className="text-background" size={18} />
                 </div>
-                <span className="text-xl font-bold gradient-text tracking-tighter">AERO</span>
+                <span className="text-xl font-bold gradient-text tracking-tighter">ProdLytics</span>
             </div>
 
             <nav className="flex-1 space-y-2">
@@ -68,18 +68,6 @@ export default function Sidebar() {
 
             <div className="pt-6 border-t border-foreground/5 space-y-2">
                 <button
-                    onClick={() => setActiveTab("profile")}
-                    className={cn(
-                        "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group",
-                        activeTab === "profile"
-                            ? "bg-primary/10 text-primary border border-primary/20"
-                            : "text-muted hover:text-foreground hover:bg-foreground/5"
-                    )}
-                >
-                    <UserIcon size={20} className={cn("transition-transform group-hover:scale-110", activeTab === "profile" && "text-primary")} />
-                    <span className="font-medium">My Profile</span>
-                </button>
-                <button
                     onClick={() => setActiveTab("setup")}
                     className={cn(
                         "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group",
@@ -92,30 +80,11 @@ export default function Sidebar() {
                     <span className="font-medium">Extension Setup</span>
                 </button>
                 <button
-                    onClick={() => setActiveTab("settings")}
-                    className={cn(
-                        "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group",
-                        activeTab === "settings"
-                            ? "bg-primary/10 text-primary border border-primary/20"
-                            : "text-muted hover:text-foreground hover:bg-foreground/5"
-                    )}
-                >
-                    <Settings size={20} className={cn("transition-transform group-hover:scale-110", activeTab === "settings" && "text-primary")} />
-                    <span className="font-medium">Settings</span>
-                </button>
-                <button
                     onClick={toggleTheme}
                     className="flex items-center gap-3 px-4 py-3 w-full text-muted hover:text-foreground transition-all"
                 >
                     {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
                     <span className="font-medium">{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
-                </button>
-                <button
-                    onClick={logout}
-                    className="flex items-center gap-3 px-4 py-3 w-full text-muted hover:text-accent transition-all"
-                >
-                    <LogOut size={20} />
-                    <span className="font-medium">Logout</span>
                 </button>
             </div>
         </aside>
