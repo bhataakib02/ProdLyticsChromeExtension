@@ -21,6 +21,13 @@ const FocusBlockSchema = new mongoose.Schema(
         // Is this site currently being blocked?
         isActive: { type: Boolean, default: true },
 
+        /** manual = user added in dashboard; smart_daily_cap = auto-added after unproductive time cap */
+        source: {
+            type: String,
+            enum: ["manual", "smart_daily_cap"],
+            default: "manual",
+        },
+
         // Optional scheduled blocking (null = always block when focus mode is on)
         schedule: {
             startHour: { type: Number, min: 0, max: 23, default: null },

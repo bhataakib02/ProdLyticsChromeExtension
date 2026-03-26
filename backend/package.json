@@ -2,10 +2,9 @@
     "name": "@prodlytics/backend",
     "version": "1.0.0",
     "private": true,
-    "main": "db/mongodb.jsx",
+    "main": "db/mongodb.js",
     "dependencies": {
         "bcryptjs": "^2.4.3",
-        "mongoose": "^9.3.1",
-        "prodlytics-suite": "file:.."
+        "mongoose": "^9.3.1"
     }
 }

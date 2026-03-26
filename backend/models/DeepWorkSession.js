@@ -26,6 +26,13 @@ const DeepWorkSessionSchema = new mongoose.Schema(
         // Optional: what was the user working on?
         task: { type: String, default: "" },
 
+        subtasks: [
+            {
+                text: { type: String, default: "" },
+                completed: { type: Boolean, default: false },
+            },
+        ],
+
         // Active website during this session
         website: { type: String, default: "" },
     },

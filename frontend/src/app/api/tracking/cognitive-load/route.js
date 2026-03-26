@@ -10,9 +10,9 @@ export async function GET(req) {
         await dbConnect();
 
         const now = new Date();
-        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
+        // Bucket by calendar hour derived from `date` — stored `hour` is often missing on upserts.
         const data = await Tracking.aggregate([
             { $match: { userId: new mongoose.Types.ObjectId(MOCK_USER_ID), date: { $gte: twentyFourHoursAgo } } },
             {
@@ -21,26 +21,33 @@ export async function GET(req) {
                         year: { $year: "$date" },
                         month: { $month: "$date" },
                         day: { $dayOfMonth: "$date" },
-                        hour: "$hour"
+                        hour: { $hour: "$date" },
                     },
                     avgScrolls: { $avg: "$scrolls" },
                     avgClicks: { $avg: "$clicks" },
-                    totalTime: { $sum: "$time" }
-                }
+                    totalTime: { $sum: "$time" },
+                },
             },
-            { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1, "_id.hour": 1 } }
+            { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1, "_id.hour": 1 } },
         ]);
 
-        const history = data.map(item => {
-            const date = new Date(item._id.year, item._id.month - 1, item._id.day, item._id.hour);
+        const history = data.map((item) => {
+            const h = Number(item._id.hour);
+            const hour = Number.isFinite(h) ? h : 0;
+            const date = new Date(item._id.year, item._id.month - 1, item._id.day, hour);
 
-            // Heuristic for cognitive load (0-10 for the chart scale)
-            let load = (item.avgScrolls * 0.02) + (item.avgClicks * 0.05) + (item.totalTime / 3000);
-            load = Math.min(Math.max(Math.round(load * 10) / 10, 1), 10); // Scale 1-10
+            const avgS = Number(item.avgScrolls) || 0;
+            const avgC = Number(item.avgClicks) || 0;
+            const tt = Number(item.totalTime) || 0;
+
+            // Heuristic for cognitive load (0–10 for the chart scale)
+            let load = avgS * 0.02 + avgC * 0.05 + tt / 3000;
+            if (!Number.isFinite(load)) load = 1;
+            load = Math.min(Math.max(Math.round(load * 10) / 10, 0.5), 10);
 
             return {
                 time: date.toISOString(),
-                loadScore: load
+                loadScore: load,
             };
         });
 
@@ -52,9 +59,11 @@ export async function GET(req) {
 
         // Calculate Real Metrics for the last 24h
         const totalSessions = data.length;
-        const totalTime = data.reduce((acc, curr) => acc + curr.totalTime, 0);
-        const avgScrolls = data.reduce((acc, curr) => acc + curr.avgScrolls, 0) / (totalSessions || 1);
-        const avgClicks = data.reduce((acc, curr) => acc + curr.avgClicks, 0) / (totalSessions || 1);
+        const totalTime = data.reduce((acc, curr) => acc + (Number(curr.totalTime) || 0), 0);
+        const avgScrolls =
+            data.reduce((acc, curr) => acc + (Number(curr.avgScrolls) || 0), 0) / (totalSessions || 1);
+        const avgClicks =
+            data.reduce((acc, curr) => acc + (Number(curr.avgClicks) || 0), 0) / (totalSessions || 1);
 
         // Neural Intensity: average engagement per session (0-100)
         const intensity = Math.min(Math.round((avgScrolls * 2) + (avgClicks * 5)), 100);
@@ -77,23 +86,33 @@ export async function GET(req) {
             total += s.total;
             if (s._id === "productive") productive = s.total;
         });
-        const ratio = total > 0 ? Math.round((productive / total) * 100) : 0;
+        // One decimal so small productive shares (e.g. 0.5%) are visible
+        const ratio = total > 0 ? Math.round((productive / total) * 1000) / 10 : 0;
         const deepWorkHours = Math.round((productive / 3600) * 10) / 10;
 
         return NextResponse.json({
             history,
             metrics: {
-                intensity: intensity || 0,
-                resilience: resilience || 0,
-                drag: drag || 0,
-                ratio: ratio || 0,
-                deepWorkHours: deepWorkHours || 0
-            }
+                intensity: Number.isFinite(intensity) ? intensity : 0,
+                resilience: Number.isFinite(resilience) ? resilience : 0,
+                drag: Number.isFinite(drag) ? drag : 0,
+                ratio: Number.isFinite(ratio) ? ratio : 0,
+                deepWorkHours: Number.isFinite(deepWorkHours) ? deepWorkHours : 0,
+            },
         });
     } catch (err) {
         console.error("❌ Cognitive Load API Error:", err);
         if (isDbUnavailableError(err)) {
-            return NextResponse.json({ cognitiveLoad: 0, level: "low" });
+            return NextResponse.json({
+                history: [],
+                metrics: {
+                    intensity: 0,
+                    resilience: 0,
+                    drag: 0,
+                    ratio: 0,
+                    deepWorkHours: 0,
+                },
+            });
         }
         return NextResponse.json({ error: err.message }, { status: 500 });
     }

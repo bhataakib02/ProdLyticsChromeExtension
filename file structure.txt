@@ -1,0 +1,97 @@
+prodlytics-suite/                          # Root — ProdLytics monorepo (Chrome extension + Next.js dashboard + shared backend)
+│
+├── backend/                               # Shared npm package (@prodlytics/backend): MongoDB + Mongoose + classification rules
+│   ├── db/
+│   │   └── mongodb.js                     # Mongo connection helper (used by Next.js API routes)
+│   ├── models/
+│   │   ├── Category.js                    # Site categories / user overrides (productive vs unproductive)
+│   │   ├── DeepWorkSession.js             # Deep-work / Pomodoro-style session records
+│   │   ├── FocusBlock.js                  # Focus blocklist / blocking configuration
+│   │   ├── Goal.js                        # User goals
+│   │   ├── Notification.js                # In-app notifications
+│   │   ├── Preference.js                  # User preferences (dashboard + auth prefs API)
+│   │   ├── Tracking.js                    # Time-on-site, events, classification snapshots
+│   │   └── User.js                        # User document
+│   ├── services/
+│   │   └── aiClassifier.js                # Rule-based productive / unproductive / neutral classifier
+│   ├── package.json
+│   └── package-lock.json
+│
+├── extension/                             # Chrome extension (Manifest V3) — build output: dist/ (load unpacked from there)
+│   ├── src/
+│   │   ├── main.jsx                       # Popup React entry
+│   │   ├── App.jsx / App.css              # Popup UI shell
+│   │   ├── background.jsx                 # Service worker: tabs, alarms, sync to dashboard API
+│   │   ├── content.jsx                    # Content script: activity signals on web pages
+│   │   ├── index.css
+│   │   └── assets/                        # Popup images / icons (hero, svg)
+│   ├── icons/
+│   │   └── icon.png                       # Toolbar / store icons
+│   ├── index.html                         # Popup HTML host
+│   ├── manifest.json                      # MV3: permissions, content_scripts, background, localhost dashboard
+│   ├── blocked.html / blocked.css / blocked.js   # Blocked-page UI when a site is in blocklist
+│   ├── vite.config.jsx                    # Vite build for extension bundle
+│   ├── build.js                           # Extra build / packaging helper (if used in your workflow)
+│   ├── eslint.config.jsx
+│   ├── package.json
+│   └── package-lock.json
+│
+├── frontend/                              # Next.js 16 dashboard (App Router) + all REST /api/* routes
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── layout.jsx                 # Root layout, providers
+│   │   │   ├── page.jsx                   # Dashboard home
+│   │   │   ├── globals.css
+│   │   │   ├── favicon.ico
+│   │   │   └── api/                       # Route handlers (MongoDB via backend package)
+│   │   │       ├── auth/preferences/route.js      # GET/PATCH user preferences
+│   │   │       ├── notifications/route.js       # Notifications feed
+│   │   │       ├── goals/route.js               # Goals CRUD
+│   │   │       ├── goals/progress/route.js      # Goal progress aggregates
+│   │   │       ├── tracking/route.js            # Tracking entries / range queries
+│   │   │       ├── tracking/stats/route.js      # Dashboard stats (streaks, score, totals)
+│   │   │       ├── tracking/score/route.js      # Focus / productivity score
+│   │   │       ├── tracking/hourly/route.js     # Hourly breakdowns
+│   │   │       ├── tracking/cognitive-load/route.js   # Cognitive load metrics for charts
+│   │   │       ├── focus/route.js               # Focus / blocklist API
+│   │   │       └── deepwork/route.js            # Deep-work sessions API
+│   │   ├── components/
+│   │   │   ├── layout/                    # Navbar, Sidebar, Providers
+│   │   │   ├── views/                     # Overview, Analytics, Goals, Focus, Timer, Insights, Setup
+│   │   │   └── D3Charts.jsx               # D3 visualizations (e.g. cognitive load)
+│   │   ├── context/
+│   │   │   ├── AuthContext.jsx            # Auth / session state for UI
+│   │   │   └── DashboardContext.jsx       # Shared dashboard state
+│   │   ├── lib/
+│   │   │   ├── cors.js                    # CORS helpers for APIs
+│   │   │   ├── extensionSync.js           # postMessage bridge to extension on localhost
+│   │   │   ├── normalizeWebsiteHost.js    # URL / host normalization for tracking
+│   │   │   ├── overviewPdf.js             # PDF export for overview
+│   │   │   └── utils.js                   # Shared helpers
+│   │   └── services/
+│   │       ├── tracking.service.jsx       # Client calls to tracking APIs
+│   │       ├── goals.service.jsx
+│   │       └── notification.service.jsx
+│   ├── next.config.mjs
+│   ├── postcss.config.mjs
+│   ├── eslint.config.mjs
+│   ├── jsconfig.json
+│   ├── package.json                       # next dev --webpack (stable on Windows); dev:turbo = Turbopack optional
+│   ├── package-lock.json
+│   ├── .env / .env.local                  # MONGO_URI etc. (not committed — create on each machine)
+│
+├── docs/                                  # Specs + long-form documentation
+│   ├── PROJECT_DOCUMENTATION.md           # Architecture, APIs, data models, extension behavior
+│   ├── SRS.md                             # Software Requirements Specification
+│   ├── fix_srs.py / fix_srs_encoding.py   # Helpers if SRS encoding / newlines break after merge
+│
+├── .vscode/
+│   └── settings.json                      # Editor/workspace settings
+│
+├── package.json                           # Root scripts: concurrently runs frontend + extension dev
+├── package-lock.json
+├── README.md                              # Quick start, env vars, how pieces connect
+├── report.md                              # Extra project report (if present)
+├── file structure.txt                     # This file — annotated tree (like your reference diagram)
+│
+└── (generated / install — not listed)     # node_modules/, frontend/.next/, extension/dist/ — run npm install & builds

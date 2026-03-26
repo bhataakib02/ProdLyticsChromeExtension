@@ -10,20 +10,12 @@ import {
     Clock,
     Target,
     Zap,
-    ArrowUpRight,
-    Bell,
-    Pencil,
-    Trophy,
+    FileDown,
     PieChart,
     MousePointer2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-    PieChart as RePieChart,
-    Pie,
-    ResponsiveContainer,
-    Cell
-} from "recharts";
+import { PieChart as RePieChart, Pie, ResponsiveContainer, Cell, Tooltip } from "recharts";
 
 export default function OverviewView({ onTabChange }) {
     const { user } = useAuth();
@@ -31,6 +23,7 @@ export default function OverviewView({ onTabChange }) {
     const [objectives, setObjectives] = useState([]);
     const [loading, setLoading] = useState(true);
     const [topDomains, setTopDomains] = useState([]);
+    const [pdfExporting, setPdfExporting] = useState(false);
 
     useEffect(() => {
         if (user) {
@@ -75,6 +68,25 @@ export default function OverviewView({ onTabChange }) {
         return res.trim();
     }
 
+    async function handleExportPdf() {
+        if (pdfExporting || loading) return;
+        setPdfExporting(true);
+        try {
+            const { downloadOverviewPdf } = await import("@/lib/overviewPdf");
+            await downloadOverviewPdf({
+                userName: user?.name,
+                metrics,
+                objectives,
+                topDomains,
+                formatTime,
+            });
+        } catch (e) {
+            console.error("PDF export failed:", e);
+        } finally {
+            window.setTimeout(() => setPdfExporting(false), 500);
+        }
+    }
+
     if (!user) return null;
 
     const distribution = [
@@ -87,14 +99,27 @@ export default function OverviewView({ onTabChange }) {
         <div className="p-8 space-y-10 max-w-7xl mx-auto">
             <header className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
-                    <h1 className="text-5xl font-black tracking-tighter bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
+                    <h1 className="text-5xl font-black tracking-tighter bg-gradient-to-r from-foreground to-foreground/55 bg-clip-text text-transparent">
                         Welcome back, {user?.name.split(' ')[0]}
                     </h1>
                     <p className="text-muted mt-3 font-medium tracking-wide flex items-center gap-2">
                         <Activity size={14} className="text-primary" /> ProdLytics AI is monitoring your Productivity Momentum
                     </p>
                 </div>
-                <button onClick={() => onTabChange('analytics')} className="bg-white text-black px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl">Detailed Report</button>
+                <div className="flex flex-wrap items-center gap-3">
+                    <button
+                        type="button"
+                        onClick={handleExportPdf}
+                        disabled={loading || pdfExporting}
+                        className="btn-secondary inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-widest disabled:opacity-50"
+                    >
+                        <FileDown size={16} className="shrink-0" />
+                        {pdfExporting ? "Generating…" : "Export PDF"}
+                    </button>
+                    <button type="button" onClick={() => onTabChange("analytics")} className="btn-primary text-[11px] font-black uppercase tracking-widest">
+                        Detailed Report
+                    </button>
+                </div>
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -104,15 +129,15 @@ export default function OverviewView({ onTabChange }) {
                 <StatCard icon={<Activity size={24} />} label="Peak Period" value={metrics.peakHour ? `${metrics.peakHour % 12 || 12} ${metrics.peakHour >= 12 ? 'PM' : 'AM'}` : "..."} trend="IDEAL ZONE" color="warning" />
             </div>
 
-            <div className="glass-card overflow-hidden border-white/5 shadow-2xl">
-                <div className="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
+            <div className="glass-card overflow-hidden shadow-2xl">
+                <div className="flex items-center justify-between border-b-ui bg-foreground/[0.03] px-8 py-6">
                     <div className="flex items-center gap-4">
                         <div className="p-3 bg-primary/10 rounded-2xl text-primary"><TrendingUp size={24} /></div>
                         <h2 className="text-2xl font-black uppercase tracking-tighter">Daily Activity Hub</h2>
                     </div>
                 </div>
-                <div className="p-8 grid grid-cols-1 lg:grid-cols-12 gap-10">
-                    <div className="lg:col-span-7 space-y-6">
+                <div className="grid grid-cols-1 gap-10 p-8 lg:grid-cols-12">
+                    <div className="min-w-0 space-y-6 lg:col-span-7">
                         <h3 className="text-xs font-black text-muted uppercase tracking-widest flex items-center gap-2"><Clock size={14} /> Usage Breakdown</h3>
                         <div className="space-y-4">
                             <ActivityRow label="Deep Work" time={metrics.productiveTime} color="success" total={metrics.totalTime} />
@@ -120,19 +145,49 @@ export default function OverviewView({ onTabChange }) {
                             <ActivityRow label="Neutral" time={metrics.neutralTime} color="muted" total={metrics.totalTime} />
                         </div>
                     </div>
-                    <div className="lg:col-span-5 flex flex-col items-center justify-center p-6 bg-white/[0.02] border border-white/5 rounded-[40px]">
-                        <div className="h-40 w-full relative mb-4">
+                    <div className="flex min-w-0 flex-col items-center justify-center rounded-[40px] border-2 border-ui bg-foreground/[0.04] p-6 lg:col-span-5">
+                        <div className="relative mb-4 h-40 min-h-40 w-full min-w-0">
                             {distribution.length > 0 ? (
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ResponsiveContainer
+                                    width="100%"
+                                    height="100%"
+                                    minWidth={0}
+                                    minHeight={160}
+                                    debounce={50}
+                                    initialDimension={{ width: 400, height: 160 }}
+                                >
                                     <RePieChart>
-                                        <Pie data={distribution} innerRadius={45} outerRadius={65} paddingAngle={5} dataKey="value" stroke="none">
-                                            {distribution.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                                        <Pie
+                                            data={distribution}
+                                            innerRadius={45}
+                                            outerRadius={65}
+                                            paddingAngle={5}
+                                            dataKey="value"
+                                            stroke="var(--chart-pie-stroke)"
+                                            strokeWidth={1}
+                                        >
+                                            {distribution.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                            ))}
                                         </Pie>
+                                        <Tooltip
+                                            contentStyle={{
+                                                backgroundColor: "var(--chart-tooltip-bg)",
+                                                border: "1px solid var(--chart-tooltip-border)",
+                                                borderRadius: "12px",
+                                                padding: "10px",
+                                            }}
+                                            labelStyle={{ color: "var(--chart-tooltip-label)" }}
+                                            itemStyle={{ color: "var(--chart-tooltip-item)" }}
+                                            formatter={(v, name) => [typeof v === "number" ? `${Math.round(v)}s` : v, name]}
+                                        />
                                     </RePieChart>
                                 </ResponsiveContainer>
-                            ) : <div className="w-full h-full border-2 border-dashed border-white/5 rounded-full" />}
+                            ) : (
+                                <div className="h-full w-full rounded-full border-2 border-dashed border-ui-muted" />
+                            )}
                             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                <span className="text-xl font-black text-white">{metrics.score}%</span>
+                                <span className="text-xl font-black text-foreground">{metrics.score}%</span>
                             </div>
                         </div>
                     </div>
@@ -140,37 +195,47 @@ export default function OverviewView({ onTabChange }) {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="glass-card p-8 border-white/5">
-                    <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
-                        <div className="p-2 bg-green-500/10 rounded-xl text-green-500"><Zap size={18} /></div>
-                        <h3 className="text-sm font-black uppercase tracking-widest text-white/90">Top Productive</h3>
+                <div className="glass-card p-8">
+                    <div className="mb-6 flex items-center gap-3 border-b-ui pb-4">
+                        <div className="rounded-xl bg-green-500/10 p-2 text-green-500">
+                            <Zap size={18} />
+                        </div>
+                        <h3 className="text-sm font-black uppercase tracking-widest text-foreground/90">Top Productive</h3>
                     </div>
                     <div className="space-y-4">
                         {topDomains.filter(d => d.category === "productive").slice(0, 5).map((domain) => (
-                            <div key={domain._id} className="flex items-center justify-between p-3 rounded-2xl hover:bg-white/[0.02] transition-colors border border-transparent hover:border-white/5">
+                            <div
+                                key={domain._id}
+                                className="flex items-center justify-between rounded-2xl border-2 border-transparent p-3 transition-colors hover:border-ui hover:bg-foreground/[0.04]"
+                            >
                                 <div className="flex items-center gap-4">
                                     <img src={`https://www.google.com/s2/favicons?domain=${domain._id}&sz=64`} className="w-8 h-8 rounded-lg" alt="" />
-                                    <span className="text-sm font-bold text-white/80">{domain._id}</span>
+                                    <span className="text-sm font-bold text-foreground/80">{domain._id}</span>
                                 </div>
-                                <span className="text-sm font-black font-mono text-green-500">{formatTime(domain.totalTime)}</span>
+                                <span className="font-mono text-sm font-black text-green-500">{formatTime(domain.totalTime)}</span>
                             </div>
                         ))}
                     </div>
                 </div>
 
-                <div className="glass-card p-8 border-white/5">
-                    <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
-                        <div className="p-2 bg-red-500/10 rounded-xl text-red-500"><MousePointer2 size={18} /></div>
-                        <h3 className="text-sm font-black uppercase tracking-widest text-white/90">Top Distractions</h3>
+                <div className="glass-card p-8">
+                    <div className="mb-6 flex items-center gap-3 border-b-ui pb-4">
+                        <div className="rounded-xl bg-red-500/10 p-2 text-red-500">
+                            <MousePointer2 size={18} />
+                        </div>
+                        <h3 className="text-sm font-black uppercase tracking-widest text-foreground/90">Top Distractions</h3>
                     </div>
                     <div className="space-y-4">
                         {topDomains.filter(d => d.category === "unproductive").slice(0, 5).map((domain) => (
-                            <div key={domain._id} className="flex items-center justify-between p-3 rounded-2xl hover:bg-white/[0.02] transition-colors border border-transparent hover:border-white/5">
+                            <div
+                                key={domain._id}
+                                className="flex items-center justify-between rounded-2xl border-2 border-transparent p-3 transition-colors hover:border-ui hover:bg-foreground/[0.04]"
+                            >
                                 <div className="flex items-center gap-4">
                                     <img src={`https://www.google.com/s2/favicons?domain=${domain._id}&sz=64`} className="w-8 h-8 rounded-lg" alt="" />
-                                    <span className="text-sm font-bold text-white/80">{domain._id}</span>
+                                    <span className="text-sm font-bold text-foreground/80">{domain._id}</span>
                                 </div>
-                                <span className="text-sm font-black font-mono text-red-500">{formatTime(domain.totalTime)}</span>
+                                <span className="font-mono text-sm font-black text-red-500">{formatTime(domain.totalTime)}</span>
                             </div>
                         ))}
                     </div>
@@ -181,10 +246,13 @@ export default function OverviewView({ onTabChange }) {
                 <h3 className="text-xs font-black text-muted uppercase tracking-[0.3em] flex items-center gap-3"><TrendingUp size={16} /> Activity History</h3>
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                     {topDomains.slice(0, 5).map((domain) => (
-                        <div key={domain._id} className="glass-card p-5 group hover:bg-white/5 transition-all">
+                        <div
+                            key={domain._id}
+                            className="glass-card group p-5 transition-all hover:bg-foreground/[0.06]"
+                        >
                             <div className="flex items-center gap-3 mb-3">
                                 <img src={`https://www.google.com/s2/favicons?domain=${domain._id}&sz=64`} className="w-6 h-6 rounded" alt="" />
-                                <h4 className="text-xs font-black truncate text-white/90">{domain._id}</h4>
+                                <h4 className="text-xs font-black truncate text-foreground/90">{domain._id}</h4>
                             </div>
                             <span className="text-sm font-black font-mono text-primary">{formatTime(domain.totalTime)}</span>
                         </div>
@@ -203,10 +271,14 @@ function StatCard({ icon, label, value, trend, color }) {
         warning: "text-warning bg-warning/10"
     };
     return (
-        <div className="glass-card p-7 relative group border-white/5 transition-all hover:scale-105">
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border border-white/5 mb-4 ${colors[color]}`}>{icon}</div>
+        <div className="glass-card group relative p-7 transition-all hover:scale-105">
+            <div
+                className={`mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-ui ${colors[color]}`}
+            >
+                {icon}
+            </div>
             <div className="text-muted text-[10px] font-black uppercase tracking-widest">{label}</div>
-            <div className="text-3xl font-black text-white/95 mt-1">{value}</div>
+            <div className="mt-1 text-3xl font-black text-foreground">{value}</div>
             <div className="mt-2 text-[9px] font-black text-muted/60 uppercase tracking-widest flex items-center gap-1.5">
                 <span className={`w-1.5 h-1.5 rounded-full ${colors[color].split(' ')[1]}`} /> {trend}
             </div>
@@ -238,7 +310,7 @@ function ActivityRow({ label, time, color, total }) {
                 <div className={`w-2 h-2 rounded-full ${colors[color]}`} />
                 <span className="text-xs font-bold text-muted">{label}</span>
             </div>
-            <span className="font-mono text-sm font-black text-white">{formatTime(time)}</span>
+            <span className="font-mono text-sm font-black text-foreground">{formatTime(time)}</span>
         </div>
     );
 }

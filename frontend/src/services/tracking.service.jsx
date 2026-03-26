@@ -1,9 +1,10 @@
 import axios from "axios";
 import { API_URL } from "@/context/AuthContext";
 
-const getHeaders = () => ({
-    Authorization: `Bearer ${localStorage.getItem("accessToken")}`
-});
+const getHeaders = () => {
+    const token = localStorage.getItem("accessToken");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 export const trackingService = {
     async getMetrics(range = "today") {
@@ -11,8 +12,9 @@ export const trackingService = {
         return response.data;
     },
 
-    async getSummary() {
-        const response = await axios.get(`${API_URL}/tracking/stats`, { headers: getHeaders() });
+    async getSummary(range = "today") {
+        const q = range && range !== "today" ? `?range=${encodeURIComponent(range)}` : "";
+        const response = await axios.get(`${API_URL}/tracking/stats${q}`, { headers: getHeaders() });
         return response.data;
     },
 
@@ -32,7 +34,12 @@ export const trackingService = {
     },
 
     async getDeepWorkHistory() {
-        const response = await axios.get(`${API_URL}/deepwork/`, { headers: getHeaders() });
+        const response = await axios.get(`${API_URL}/deepwork`, { headers: getHeaders() });
         return response.data;
-    }
+    },
+
+    async saveDeepWorkSession(payload) {
+        const response = await axios.post(`${API_URL}/deepwork`, payload, { headers: getHeaders() });
+        return response.data;
+    },
 };

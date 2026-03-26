@@ -7,6 +7,150 @@
  */
 
 const API_URL = "http://localhost:3000/api";
+
+/** Blocklist may contain full URLs from older clients; compare using hostname only. */
+function normalizeBlockedHost(raw) {
+    if (!raw || typeof raw !== "string") return "";
+    let s = raw.trim().toLowerCase();
+    s = s.replace(/\/+$/, "");
+    try {
+        const hasScheme = /^[a-z][a-z0-9+.-]*:\/\//.test(s);
+        const href = hasScheme ? s : `https://${s.replace(/^\/+/, "")}`;
+        const u = new URL(href);
+        if (!u.hostname) return "";
+        return u.hostname.replace(/^www\./, "");
+    } catch {
+        return s
+            .replace(/^https?:\/\//, "")
+            .split("/")[0]
+            .replace(/^www\./, "");
+    }
+}
+
+/** Synced time classified unproductive (per local calendar day) before smart-block applies */
+const SMART_BLOCK_DAILY_SECONDS = 10800; // 3 hours
+
+function hostsMatch(host, pattern) {
+    const p = normalizeBlockedHost(pattern);
+    const h = normalizeBlockedHost(host);
+    if (!h || !p) return false;
+    return h === p || h.endsWith("." + p);
+}
+
+function matchesManualBlocklist(host) {
+    const h = normalizeBlockedHost(host);
+    if (!h || !blocklist?.length) return false;
+    return blocklist.some((blockedHost) => hostsMatch(h, blockedHost));
+}
+
+function isHostOverUnproductiveLimit(host, unproductiveDaily) {
+    const h = normalizeBlockedHost(host);
+    if (!h || !unproductiveDaily) return false;
+    for (const [site, sec] of Object.entries(unproductiveDaily)) {
+        if (sec < SMART_BLOCK_DAILY_SECONDS) continue;
+        if (hostsMatch(h, site)) return true;
+    }
+    return false;
+}
+
+async function addUnproductiveTime(host, seconds) {
+    const norm = normalizeBlockedHost(host);
+    if (!norm || seconds <= 0) return 0;
+    const { unproductiveDaily = {}, currentDate } = await chrome.storage.local.get(["unproductiveDaily", "currentDate"]);
+    const today = new Date().toDateString();
+    let map = { ...unproductiveDaily };
+    if (currentDate && currentDate !== today) map = {};
+    map[norm] = (map[norm] || 0) + seconds;
+    await chrome.storage.local.set({ unproductiveDaily: map });
+    return map[norm];
+}
+
+async function redirectTabsMatchingHost(hostPattern) {
+    const p = normalizeBlockedHost(hostPattern);
+    if (!p) return;
+    try {
+        const tabs = await chrome.tabs.query({});
+        for (const tab of tabs) {
+            if (!tab.id || !tab.url?.startsWith("http")) continue;
+            try {
+                const h = normalizeBlockedHost(new URL(tab.url).hostname);
+                if (hostsMatch(h, p)) {
+                    chrome.tabs.update(tab.id, { url: chrome.runtime.getURL("blocked.html") });
+                }
+            } catch (e) { /* ignore */ }
+        }
+    } catch (e) {
+        console.warn("redirectTabsMatchingHost:", e);
+    }
+}
+
+const FLOW_REMINDER_ALARM = "flowReminder";
+
+function mergePreferenceDefaults(raw) {
+    return {
+        strictMode: true,
+        smartBlock: true,
+        breakReminders: false,
+        focusSessionMinutes: 25,
+        breakSessionMinutes: 5,
+        deepWorkMinutes: 25,
+        breakMinutes: 5,
+        ...(raw && typeof raw === "object" ? raw : {}),
+    };
+}
+
+function clampPreferenceNumber(n, min, max, fallback) {
+    const v = Number(n);
+    if (!Number.isFinite(v)) return fallback;
+    return Math.min(max, Math.max(min, v));
+}
+
+function showFlowBreakNotification() {
+    const focusMin = clampPreferenceNumber(preferences.focusSessionMinutes, 5, 180, 25);
+    const breakMin = clampPreferenceNumber(preferences.breakSessionMinutes, 1, 60, 5);
+    const icon = chrome.runtime.getURL("icons/icon.png");
+    chrome.notifications.create(`prodlytics-flow-${Date.now()}`, {
+        type: "basic",
+        iconUrl: icon,
+        title: "ProdLytics — time for a break",
+        message: `About ${focusMin} min on this focus rhythm. Step away for ~${breakMin} min and reset before your next stretch.`,
+        priority: 1,
+    });
+}
+
+async function scheduleFlowReminderAlarm() {
+    await chrome.alarms.clear(FLOW_REMINDER_ALARM);
+    if (!preferences.breakReminders) return;
+    const focusMin = clampPreferenceNumber(preferences.focusSessionMinutes, 5, 180, 25);
+    const period = Math.max(1, Math.round(focusMin));
+    chrome.alarms.create(FLOW_REMINDER_ALARM, { periodInMinutes: period });
+    console.log(`⏰ Flow reminder every ${period} min (idle-aware)`);
+}
+
+/** Add host to dashboard Neural Blocklist (visible + enforced with Strict lock). */
+async function addHostToNeuralBlocklist(host) {
+    const norm = normalizeBlockedHost(host);
+    if (!norm) return;
+    if (matchesManualBlocklist(norm)) return;
+    try {
+        const res = await fetch(`${API_URL}/focus`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ website: norm, source: "smart_daily_cap" }),
+        });
+        if (!res.ok) return;
+        const blockRes = await fetch(`${API_URL}/focus/`);
+        if (blockRes.ok) {
+            const data = await blockRes.json();
+            blocklist = [...new Set(data.map((site) => normalizeBlockedHost(site.website)).filter(Boolean))];
+            await chrome.storage.local.set({ blocklist });
+            console.log(`📋 Neural blocklist updated (smart cap): ${norm}`);
+        }
+    } catch (e) {
+        console.warn("addHostToNeuralBlocklist:", e);
+    }
+}
+
 let activeTab = null;
 let activeTitle = "";
 let startTime = null;
@@ -23,8 +167,142 @@ let blocklist = [];
 let preferences = {
     strictMode: true,
     smartBlock: true,
-    breakReminders: false
+    breakReminders: false,
+    focusSessionMinutes: 25,
+    breakSessionMinutes: 5,
 };
+
+let lastGoalPollMs = 0;
+
+/** Goals + today’s productive stats for the extension popup (throttled; use force on sync). */
+async function refreshGoalsAndPopupCache(opts = {}) {
+    const { force = false } = opts;
+    const now = Date.now();
+    if (!force && now - lastGoalPollMs < 90_000) return;
+    lastGoalPollMs = now;
+    try {
+        const [goalsRes, statsRes] = await Promise.all([
+            fetch(`${API_URL}/goals/progress`),
+            fetch(`${API_URL}/tracking/stats?range=today`),
+        ]);
+
+        let goals = [];
+        if (goalsRes.ok) {
+            const data = await goalsRes.json();
+            if (Array.isArray(data)) goals = data;
+        }
+
+        let productiveToday = 0;
+        if (statsRes.ok) {
+            const stats = await statsRes.json();
+            productiveToday = Math.floor(Number(stats.productiveTime) || 0);
+        }
+        const productiveGoal = goals.find((g) => g.type === "productive");
+        if (productiveGoal && typeof productiveGoal.currentSeconds === "number") {
+            productiveToday = Math.max(productiveToday, Math.floor(productiveGoal.currentSeconds));
+        }
+
+        const { goalProgressSnapshot = {} } = await chrome.storage.local.get("goalProgressSnapshot");
+        const nextSnap = { ...goalProgressSnapshot };
+        for (const g of goals) {
+            const id = String(g._id);
+            const prog = typeof g.progress === "number" ? g.progress : 0;
+            const prev = goalProgressSnapshot[id];
+            if (prev !== undefined && g.isActive && prog >= 100 && prev < 100) {
+                const name = String(g.label || g.website || "Your goal").trim() || "Your goal";
+                await showWorkspaceToastOnActiveTab("Goal achieved", `${name} — you hit today's target.`, "success", {
+                    systemNotify: true,
+                });
+            }
+            nextSnap[id] = prog;
+        }
+
+        const sumProductiveTargets = goals
+            .filter((g) => g.type === "productive")
+            .reduce((acc, g) => acc + (Number(g.targetSeconds) || 0), 0);
+        const focusMin = clampPreferenceNumber(preferences.deepWorkMinutes, 5, 180, 25);
+        const defaultFocusTarget = Math.max(3600, focusMin * 60 * 4);
+        /* Summed productive targets below ~5m are usually mis-set (e.g. 120s); avoid nonsense denominators. */
+        const MIN_SUM_PRODUCTIVE_TARGETS = 5 * 60;
+        let focusTargetSeconds;
+        if (sumProductiveTargets <= 0) {
+            focusTargetSeconds = defaultFocusTarget;
+        } else if (sumProductiveTargets < MIN_SUM_PRODUCTIVE_TARGETS) {
+            focusTargetSeconds = defaultFocusTarget;
+        } else {
+            focusTargetSeconds = sumProductiveTargets;
+        }
+
+        const focusProgressPercent =
+            focusTargetSeconds > 0 ? Math.min(100, Math.round((productiveToday / focusTargetSeconds) * 100)) : 0;
+
+        const goalsAvgProgress =
+            goals.length > 0
+                ? Math.round(
+                      goals.reduce((acc, g) => acc + Math.min(100, Math.max(0, Number(g.progress) || 0)), 0) / goals.length,
+                  )
+                : 0;
+
+        const goalsDisplay = goals.map((g) => ({
+            id: String(g._id),
+            label: (String(g.label || g.website || "Goal").trim() || "Goal").slice(0, 48),
+            type: g.type || "productive",
+            progress: Math.min(100, Math.max(0, Number(g.progress) || 0)),
+            currentSeconds: Math.floor(Number(g.currentSeconds) || 0),
+            targetSeconds: Math.floor(Number(g.targetSeconds) || 0),
+        }));
+
+        await chrome.storage.local.set({
+            goalProgressSnapshot: nextSnap,
+            extensionPopupCache: {
+                productiveToday,
+                focusTargetSeconds,
+                focusProgressPercent,
+                goalsAverageProgress: goalsAvgProgress,
+                goalsCount: goals.length,
+                goalsDisplay,
+                updatedAt: Date.now(),
+            },
+        });
+    } catch (err) {
+        console.warn("Goals / popup cache refresh:", err?.message || err);
+    }
+}
+
+async function showWorkspaceToastOnActiveTab(title, message, variant = "success", opts = {}) {
+    const { systemNotify = false } = opts;
+    const t = title || "ProdLytics";
+    const m = message || "";
+    const v = variant || "success";
+    let tabDelivered = false;
+    try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab?.id && /^https?:/i.test(tab.url || "")) {
+            await chrome.tabs.sendMessage(tab.id, {
+                action: "showWorkspaceToast",
+                title: t,
+                message: m,
+                variant: v,
+            });
+            tabDelivered = true;
+        }
+    } catch (e) {
+        /* restricted URL or content script not loaded */
+    }
+    if (systemNotify || !tabDelivered) {
+        try {
+            await chrome.notifications.create(`pl-ws-${Date.now()}`, {
+                type: "basic",
+                iconUrl: chrome.runtime.getURL("icons/icon.png"),
+                title: t,
+                message: m,
+                priority: 2,
+            });
+        } catch (e2) {
+            /* ignore */
+        }
+    }
+}
 
 // Initialization
 const initPromise = init();
@@ -58,6 +336,17 @@ async function heartbeat() {
             await chrome.storage.local.set({
                 siteTimes: {},
                 syncedTimes: {},
+                unproductiveDaily: {},
+                goalProgressSnapshot: {},
+                extensionPopupCache: {
+                    productiveToday: 0,
+                    focusTargetSeconds: 0,
+                    focusProgressPercent: 0,
+                    goalsAverageProgress: 0,
+                    goalsCount: 0,
+                    goalsDisplay: [],
+                    updatedAt: Date.now(),
+                },
                 currentDate: today,
                 startTime: Date.now(),
                 lastSaveTime: null
@@ -125,6 +414,15 @@ async function heartbeat() {
                 }
             }
         }
+
+        if (activeTab && preferences.smartBlock) {
+            const { unproductiveDaily = {} } = await chrome.storage.local.get("unproductiveDaily");
+            if (isHostOverUnproductiveLimit(activeTab, unproductiveDaily)) {
+                await redirectTabsMatchingHost(activeTab);
+            }
+        }
+
+        await refreshGoalsAndPopupCache();
     } catch (err) {
         console.error("❌ Heartbeat error:", err);
     }
@@ -163,15 +461,16 @@ async function saveSession(website, timeSeconds, pageTitle = "", scrolls = 0, cl
         if (response.ok) {
             const result = await response.json();
             console.log(`✅ [SYNC] Successfully uploaded data for ${website}`);
-            
-            // AI Smart Block Logic
-            if (preferences.smartBlock && result.category === "unproductive") {
-                const data = await chrome.storage.local.get(["siteTimes"]);
-                if (data.siteTimes[website] > 120) {
-                    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-                    if (tab && tab.url.includes(website)) {
-                        chrome.tabs.update(tab.id, { url: chrome.runtime.getURL("blocked.html") });
+
+            if (result.category === "unproductive") {
+                const totalUnproductive = await addUnproductiveTime(website, timeSeconds);
+                const prevUnproductive = totalUnproductive - timeSeconds;
+                if (preferences.smartBlock && totalUnproductive >= SMART_BLOCK_DAILY_SECONDS) {
+                    console.log(`🧠 Smart block: ${website} exceeded ${SMART_BLOCK_DAILY_SECONDS}s unproductive today`);
+                    if (prevUnproductive < SMART_BLOCK_DAILY_SECONDS) {
+                        await addHostToNeuralBlocklist(website);
                     }
+                    await redirectTabsMatchingHost(website);
                 }
             }
             return true;
@@ -186,7 +485,14 @@ async function saveSession(website, timeSeconds, pageTitle = "", scrolls = 0, cl
 async function handleTabSwitch(url, title = "") {
     await initPromise;
 
-    if (activeTab && url.includes(activeTab) && title === activeTitle) {
+    let nextHost = null;
+    try {
+        if (isTrackable(url)) nextHost = normalizeBlockedHost(new URL(url).hostname);
+    } catch (err) {
+        nextHost = null;
+    }
+
+    if (activeTab && nextHost && activeTab === nextHost && title === activeTitle) {
         return;
     }
 
@@ -216,12 +522,16 @@ async function handleTabSwitch(url, title = "") {
         return;
     }
 
-    try {
-        activeTab = new URL(url).hostname;
-    } catch (err) {
+    if (!nextHost) {
         console.error("❌ Invalid URL for tracking:", url);
         activeTab = null;
+        activeTitle = title || "";
+        startTime = null;
+        chrome.storage.local.remove(["activeTab", "activeTitle", "startTime"]);
+        return;
     }
+
+    activeTab = nextHost;
     activeTitle = title || "";
     startTime = Date.now();
 
@@ -238,7 +548,7 @@ async function updateSyncData() {
         const blockRes = await fetch(`${API_URL}/focus/`);
         if (blockRes.ok) {
             const data = await blockRes.json();
-            blocklist = data.map(site => site.website.toLowerCase().replace('www.', ''));
+            blocklist = [...new Set(data.map((site) => normalizeBlockedHost(site.website)).filter(Boolean))];
             await chrome.storage.local.set({ blocklist });
             console.log("✅ Blocklist updated:", blocklist);
         }
@@ -246,41 +556,77 @@ async function updateSyncData() {
         // 2. Fetch Preferences
         const prefRes = await fetch(`${API_URL}/auth/preferences`);
         if (prefRes.ok) {
-            preferences = await prefRes.json();
+            preferences = mergePreferenceDefaults(await prefRes.json());
             await chrome.storage.local.set({ preferences });
             console.log("✅ Preferences updated:", preferences);
         }
+        await scheduleFlowReminderAlarm();
     } catch (err) {
         console.warn("⚠️ Sync failed, using cached data:", err.message);
         const cache = await chrome.storage.local.get(["blocklist", "preferences"]);
         if (cache.blocklist) blocklist = cache.blocklist;
-        if (cache.preferences) preferences = cache.preferences;
+        if (cache.preferences) preferences = mergePreferenceDefaults(cache.preferences);
+        await scheduleFlowReminderAlarm();
     }
 }
 
-// Blocking Logic
-chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
-    if (details.frameId !== 0) return; // Only block main frame
-
-    await initPromise;
-
-    if (!preferences.strictMode) return;
-
+/** Manual blocklist (strict) + smart block (3h unproductive / day). */
+async function enforceBlocklistOnOpenTabs(options = {}) {
+    const waitForInit = options.waitForInit !== false;
+    if (waitForInit) await initPromise;
+    const { unproductiveDaily = {} } = await chrome.storage.local.get("unproductiveDaily");
+    const manualOn = preferences.strictMode && blocklist?.length;
+    const smartOn = preferences.smartBlock && Object.values(unproductiveDaily).some((s) => s >= SMART_BLOCK_DAILY_SECONDS);
+    if (!manualOn && !smartOn) return;
     try {
-        const url = new URL(details.url);
-        const host = url.hostname.toLowerCase().replace('www.', '');
-
-        const isBlocked = blocklist.some(blockedHost =>
-            host === blockedHost || host.endsWith('.' + blockedHost)
-        );
-
-        if (isBlocked) {
-            console.log(`🛡️ Blocking access to: ${host}`);
-            chrome.tabs.update(details.tabId, { url: chrome.runtime.getURL("blocked.html") });
+        const tabs = await chrome.tabs.query({});
+        for (const tab of tabs) {
+            if (!tab.id || !tab.url) continue;
+            if (tab.url.startsWith("chrome-extension:")) continue;
+            try {
+                const u = new URL(tab.url);
+                if (u.protocol !== "http:" && u.protocol !== "https:") continue;
+                const host = normalizeBlockedHost(u.hostname);
+                const manualBlock = preferences.strictMode && matchesManualBlocklist(host);
+                const smartBlock = preferences.smartBlock && isHostOverUnproductiveLimit(host, unproductiveDaily);
+                if (manualBlock || smartBlock) {
+                    chrome.tabs.update(tab.id, { url: chrome.runtime.getURL("blocked.html") });
+                }
+            } catch (e) { /* ignore invalid URL */ }
         }
-    } catch (err) {
-        console.error("Blocking error:", err);
+    } catch (e) {
+        console.warn("enforceBlocklistOnOpenTabs:", e);
     }
+}
+
+// Blocking Logic: neural blocklist (strict) OR smart daily cap on unproductive time
+chrome.webNavigation.onBeforeNavigate.addListener((details) => {
+    if (details.frameId !== 0) return;
+
+    (async () => {
+        await initPromise;
+
+        const manualAllowed = preferences.strictMode;
+        const smartAllowed = preferences.smartBlock;
+        if (!manualAllowed && !smartAllowed) return;
+
+        try {
+            const url = new URL(details.url);
+            if (url.protocol !== "http:" && url.protocol !== "https:") return;
+            const host = normalizeBlockedHost(url.hostname);
+
+            const { unproductiveDaily = {} } = await chrome.storage.local.get("unproductiveDaily");
+            const manualBlock = manualAllowed && matchesManualBlocklist(host);
+            const smartBlockHit = smartAllowed && isHostOverUnproductiveLimit(host, unproductiveDaily);
+
+            if (manualBlock || smartBlockHit) {
+                console.log(`🛡️ Blocking navigation to: ${host} (manual=${manualBlock} smart=${smartBlockHit})`);
+                chrome.tabs.update(details.tabId, { url: chrome.runtime.getURL("blocked.html") });
+            }
+        } catch (err) {
+            console.error("Blocking error:", err);
+        }
+    })();
 });
 
 // ==================== EVENTS ====================
@@ -288,6 +634,20 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
 chrome.alarms.onAlarm.addListener(async (alarm) => {
     if (alarm.name === "heartbeat") {
         heartbeat();
+    } else if (alarm.name === FLOW_REMINDER_ALARM) {
+        if (!preferences.breakReminders) return;
+        try {
+            if (chrome.idle?.queryState) {
+                chrome.idle.queryState(180, (state) => {
+                    if (state === "active") showFlowBreakNotification();
+                });
+            } else {
+                showFlowBreakNotification();
+            }
+        } catch (e) {
+            console.warn("Flow reminder:", e);
+            showFlowBreakNotification();
+        }
     } else if (alarm.name === "midnightReset") {
         console.log("🕛 Midnight reset triggered. Syncing and clearing local data...");
 
@@ -308,7 +668,21 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         // For now, we wipe both trackers so they start fresh at 0.
 
         // 2. Clear local storage for tracking
-        await chrome.storage.local.set({ siteTimes: {}, syncedTimes: {} });
+        await chrome.storage.local.set({
+            siteTimes: {},
+            syncedTimes: {},
+            unproductiveDaily: {},
+            goalProgressSnapshot: {},
+            extensionPopupCache: {
+                productiveToday: 0,
+                focusTargetSeconds: 0,
+                focusProgressPercent: 0,
+                goalsAverageProgress: 0,
+                goalsCount: 0,
+                goalsDisplay: [],
+                updatedAt: Date.now(),
+            },
+        });
 
         // 3. Reset internal state
         startTime = Date.now();
@@ -339,15 +713,42 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     }
 });
 
-chrome.runtime.onMessageExternal.addListener(async (request, sender, sendResponse) => {
-    console.log("📩 Received external message:", request.action);
+chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse) => {
     if (request.action === "syncAll") {
-        await updateSyncData();
-        sendResponse({ success: true, message: "Sync complete" });
+        console.log("📩 External syncAll from:", sender.url);
+        updateSyncData()
+            .then(() => refreshGoalsAndPopupCache({ force: true }))
+            .then(() => enforceBlocklistOnOpenTabs())
+            .then(() => sendResponse({ success: true, message: "Sync complete" }))
+            .catch((err) => sendResponse({ success: false, error: String(err) }));
+        return true;
     }
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "syncAll") {
+        console.log("📩 syncAll from content/popup");
+        updateSyncData()
+            .then(() => refreshGoalsAndPopupCache({ force: true }))
+            .then(() => enforceBlocklistOnOpenTabs())
+            .then(() => sendResponse({ success: true }))
+            .catch((err) => sendResponse({ success: false, error: String(err) }));
+        return true;
+    }
+    if (request.action === "refreshPopupCache") {
+        refreshGoalsAndPopupCache({ force: true })
+            .then(() => sendResponse({ success: true }))
+            .catch((err) => sendResponse({ success: false, error: String(err) }));
+        return true;
+    }
+    if (request.action === "workspaceToastFromDashboard") {
+        showWorkspaceToastOnActiveTab(request.title, request.message, request.variant, {
+            systemNotify: Boolean(request.systemNotify),
+        })
+            .then(() => sendResponse({ ok: true }))
+            .catch(() => sendResponse({ ok: false }));
+        return true;
+    }
     if (request.action === "resetTracking") {
         startTime = Date.now();
         lastSaveTime = null;
@@ -364,8 +765,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         console.log("✏️ Title Changed:", request.title);
         activeTitle = request.title;
     } else if (request.action === "engagementActivity") {
-        // Only track engagement for the active tab to avoid crosstalk
-        if (activeTab && request.url.includes(activeTab)) {
+        let reqHost = "";
+        try {
+            reqHost = normalizeBlockedHost(new URL(request.url).hostname);
+        } catch (e) { /* ignore */ }
+        if (activeTab && reqHost && reqHost === activeTab) {
             scrollCount += request.scrolls || 0;
             clickCount += request.clicks || 0;
             console.log(`🖱️ Activity synced: ${scrollCount}s, ${clickCount}c`);
@@ -402,22 +806,33 @@ async function init() {
     }
 
     if (storage.blocklist) blocklist = storage.blocklist;
-    if (storage.preferences) preferences = storage.preferences;
+    if (storage.preferences) preferences = mergePreferenceDefaults(storage.preferences);
 
     chrome.alarms.create("heartbeat", { periodInMinutes: 0.1 });
 
     // Initial sync - Await it to ensure we have data before resolving initPromise
     await updateSyncData();
+    await refreshGoalsAndPopupCache({ force: true });
+    await enforceBlocklistOnOpenTabs({ waitForInit: false });
 
     // Schedule midnight reset
     scheduleMidnightReset();
+
+    try {
+        if (chrome.idle?.setDetectionInterval) {
+            chrome.idle.setDetectionInterval(120);
+        }
+    } catch (e) { /* ignore */ }
 }
 
 // Listen for storage changes to keep local variables in sync
 chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "local") {
         if (changes.blocklist) blocklist = changes.blocklist.newValue || [];
-        if (changes.preferences) preferences = changes.preferences.newValue || preferences;
+        if (changes.preferences) {
+            preferences = mergePreferenceDefaults(changes.preferences.newValue || preferences);
+            scheduleFlowReminderAlarm();
+        }
         console.log("💾 Storage update detected, local state synced.");
     }
 });

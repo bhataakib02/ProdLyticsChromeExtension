@@ -20,8 +20,10 @@ export default function SetupView() {
     return (
         <div className="p-8 max-w-5xl mx-auto space-y-16 relative">
             <header className="text-center space-y-6">
-                <div className="w-20 h-20 rounded-[2rem] bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center mx-auto mb-8 shadow-2xl border border-white/10"><Chrome className="text-primary" size={40} /></div>
-                <h1 className="text-6xl font-black tracking-tighter bg-gradient-to-r from-white to-white/40 bg-clip-text text-transparent">ProdLytics Extension</h1>
+                <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-[2rem] border-2 border-ui bg-gradient-to-br from-primary/20 to-secondary/20 shadow-2xl">
+                    <Chrome className="text-primary" size={40} />
+                </div>
+                <h1 className="text-6xl font-black tracking-tighter bg-gradient-to-r from-foreground to-foreground/45 bg-clip-text text-transparent">ProdLytics Extension</h1>
                 <p className="text-muted text-lg max-w-2xl mx-auto font-medium">The bridge between your focused work and advanced deep-learning analytics.</p>
             </header>
 
@@ -31,19 +33,16 @@ export default function SetupView() {
                 <StepCard index={3} title="Active Sync" desc="Securely link your dashboard account." icon={RefreshCw} color="secondary" />
             </div>
 
-            <div className="glass-card p-16 flex flex-col items-center space-y-10 text-center bg-white/[0.01]">
+            <div className="glass-card flex flex-col items-center space-y-10 bg-foreground/[0.02] p-16 text-center">
                 <div className="space-y-4">
                     <div className="p-4 bg-primary/10 rounded-full w-fit mx-auto"><ShieldCheck size={32} className="text-primary" /></div>
                     <h2 className="text-3xl font-black tracking-tighter">Initialize Secure Sync</h2>
                 </div>
-                <button onClick={synchronizeExtension} disabled={syncing} className="bg-white text-black px-12 py-5 rounded-3xl font-black uppercase tracking-widest text-sm hover:scale-105 transition-all w-full max-w-sm">
+                <button type="button" onClick={synchronizeExtension} disabled={syncing} className="btn-primary-lg max-w-sm uppercase tracking-widest">
                     {syncing ? <RefreshCw className="animate-spin" size={20} /> : "Authorize Sync"}
                 </button>
                 {syncStatus === 'success' && <div className="text-green-500 font-black uppercase text-xs tracking-widest flex items-center gap-2"><CheckCircle2 size={18} /> Synced!</div>}
             </div>
-            <style jsx global>{`
-                .glass-card { background: rgba(255, 255, 255, 0.015); backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 48px; }
-            `}</style>
         </div>
     );
 }
@@ -52,10 +51,12 @@ function StepCard({ index, title, desc, icon: Icon, color }) {
     const colors = { primary: 'text-primary bg-primary/10', warning: 'text-warning bg-warning/10', secondary: 'text-secondary bg-secondary/10' };
     return (
         <div className="glass-card p-10 flex flex-col items-center text-center space-y-6 hover:border-primary/40 transition-all">
-            <div className={`w-16 h-16 rounded-3xl flex items-center justify-center border border-white/5 ${colors[color]}`}><Icon size={28} /></div>
+            <div className={`flex h-16 w-16 items-center justify-center rounded-3xl border-2 border-ui ${colors[color]}`}>
+                <Icon size={28} />
+            </div>
             <div>
                 <div className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Phase 0{index}</div>
-                <h3 className="text-2xl font-black tracking-tight text-white/95">{title}</h3>
+                <h3 className="text-2xl font-black tracking-tight text-foreground">{title}</h3>
                 <p className="text-sm text-muted mt-2">{desc}</p>
             </div>
         </div>

@@ -31,10 +31,12 @@ const iconsOut = resolve(__dirname, 'dist/icons')
 if (!existsSync(iconsOut)) mkdirSync(iconsOut, { recursive: true })
 cpSync(resolve(__dirname, 'icons'), iconsOut, { recursive: true })
 
-// 6. Copy blocked.html and blocked.css
+// 6. Copy blocked page assets (blocked.html references blocked.css + blocked.js)
 const blockedHtml = resolve(__dirname, 'blocked.html')
 const blockedCss = resolve(__dirname, 'blocked.css')
+const blockedJs = resolve(__dirname, 'blocked.js')
 if (existsSync(blockedHtml)) copyFileSync(blockedHtml, resolve(__dirname, 'dist/blocked.html'))
 if (existsSync(blockedCss)) copyFileSync(blockedCss, resolve(__dirname, 'dist/blocked.css'))
+if (existsSync(blockedJs)) copyFileSync(blockedJs, resolve(__dirname, 'dist/blocked.js'))
 
 console.log('✅ Extension built! Load the dist/ folder in Chrome.')

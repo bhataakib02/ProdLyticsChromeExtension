@@ -6,6 +6,7 @@ import { Bell, Search, UserCircle, RefreshCw, LogOut, Settings, ExternalLink } f
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { notificationService } from "@/services/notification.service";
+import { requestExtensionSync } from "@/lib/extensionSync";
 
 export default function Navbar() {
     const { user, logout } = useAuth();
@@ -52,10 +53,7 @@ export default function Navbar() {
 
     const syncWithExtension = async () => {
         setSyncing(true);
-        const extensionId = "dfbcfgkpgbfbdjabippomkelpkboffen";
-        console.log(`📡 Syncing to extension from Navbar: ${extensionId}`);
-
-        // Trigger notification natively
+        requestExtensionSync();
         try {
             await notificationService.createNotification({
                 title: "Extension Synced",
@@ -63,43 +61,31 @@ export default function Navbar() {
                 type: "info"
             });
             await fetchNotifications();
-        } catch (e) { console.error(e) }
-        if (typeof window !== "undefined" && window.chrome && window.chrome.runtime) {
-            window.chrome.runtime.sendMessage(extensionId, { action: "syncAll" }, (response) => {
-                if (window.chrome.runtime.lastError) {
-                    console.warn("❌ Could not sync:", window.chrome.runtime.lastError.message);
-                } else {
-                    console.log("✅ Sync successful");
-                }
-                setTimeout(() => setSyncing(false), 1000);
-            });
-        } else {
-            // Simulate for UI feel if extension not detected
-            setTimeout(() => setSyncing(false), 1000);
+        } catch (e) {
+            console.error(e);
         }
+        setTimeout(() => setSyncing(false), 1000);
     };
 
     if (!user) return null;
 
     return (
-        <header className="h-20 border-b border-foreground/5 bg-background/60 backdrop-blur-md flex items-center justify-between px-8 sticky top-0 z-50 w-full transition-all">
+        <header className="sticky top-0 z-50 flex h-20 w-full items-center justify-between border-b-ui-muted bg-background/60 px-8 backdrop-blur-md transition-all">
             <div className="relative w-96 group">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-primary transition-colors" size={18} />
                 <input
                     type="text"
                     placeholder="Search activity..."
-                    className="w-full bg-foreground/5 border border-foreground/10 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:border-primary/50 focus:bg-foreground/[0.08] transition-all"
+                    className="w-full rounded-xl border-2 border-ui bg-foreground/5 py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted transition-all focus:border-primary/50 focus:bg-foreground/[0.08] focus:outline-none"
                 />
             </div>
 
             <div className="flex items-center gap-4">
                 {/* Sync Extension Button - Global */}
                 <button
+                    type="button"
                     onClick={syncWithExtension}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all border shadow-sm ${syncing
-                        ? 'bg-primary/20 border-primary/30 text-primary cursor-wait'
-                        : 'bg-foreground/5 border-foreground/10 hover:bg-foreground/10 hover:border-foreground/20 text-foreground active:scale-95'
-                        }`}
+                    className={`btn-secondary-sm ${syncing ? "cursor-wait border-primary/35 bg-primary/15 text-primary" : ""}`}
                 >
                     <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
                     {syncing ? 'Syncing...' : 'Sync Extension'}
@@ -110,6 +96,7 @@ export default function Navbar() {
                 {/* Notifications */}
                 <div className="relative" ref={notificationRef}>
                     <button
+                        type="button"
                         onClick={async () => {
                             const opening = !showNotifications;
                             setShowNotifications(opening);
@@ -118,10 +105,7 @@ export default function Navbar() {
                                 fetchNotifications();
                             }
                         }}
-                        className={`p-2.5 rounded-xl transition-all relative border ${showNotifications
-                            ? 'bg-primary/10 border-primary/20 text-primary'
-                            : 'bg-foreground/5 border-foreground/10 hover:bg-foreground/10 text-muted hover:text-foreground'
-                            }`}
+                        className={`btn-icon btn-icon-sm relative ${showNotifications ? "border-primary/30 bg-primary/10 text-primary" : ""}`}
                     >
                         <Bell size={20} />
                         {unreadCount > 0 && <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-secondary rounded-full border border-background shadow-lg" />}
@@ -133,7 +117,7 @@ export default function Navbar() {
                                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                className="absolute right-0 mt-3 w-80 glass-card p-4 shadow-2xl border border-foreground/10 z-50"
+                                className="glass-card absolute right-0 z-50 mt-3 w-80 p-4 shadow-2xl"
                             >
                                 <div className="flex items-center justify-between mb-4">
                                     <h3 className="font-bold text-sm">Notifications</h3>
@@ -155,7 +139,7 @@ export default function Navbar() {
                                         ))
                                     )}
                                 </div>
-                                <button className="w-full mt-4 py-2 text-[10px] font-bold text-muted hover:text-foreground transition-colors uppercase tracking-widest border-t border-foreground/5 pt-4">
+                                <button className="mt-4 w-full border-t-ui-muted pt-4 text-[10px] font-bold uppercase tracking-widest text-muted transition-colors hover:text-foreground">
                                     View All Notifications
                                 </button>
                             </motion.div>
@@ -171,7 +155,9 @@ export default function Navbar() {
 
 function NotificationItem({ title, time, description, type, isRead }) {
     return (
-        <div className={`p-3 rounded-xl border transition-all cursor-pointer group ${!isRead ? 'bg-primary/5 border-primary/20' : 'bg-foreground/[0.03] border-foreground/5 hover:border-primary/20'}`}>
+        <div
+            className={`group cursor-pointer rounded-xl border-2 p-3 transition-all ${!isRead ? "border-primary/30 bg-primary/5" : "border-ui-muted bg-foreground/[0.03] hover:border-primary/30"}`}
+        >
             <div className="flex items-center justify-between mb-1">
                 <span className={`text-[11px] font-bold transition-colors ${!isRead ? 'text-primary' : 'group-hover:text-primary'}`}>{title}</span>
                 <span className="text-[9px] text-muted">{time}</span>

@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useDashboard } from "@/context/DashboardContext";
 import {
@@ -11,12 +9,9 @@ import {
     ShieldAlert,
     Lightbulb,
     Timer,
-    Settings,
-    LogOut,
     Sun,
     Moon,
     Chrome,
-    User as UserIcon,
     ExternalLink
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -32,18 +27,17 @@ const menuItems = [
 ];
 
 export default function Sidebar() {
-    const pathname = usePathname();
-    const { logout, user } = useAuth();
+    const { user } = useAuth();
     const { activeTab, setActiveTab } = useDashboard();
     const { theme, toggleTheme } = useTheme();
 
     if (!user) return null;
 
     return (
-        <aside className="w-64 h-screen border-r border-foreground/10 bg-background flex flex-col p-6 sticky top-0">
+        <aside className="sticky top-0 flex h-screen w-64 flex-col border-r-ui bg-background p-6">
             <div className="flex items-center gap-3 mb-10">
                 <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/40">
-                    <Chrome className="text-background" size={18} />
+                    <Chrome className="text-white" size={18} />
                 </div>
                 <span className="text-xl font-bold gradient-text tracking-tighter">ProdLytics</span>
             </div>
@@ -52,12 +46,12 @@ export default function Sidebar() {
                 {menuItems.map((item) => (
                     <button
                         key={item.id}
+                        type="button"
                         onClick={() => setActiveTab(item.id)}
                         className={cn(
-                            "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group",
-                            activeTab === item.id
-                                ? "bg-primary/10 text-primary border border-primary/20"
-                                : "text-muted hover:text-foreground hover:bg-foreground/5"
+                            "sidebar-nav-btn group border-ui-muted bg-foreground/[0.02] text-muted hover:border-ui hover:bg-foreground/5 hover:text-foreground",
+                            activeTab === item.id &&
+                                "border-primary/35 bg-primary/10 text-primary hover:border-primary/40 hover:bg-primary/[0.14]"
                         )}
                     >
                         <item.icon size={20} className={cn("transition-transform group-hover:scale-110", activeTab === item.id && "text-primary")} />
@@ -66,25 +60,22 @@ export default function Sidebar() {
                 ))}
             </nav>
 
-            <div className="pt-6 border-t border-foreground/5 space-y-2">
+            <div className="space-y-2 border-t-ui-muted pt-6">
                 <button
+                    type="button"
                     onClick={() => setActiveTab("setup")}
                     className={cn(
-                        "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group",
-                        activeTab === "setup"
-                            ? "bg-primary/10 text-primary border border-primary/20"
-                            : "text-muted hover:text-foreground hover:bg-foreground/5"
+                        "sidebar-nav-btn group border-ui-muted bg-foreground/[0.02] text-muted hover:border-ui hover:bg-foreground/5 hover:text-foreground",
+                        activeTab === "setup" &&
+                            "border-primary/35 bg-primary/10 text-primary hover:border-primary/40 hover:bg-primary/[0.14]"
                     )}
                 >
                     <ExternalLink size={20} className={cn("transition-transform group-hover:scale-110", activeTab === "setup" && "text-primary")} />
                     <span className="font-medium">Extension Setup</span>
                 </button>
-                <button
-                    onClick={toggleTheme}
-                    className="flex items-center gap-3 px-4 py-3 w-full text-muted hover:text-foreground transition-all"
-                >
-                    {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
-                    <span className="font-medium">{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
+                <button type="button" onClick={toggleTheme} className="theme-toggle-btn">
+                    {theme === "dark" ? <Sun size={20} className="shrink-0 text-primary" /> : <Moon size={20} className="shrink-0 text-primary" />}
+                    <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
                 </button>
             </div>
         </aside>

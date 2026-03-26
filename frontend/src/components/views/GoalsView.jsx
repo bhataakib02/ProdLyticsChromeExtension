@@ -17,6 +17,7 @@ import {
     ShieldAlert
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { requestExtensionWorkspaceToast } from "@/lib/extensionSync";
 
 export default function GoalsView() {
     const { user } = useAuth();
@@ -47,6 +48,12 @@ export default function GoalsView() {
             if (newlyCompleted) {
                 setCelebratedObjective(newlyCompleted);
                 sessionStorage.setItem(`celebrated_${newlyCompleted._id}`, "true");
+                const name = String(newlyCompleted.label || newlyCompleted.website || "Objective").trim() || "Objective";
+                requestExtensionWorkspaceToast({
+                    title: "Objective achieved",
+                    message: `${name} — you hit today's target. Great work.`,
+                    systemNotify: true,
+                });
             }
         } catch (err) {
             console.error("error fetching objectives:", err);
@@ -89,16 +96,30 @@ export default function GoalsView() {
         }
     }
 
+    function formatTrackedToday(seconds) {
+        const s = Number(seconds) || 0;
+        if (s <= 0) return "0m";
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        if (h > 0) return `${h}h ${m}m`;
+        return `${m}m`;
+    }
+
     if (!user) return null;
 
+    const fieldLabel =
+        "block text-[10px] font-black uppercase tracking-widest text-foreground/65";
+    const fieldBase =
+        "w-full rounded-xl border-2 border-ui bg-background px-4 py-3 text-foreground outline-none transition-shadow placeholder:text-muted focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/35";
+
     return (
-        <div className="p-8 space-y-8 max-w-7xl mx-auto relative">
+        <div className="p-8 space-y-8 max-w-7xl mx-auto relative text-foreground">
             <header className="flex justify-between items-center">
                 <div>
                     <h1 className="text-4xl font-bold  tracking-tight">Goals & Targets</h1>
                     <p className="text-muted mt-2 ">Define your productivity boundaries and track your progress.</p>
                 </div>
-                <button onClick={() => setShowNewObjective(true)} className="bg-primary text-background px-6 py-3 rounded-2xl font-bold flex items-center gap-2">
+                <button type="button" onClick={() => setShowNewObjective(true)} className="btn-primary">
                     <Plus size={20} /> Set Objective
                 </button>
             </header>
@@ -110,7 +131,9 @@ export default function GoalsView() {
                     <div className="col-span-full glass-card p-20 flex flex-col items-center justify-center text-center space-y-4">
                         <Target size={48} className="text-muted/20" />
                         <h3 className="text-xl font-bold ">No objectives set yet</h3>
-                        <button onClick={() => setShowNewObjective(true)} className="bg-white/10 px-8 py-3 rounded-2xl font-bold mt-4">Create Your First Objective</button>
+                        <button type="button" onClick={() => setShowNewObjective(true)} className="btn-secondary mt-4 px-8">
+                            Create Your First Objective
+                        </button>
                     </div>
                 ) : (
                     objectives.map((goal) => (
@@ -120,8 +143,12 @@ export default function GoalsView() {
                                     {goal.type === 'productive' ? <Zap size={24} /> : <Target size={24} />}
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <button onClick={() => openEditModal(goal)} className="p-2 text-muted hover:text-primary"><Pencil size={18} /></button>
-                                    <button onClick={() => removeObjective(goal._id)} className="p-2 text-muted hover:text-danger"><Trash2 size={18} /></button>
+                                    <button type="button" onClick={() => openEditModal(goal)} className="btn-ghost" aria-label="Edit objective">
+                                        <Pencil size={18} />
+                                    </button>
+                                    <button type="button" onClick={() => removeObjective(goal._id)} className="btn-ghost hover:text-danger" aria-label="Delete objective">
+                                        <Trash2 size={18} />
+                                    </button>
                                 </div>
                             </div>
                             <h3 className="text-xl font-bold  mb-2">{goal.label || goal.website}</h3>
@@ -133,11 +160,23 @@ export default function GoalsView() {
                             <div className="space-y-3">
                                 <div className="flex justify-between text-xs font-bold">
                                     <span className="text-muted">Progress</span>
-                                    <span>{goal.progress || 0}%</span>
+                                    <span>{Math.min(100, Math.max(0, Number(goal.progress) || 0))}%</span>
                                 </div>
-                                <div className="h-2 w-full bg-foreground/5 rounded-full overflow-hidden">
-                                    <div className="h-full bg-primary" style={{ width: `${Math.min(100, goal.progress || 0)}%` }} />
+                                <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/5">
+                                    <div
+                                        className="h-full bg-primary transition-[width] duration-300"
+                                        style={{
+                                            width: `${Math.min(100, Math.max(0, Number(goal.progress) || 0))}%`,
+                                        }}
+                                    />
                                 </div>
+                                <p className="text-[10px] font-medium text-muted">
+                                    Today tracked: {formatTrackedToday(goal.currentSeconds)}
+                                    {goal.targetSeconds > 0 &&
+                                        (goal.currentSeconds || 0) >= goal.targetSeconds && (
+                                            <span className="text-primary"> · Target met</span>
+                                        )}
+                                </p>
                             </div>
                         </div>
                     ))
@@ -146,27 +185,116 @@ export default function GoalsView() {
 
             <AnimatePresence>
                 {showNewObjective && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md">
-                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="glass-card w-full max-w-md p-8 relative shadow-2xl">
-                            <button onClick={() => setShowNewObjective(false)} className="absolute top-6 right-6 text-muted"><X size={24} /></button>
-                            <h2 className="text-3xl font-bold mb-8">{editingObjective ? "Edit Objective" : "Set Objective"}</h2>
+                    <div className="modal-backdrop">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="modal-panel"
+                        >
+                            <button
+                                type="button"
+                                onClick={() => setShowNewObjective(false)}
+                                className="btn-ghost absolute right-6 top-6"
+                                aria-label="Close"
+                            >
+                                <X size={22} />
+                            </button>
+                            <h2 className="mb-8 text-3xl font-bold text-foreground">
+                                {editingObjective ? "Edit Objective" : "Set Objective"}
+                            </h2>
                             <form onSubmit={handleSaveObjective} className="space-y-6">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-muted uppercase tracking-widest">Name</label>
-                                    <input required className="w-full bg-foreground/5 border border-white/10 rounded-xl px-4 py-3 outline-none" value={newObjective.label} onChange={e => setNewObjective({ ...newObjective, label: e.target.value })} />
+                                    <label htmlFor="objective-name" className={fieldLabel}>
+                                        Name
+                                    </label>
+                                    <input
+                                        id="objective-name"
+                                        required
+                                        className={fieldBase}
+                                        value={newObjective.label}
+                                        onChange={(e) => setNewObjective({ ...newObjective, label: e.target.value })}
+                                    />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <input type="number" placeholder="Hrs" className="bg-foreground/5 border border-white/10 rounded-xl px-4 py-3" value={Math.floor(newObjective.targetSeconds / 3600)} onChange={e => setNewObjective({ ...newObjective, targetSeconds: (parseInt(e.target.value || 0) * 3600) + (newObjective.targetSeconds % 3600) })} />
-                                    <input type="number" placeholder="Min" className="bg-foreground/5 border border-white/10 rounded-xl px-4 py-3" value={Math.floor((newObjective.targetSeconds % 3600) / 60)} onChange={e => setNewObjective({ ...newObjective, targetSeconds: (Math.floor(newObjective.targetSeconds / 3600) * 3600) + (parseInt(e.target.value || 0) * 60) })} />
+                                    <div className="space-y-2">
+                                        <label htmlFor="objective-hrs" className={fieldLabel}>
+                                            Hours
+                                        </label>
+                                        <input
+                                            id="objective-hrs"
+                                            type="number"
+                                            min={0}
+                                            placeholder="0"
+                                            className={fieldBase}
+                                            value={Math.floor(newObjective.targetSeconds / 3600)}
+                                            onChange={(e) =>
+                                                setNewObjective({
+                                                    ...newObjective,
+                                                    targetSeconds:
+                                                        (parseInt(e.target.value || "0", 10) || 0) * 3600 +
+                                                        (newObjective.targetSeconds % 3600),
+                                                })
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label htmlFor="objective-min" className={fieldLabel}>
+                                            Minutes
+                                        </label>
+                                        <input
+                                            id="objective-min"
+                                            type="number"
+                                            min={0}
+                                            max={59}
+                                            placeholder="0"
+                                            className={fieldBase}
+                                            value={Math.floor((newObjective.targetSeconds % 3600) / 60)}
+                                            onChange={(e) =>
+                                                setNewObjective({
+                                                    ...newObjective,
+                                                    targetSeconds:
+                                                        Math.floor(newObjective.targetSeconds / 3600) * 3600 +
+                                                        (parseInt(e.target.value || "0", 10) || 0) * 60,
+                                                })
+                                            }
+                                        />
+                                    </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <select className="bg-foreground/5 border border-white/10 rounded-xl px-4 py-3" value={newObjective.type} onChange={e => setNewObjective({ ...newObjective, type: e.target.value })}>
-                                        <option value="productive">Productive</option>
-                                        <option value="unproductive">Limit (Max)</option>
-                                    </select>
-                                    <input required placeholder="Website" className="bg-foreground/5 border border-white/10 rounded-xl px-4 py-3" value={newObjective.website} onChange={e => setNewObjective({ ...newObjective, website: e.target.value })} />
+                                    <div className="space-y-2">
+                                        <label htmlFor="objective-type" className={fieldLabel}>
+                                            Type
+                                        </label>
+                                        <select
+                                            id="objective-type"
+                                            className={`${fieldBase} cursor-pointer`}
+                                            value={newObjective.type}
+                                            onChange={(e) => setNewObjective({ ...newObjective, type: e.target.value })}
+                                        >
+                                            <option value="productive">Productive</option>
+                                            <option value="unproductive">Limit (Max)</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label htmlFor="objective-website" className={fieldLabel}>
+                                            Website
+                                        </label>
+                                        <input
+                                            id="objective-website"
+                                            required
+                                            placeholder="e.g. twitter.com"
+                                            className={fieldBase}
+                                            value={newObjective.website}
+                                            onChange={(e) =>
+                                                setNewObjective({ ...newObjective, website: e.target.value })
+                                            }
+                                        />
+                                    </div>
                                 </div>
-                                <button type="submit" className="w-full bg-primary text-background font-bold py-4 rounded-2xl mt-4">{editingObjective ? "Update Objective" : "Create Objective"}</button>
+                                <button type="submit" className="btn-primary-lg mt-4">
+                                    {editingObjective ? "Update Objective" : "Create Objective"}
+                                </button>
                             </form>
                         </motion.div>
                     </div>
@@ -175,12 +303,21 @@ export default function GoalsView() {
 
             <AnimatePresence>
                 {celebratedObjective && (
-                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md">
-                        <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} exit={{ scale: 0.8 }} className="glass-card w-full max-w-sm p-10 text-center shadow-2xl border-primary/20">
-                            <Trophy size={64} className="mx-auto text-yellow-400 mb-6" />
-                            <h2 className="text-3xl font-black mb-2">Objective Achieved!</h2>
-                            <p className="mb-8">{celebratedObjective.label || celebratedObjective.website}</p>
-                            <button onClick={() => setCelebratedObjective(null)} className="w-full bg-primary text-background font-bold py-4 rounded-2xl">Awesome!</button>
+                    <div className="modal-backdrop z-[60]">
+                        <motion.div
+                            initial={{ scale: 0.8 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0.8 }}
+                            className="modal-panel modal-panel-sm border-2 border-primary/35 p-10 text-center"
+                        >
+                            <Trophy size={64} className="mx-auto mb-6 text-yellow-400" />
+                            <h2 className="mb-2 text-3xl font-black text-foreground">Objective Achieved!</h2>
+                            <p className="mb-8 text-foreground/90">
+                                {celebratedObjective.label || celebratedObjective.website}
+                            </p>
+                            <button type="button" onClick={() => setCelebratedObjective(null)} className="btn-primary-lg">
+                                Awesome!
+                            </button>
                         </motion.div>
                     </div>
                 )}

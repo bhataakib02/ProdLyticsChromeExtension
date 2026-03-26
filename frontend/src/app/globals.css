@@ -24,8 +24,8 @@
 
   --color-glass-bg: rgba(255, 255, 255, 0.1);
   --color-glass-bg-hover: rgba(255, 255, 255, 0.15);
-  --color-glass-border: rgba(255, 255, 255, 0.2);
-  --color-glass-border-hover: rgba(255, 255, 255, 0.3);
+  --color-glass-border: rgba(255, 255, 255, 0.32);
+  --color-glass-border-hover: rgba(255, 255, 255, 0.45);
 
   --animate-gradient: gradient 15s ease infinite;
   --animate-spin-slow: spin 8s linear infinite;
@@ -51,6 +51,23 @@
     --glass-border-hover: var(--color-glass-border-hover);
     --scrollbar-thumb: rgba(255, 255, 255, 0.1);
     --scrollbar-thumb-hover: rgba(255, 255, 255, 0.2);
+
+    /* Recharts / data viz (dark UI) */
+    --chart-grid-stroke: rgba(255, 255, 255, 0.12);
+    --chart-axis-tick: #cbd5e1;
+    --chart-bar-dim: rgba(99, 102, 241, 0.35);
+    --chart-bar-mid: rgba(99, 102, 241, 0.58);
+    --chart-tooltip-bg: rgba(15, 23, 42, 0.96);
+    --chart-tooltip-border: rgba(255, 255, 255, 0.12);
+    --chart-tooltip-label: #94a3b8;
+    --chart-tooltip-item: #e2e8f0;
+    --chart-cursor: rgba(255, 255, 255, 0.08);
+    --chart-pie-stroke: rgba(15, 23, 42, 0.25);
+
+    /* UI boxes / dividers — must read in dark + light */
+    --ui-border: rgba(255, 255, 255, 0.28);
+    --ui-border-muted: rgba(255, 255, 255, 0.16);
+    --ui-border-strong: rgba(255, 255, 255, 0.42);
   }
 
   /* Light theme overrides */
@@ -60,10 +77,25 @@
     --color-muted: #4b5563;
     --glass-bg: rgba(255, 255, 255, 0.8);
     --glass-bg-hover: rgba(255, 255, 255, 0.9);
-    --glass-border: rgba(0, 0, 0, 0.1);
-    --glass-border-hover: rgba(0, 0, 0, 0.2);
+    --glass-border: rgba(15, 23, 42, 0.2);
+    --glass-border-hover: rgba(15, 23, 42, 0.32);
     --scrollbar-thumb: rgba(0, 0, 0, 0.15);
     --scrollbar-thumb-hover: rgba(0, 0, 0, 0.25);
+
+    --chart-grid-stroke: rgba(15, 23, 42, 0.16);
+    --chart-axis-tick: #475569;
+    --chart-bar-dim: rgba(79, 70, 229, 0.42);
+    --chart-bar-mid: rgba(79, 70, 229, 0.68);
+    --chart-tooltip-bg: rgba(255, 255, 255, 0.98);
+    --chart-tooltip-border: rgba(15, 23, 42, 0.14);
+    --chart-tooltip-label: #64748b;
+    --chart-tooltip-item: #0f172a;
+    --chart-cursor: rgba(15, 23, 42, 0.08);
+    --chart-pie-stroke: rgba(255, 255, 255, 0.85);
+
+    --ui-border: rgba(15, 23, 42, 0.22);
+    --ui-border-muted: rgba(15, 23, 42, 0.14);
+    --ui-border-strong: rgba(15, 23, 42, 0.34);
   }
 
   body {
@@ -71,7 +103,8 @@
     background: linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #f5576c, #4facfe);
     background-size: 400% 400%;
     animation: gradient 15s ease infinite;
-    color: var(--color-light);
+    /* Must track theme: --color-light is a palette token, not "light mode" text */
+    color: var(--color-foreground);
     @apply antialiased selection:bg-[#6366f1]/30;
     min-height: 100vh;
     transition: background-color 0.5s ease, color 0.5s ease;
@@ -93,6 +126,19 @@
 
   .light body {
     background: var(--color-light);
+    color: var(--color-foreground);
+  }
+
+  /* Native selects: avoid inherited light text on light option rows (Windows/Chrome) */
+  select {
+    color: var(--color-foreground);
+    background-color: var(--color-background);
+  }
+
+  select option,
+  select optgroup {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
   }
 }
 
@@ -101,22 +147,137 @@
     background: var(--glass-bg);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--glass-border);
+    border: 2px solid var(--glass-border);
     border-radius: 1rem;
-    transition: all 0.3s ease;
+    transition:
+      border-color 0.3s ease,
+      background 0.3s ease,
+      box-shadow 0.3s ease;
+    box-shadow: inset 0 0 0 1px var(--ui-border-muted);
   }
 
   .glass-card:hover {
     border-color: var(--glass-border-hover);
     background: var(--glass-bg-hover);
+    box-shadow: inset 0 0 0 1px var(--ui-border);
   }
 
+  /* Sections / inner panels — visible in light + dark */
+  .border-ui {
+    border-color: var(--ui-border);
+  }
+
+  .border-ui-muted {
+    border-color: var(--ui-border-muted);
+  }
+
+  .border-ui-strong {
+    border-color: var(--ui-border-strong);
+  }
+
+  .border-b-ui {
+    border-bottom: 2px solid var(--ui-border);
+  }
+
+  .border-t-ui {
+    border-top: 2px solid var(--ui-border);
+  }
+
+  .border-r-ui {
+    border-right: 2px solid var(--ui-border);
+  }
+
+  .border-l-ui {
+    border-left: 2px solid var(--ui-border);
+  }
+
+  .border-b-ui-muted {
+    border-bottom: 2px solid var(--ui-border-muted);
+  }
+
+  .border-t-ui-muted {
+    border-top: 2px solid var(--ui-border-muted);
+  }
+
+  /* Primary actions — same shape everywhere (dark + light) */
   .btn-primary {
-    @apply bg-[#6366f1] hover:bg-[#6366f1]/90 text-white px-6 py-2.5 rounded-xl font-semibold transition-all active:scale-95 shadow-lg shadow-[#6366f1]/20 cursor-pointer;
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-white shadow-lg shadow-primary/30 transition-all hover:bg-primary/90 hover:shadow-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98] disabled:pointer-events-none disabled:opacity-45;
+  }
+
+  .btn-primary-lg {
+    @apply inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-4 text-base font-bold text-white shadow-lg shadow-primary/30 transition-all hover:bg-primary/90 hover:shadow-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98] disabled:pointer-events-none disabled:opacity-45;
   }
 
   .btn-secondary {
-    @apply bg-foreground/5 border border-foreground/10 text-foreground px-6 py-2.5 rounded-xl font-semibold transition-all active:scale-95 cursor-pointer hover:bg-foreground/10;
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 bg-foreground/5 px-6 py-3 text-sm font-bold text-foreground transition-all hover:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98] disabled:pointer-events-none disabled:opacity-45;
+    border-color: var(--ui-border);
+  }
+
+  .btn-secondary-sm {
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 bg-foreground/5 px-4 py-2.5 text-xs font-bold text-foreground transition-all hover:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98] disabled:pointer-events-none disabled:opacity-45;
+    border-color: var(--ui-border);
+  }
+
+  .btn-icon {
+    @apply inline-flex cursor-pointer items-center justify-center rounded-xl border-2 bg-foreground/5 p-3 text-muted transition-all hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-95;
+    border-color: var(--ui-border);
+  }
+
+  .btn-icon:hover {
+    border-color: var(--ui-border-strong);
+  }
+
+  .btn-icon-sm {
+    @apply rounded-lg p-2;
+  }
+
+  .btn-icon-primary {
+    @apply inline-flex cursor-pointer items-center justify-center rounded-xl border-2 border-primary/40 bg-primary p-3 text-white shadow-lg shadow-primary/25 transition-all hover:border-primary/60 hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-95 disabled:pointer-events-none disabled:opacity-45;
+  }
+
+  .btn-ghost {
+    @apply inline-flex cursor-pointer items-center justify-center rounded-lg p-2 text-muted transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30;
+  }
+
+  /* Modal / popup shell */
+  .modal-backdrop {
+    @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+    background: color-mix(in srgb, var(--color-background) 82%, transparent);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+
+  .modal-panel {
+    @apply relative w-full max-w-md overflow-hidden p-8 text-foreground shadow-2xl;
+    border-radius: 1.25rem;
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 2px solid var(--glass-border);
+    transition:
+      border-color 0.3s ease,
+      background 0.3s ease,
+      box-shadow 0.3s ease;
+    box-shadow:
+      inset 0 0 0 1px var(--ui-border-muted),
+      0 25px 50px -12px rgb(0 0 0 / 0.35);
+  }
+
+  .modal-panel-sm {
+    @apply max-w-sm;
+  }
+
+  .theme-toggle-btn {
+    @apply flex w-full items-center gap-3 rounded-xl border-2 bg-foreground/[0.04] px-4 py-3 text-left text-sm font-medium text-muted transition-all hover:bg-foreground/[0.08] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+    border-color: var(--ui-border);
+  }
+
+  .theme-toggle-btn:hover {
+    border-color: var(--ui-border-strong);
+  }
+
+  .sidebar-nav-btn {
+    @apply flex w-full items-center gap-3 rounded-xl border-2 px-4 py-3 font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
   }
 
   .gradient-text {
@@ -142,61 +303,82 @@
   background: var(--scrollbar-thumb-hover);
 }
 
-/* Switch UI */
+/*
+ * Toggle switches (Focus / settings) — scoped under .switch so track + knob math always matches.
+ * Track 52px, knob 22px, 3px inset → slide 24px (knob stays inside the pill).
+ */
 .switch {
   position: relative;
   display: inline-block;
-  width: 44px;
-  height: 24px;
+  width: 52px;
+  height: 28px;
+  flex-shrink: 0;
+  vertical-align: middle;
 }
 
 .switch input {
+  position: absolute;
   opacity: 0;
   width: 0;
   height: 0;
+  margin: 0;
 }
 
-.slider {
+.switch .slider {
   position: absolute;
   cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: var(--glass-border);
-  transition: .4s;
-  border: 1px solid var(--glass-border);
+  inset: 0;
+  box-sizing: border-box;
+  border-radius: 9999px;
+  background-color: color-mix(in srgb, var(--color-foreground) 8%, transparent);
+  border: 1px solid var(--ui-border);
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease;
 }
 
-.slider:before {
+.switch .slider::before {
   position: absolute;
   content: "";
-  height: 18px;
-  width: 18px;
+  width: 22px;
+  height: 22px;
   left: 3px;
-  bottom: 2px;
-  background-color: var(--color-foreground);
-  transition: .4s;
-}
-
-input:checked+.slider {
-  background-color: #6366f1;
-}
-
-input:focus+.slider {
-  box-shadow: 0 0 1px #6366f1;
-}
-
-input:checked+.slider:before {
-  transform: translateX(20px);
-}
-
-.slider.round {
-  border-radius: 34px;
-}
-
-.slider.round:before {
+  top: 50%;
   border-radius: 50%;
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.22);
+  transition: transform 0.25s ease;
+  transform: translateY(-50%);
+}
+
+.switch input:checked + .slider {
+  background-color: #6366f1;
+  border-color: color-mix(in srgb, #6366f1 65%, transparent);
+}
+
+.switch input:checked + .slider::before {
+  transform: translateY(-50%) translateX(24px);
+}
+
+.switch input:focus-visible + .slider {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* Checked track color per setting (optional class on .slider) */
+.switch input:checked + .slider.slider-primary {
+  background-color: #6366f1;
+  border-color: color-mix(in srgb, #6366f1 65%, transparent);
+}
+
+.switch input:checked + .slider.slider-secondary {
+  background-color: #ec4899;
+  border-color: color-mix(in srgb, #ec4899 65%, transparent);
+}
+
+.switch input:checked + .slider.slider-warning {
+  background-color: #f59e0b;
+  border-color: color-mix(in srgb, #f59e0b 65%, transparent);
 }
 
 @keyframes spin {

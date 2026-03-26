@@ -19,10 +19,19 @@ export async function GET(req) {
         console.log(`🕒 [STATS] Current Time (Server): ${now.toISOString()}`);
 
         let start;
-        if (range === 'today') start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        else if (range === 'week') start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        else if (range === 'month') start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        else start = new Date(0);
+        let endExclusive = null;
+        if (range === 'today') {
+            start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        } else if (range === 'yesterday') {
+            start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+            endExclusive = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        } else if (range === 'week') {
+            start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        } else if (range === 'month') {
+            start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        } else {
+            start = new Date(0);
+        }
 
         if (isNaN(start.getTime())) {
             console.error("❌ [STATS] Invalid Start Date calculated:", start);
@@ -34,9 +43,13 @@ export async function GET(req) {
         const userObjectId = new mongoose.Types.ObjectId(MOCK_USER_ID);
         console.log(`🆔 [STATS] User ObjectId: ${userObjectId}`);
 
+        const dateMatch = endExclusive
+            ? { $gte: start, $lt: endExclusive }
+            : { $gte: start };
+
         console.log("🧬 [STATS] Running aggregation...");
         const data = await Tracking.aggregate([
-            { $match: { userId: userObjectId, date: { $gte: start } } },
+            { $match: { userId: userObjectId, date: dateMatch } },
             {
                 $group: {
                     _id: "$category",
@@ -59,7 +72,7 @@ export async function GET(req) {
 
         console.log("🧬 [STATS] Running Peak Hour aggregation...");
         const peakHourData = await Tracking.aggregate([
-            { $match: { userId: userObjectId, date: { $gte: start }, category: "productive" } },
+            { $match: { userId: userObjectId, date: dateMatch, category: "productive" } },
             { $group: { _id: "$hour", totalTime: { $sum: "$time" } } },
             { $sort: { totalTime: -1 } },
             { $limit: 1 }

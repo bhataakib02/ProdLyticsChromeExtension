@@ -2,19 +2,28 @@ html,
 body {
   margin: 0;
   padding: 0;
-  width: 352px;
-  min-width: 352px;
-  max-width: 352px;
+  width: 360px;
+  min-width: 360px;
+  max-width: 360px;
   height: auto;
-  overflow: hidden;
-  background: #0d0f17;
+  overflow-x: hidden;
+  /* Default until React applies theme */
+  background-color: #0c0e14;
+}
+
+body.pl-popup--light {
+  background-color: #eef0f4;
+}
+
+body.pl-popup--dark {
+  background-color: #0c0e14;
 }
 
 #root {
   margin: 0;
   padding: 0;
-  width: 352px;
-  min-width: 352px;
-  max-width: 352px;
-  overflow: hidden;
+  width: 360px;
+  min-width: 360px;
+  max-width: 360px;
+  overflow-x: hidden;
 }

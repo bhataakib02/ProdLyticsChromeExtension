@@ -48,12 +48,15 @@ export async function GET(req) {
                 currentSeconds = stats[0]?.total || 0;
             }
 
-            const progress = goal.targetSeconds > 0 ? Math.round((currentSeconds / goal.targetSeconds) * 100) : 0;
+            const rawPercent =
+                goal.targetSeconds > 0 ? Math.round((currentSeconds / goal.targetSeconds) * 100) : 0;
+            // Cap at 100% for display and "complete" logic — tracking seconds still reflect real usage
+            const progress = Math.min(100, Math.max(0, rawPercent));
 
             return {
                 ...goal.toObject(),
                 currentSeconds,
-                progress
+                progress,
             };
         }));
 
