@@ -18,6 +18,7 @@ import {
     ShieldCheck
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import { requestExtensionSync } from "@/lib/extensionSync";
 import { normalizeWebsiteHost } from "@/lib/normalizeWebsiteHost";
 
@@ -133,7 +134,7 @@ export default function FocusView() {
                                         domains.map((domain) => (
                                             <motion.div key={domain._id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="group flex items-center justify-between rounded-3xl border-2 border-ui bg-foreground/[0.02] p-6 transition-all duration-500 hover:border-primary/40 hover:bg-foreground/[0.05]">
                                                 <div className="flex items-center gap-5 flex-wrap">
-                                                    <img src={`https://www.google.com/s2/favicons?domain=${domain.website}&sz=64`} alt="" className="w-6 h-6 rounded-md" />
+                                                    <Image src={`https://www.google.com/s2/favicons?domain=${domain.website}&sz=64`} alt="" width={24} height={24} className="w-6 h-6 rounded-md" unoptimized />
                                                     <span className="block text-lg font-black text-foreground/90">{domain.website}</span>
                                                     {domain.source === "smart_daily_cap" && (
                                                         <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-primary/20 text-primary border border-primary/30">

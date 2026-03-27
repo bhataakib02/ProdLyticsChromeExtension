@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PieChart as RePieChart, Pie, ResponsiveContainer, Cell, Tooltip } from "recharts";
+import Image from "next/image";
 
 export default function OverviewView({ onTabChange }) {
     const { user } = useAuth();
@@ -209,7 +210,7 @@ export default function OverviewView({ onTabChange }) {
                                 className="flex items-center justify-between rounded-2xl border-2 border-transparent p-3 transition-colors hover:border-ui hover:bg-foreground/[0.04]"
                             >
                                 <div className="flex items-center gap-4">
-                                    <img src={`https://www.google.com/s2/favicons?domain=${domain._id}&sz=64`} className="w-8 h-8 rounded-lg" alt="" />
+                                    <Image src={`https://www.google.com/s2/favicons?domain=${domain._id}&sz=64`} width={32} height={32} className="w-8 h-8 rounded-lg" alt="" unoptimized />
                                     <span className="text-sm font-bold text-foreground/80">{domain._id}</span>
                                 </div>
                                 <span className="font-mono text-sm font-black text-green-500">{formatTime(domain.totalTime)}</span>
@@ -232,7 +233,7 @@ export default function OverviewView({ onTabChange }) {
                                 className="flex items-center justify-between rounded-2xl border-2 border-transparent p-3 transition-colors hover:border-ui hover:bg-foreground/[0.04]"
                             >
                                 <div className="flex items-center gap-4">
-                                    <img src={`https://www.google.com/s2/favicons?domain=${domain._id}&sz=64`} className="w-8 h-8 rounded-lg" alt="" />
+                                    <Image src={`https://www.google.com/s2/favicons?domain=${domain._id}&sz=64`} width={32} height={32} className="w-8 h-8 rounded-lg" alt="" unoptimized />
                                     <span className="text-sm font-bold text-foreground/80">{domain._id}</span>
                                 </div>
                                 <span className="font-mono text-sm font-black text-red-500">{formatTime(domain.totalTime)}</span>
@@ -251,7 +252,7 @@ export default function OverviewView({ onTabChange }) {
                             className="glass-card group p-5 transition-all hover:bg-foreground/[0.06]"
                         >
                             <div className="flex items-center gap-3 mb-3">
-                                <img src={`https://www.google.com/s2/favicons?domain=${domain._id}&sz=64`} className="w-6 h-6 rounded" alt="" />
+                                <Image src={`https://www.google.com/s2/favicons?domain=${domain._id}&sz=64`} width={24} height={24} className="w-6 h-6 rounded" alt="" unoptimized />
                                 <h4 className="text-xs font-black truncate text-foreground/90">{domain._id}</h4>
                             </div>
                             <span className="text-sm font-black font-mono text-primary">{formatTime(domain.totalTime)}</span>

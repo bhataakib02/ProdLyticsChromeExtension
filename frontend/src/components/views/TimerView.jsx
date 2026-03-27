@@ -44,8 +44,10 @@ function parseBreakMinutesInput(raw, fallback = 5) {
 
 export default function TimerView() {
     const { user, updatePreference, updatePreferences } = useAuth();
-    const workMin = user?.preferences?.deepWorkMinutes ?? 25;
-    const breakMin = user?.preferences?.breakMinutes ?? 5;
+    const deepWorkMinutesPref = user?.preferences?.deepWorkMinutes;
+    const breakMinutesPref = user?.preferences?.breakMinutes;
+    const workMin = deepWorkMinutesPref ?? 25;
+    const breakMin = breakMinutesPref ?? 5;
 
     const [workMinStr, setWorkMinStr] = useState(String(workMin));
     const [breakMinStr, setBreakMinStr] = useState(String(breakMin));
@@ -85,16 +87,15 @@ export default function TimerView() {
     }, [workMinutes, breakMinutes, timerMode, focusIntention, tasks]);
 
     useEffect(() => {
-        if (user?.preferences) {
-            const w = user.preferences.deepWorkMinutes ?? 25;
-            const b = user.preferences.breakMinutes ?? 5;
-            setWorkMinStr(String(w));
-            setBreakMinStr(String(b));
-            if (!isActive) {
-                setTimeLeft(timerMode === "work" ? w * 60 : b * 60);
-            }
+        if (!user) return;
+        const w = deepWorkMinutesPref ?? 25;
+        const b = breakMinutesPref ?? 5;
+        setWorkMinStr(String(w));
+        setBreakMinStr(String(b));
+        if (!isActive) {
+            setTimeLeft(timerMode === "work" ? w * 60 : b * 60);
         }
-    }, [user?.preferences?.deepWorkMinutes, user?.preferences?.breakMinutes]);
+    }, [user, deepWorkMinutesPref, breakMinutesPref, isActive, timerMode]);
 
     const synchronizeHistory = useCallback(async () => {
         try {

@@ -73,8 +73,6 @@ export default function InsightsView() {
         if (user) synchronizeInsights();
     }, [user, synchronizeInsights]);
 
-    if (!user) return null;
-
     const firstName = user?.name?.trim()?.split(/\s+/)?.[0] ?? "there";
     const focusSessionMinutes = Math.min(180, Math.max(5, Number(user?.preferences?.focusSessionMinutes) || 25));
 
@@ -214,6 +212,8 @@ export default function InsightsView() {
         () => getMilestoneCard(metrics, cognitiveMetrics, insightsData?.deepWorkHours),
         [metrics, cognitiveMetrics, insightsData]
     );
+
+    if (!user) return null;
 
     const m = insightsData || {};
     const intensityPct = formatMetricPercent(m.intensity);

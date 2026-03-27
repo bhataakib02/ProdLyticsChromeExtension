@@ -27,8 +27,23 @@ async function dbConnect() {
         console.error("❌ MONGO_URI is missing from process.env!");
         throw new Error('Please define the MONGO_URI environment variable inside .env');
     }
-    if (cached.conn && mongoose.connection.readyState === 1) {
+    const state = mongoose.connection.readyState;
+
+    if (cached.conn && state === 1) {
         console.log("✅ Using active cached MongoDB connection");
+        return cached.conn;
+    }
+
+    // If the driver disconnected after an earlier successful connect,
+    // clear stale cache entries so the next request performs a real reconnect.
+    if (state === 0 || state === 3) {
+        cached.conn = null;
+        cached.promise = null;
+    }
+
+    // If a connection attempt is already in progress, wait for it.
+    if (state === 2 && cached.promise) {
+        cached.conn = await cached.promise;
         return cached.conn;
     }
 
@@ -54,6 +69,7 @@ async function dbConnect() {
             return mongoose;
         }).catch(err => {
             console.error("🔴 MongoDB connection error:", err);
+            cached.conn = null;
             cached.promise = null;
             // Avoid retry storms on every request when DB is down.
             if (isNetworkDbError(err)) cached.unavailableUntil = Date.now() + 30000;

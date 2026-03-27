@@ -5,6 +5,7 @@
     "main": "db/mongodb.js",
     "dependencies": {
         "bcryptjs": "^2.4.3",
-        "mongoose": "^9.3.1"
+        "mongoose": "^9.3.1",
+        "prodlytics-suite": "file:.."
     }
 }

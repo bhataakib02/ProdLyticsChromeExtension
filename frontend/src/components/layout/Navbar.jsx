@@ -3,7 +3,7 @@
 import { useAuth } from "@/context/AuthContext";
 import { useDashboard } from "@/context/DashboardContext";
 import { Bell, Search, UserCircle, RefreshCw, LogOut, Settings, ExternalLink } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { notificationService } from "@/services/notification.service";
 import { requestExtensionSync } from "@/lib/extensionSync";
@@ -21,6 +21,15 @@ export default function Navbar() {
     const notificationRef = useRef(null);
     const profileRef = useRef(null);
 
+    const fetchNotifications = useCallback(async () => {
+        try {
+            const data = await notificationService.getNotifications();
+            setNotifications(data);
+        } catch (err) {
+            console.error("Failed to fetch notifications:", err);
+        }
+    }, []);
+
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (notificationRef.current && !notificationRef.current.contains(event.target)) {
@@ -31,7 +40,9 @@ export default function Navbar() {
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
-        fetchNotifications();
+        window.setTimeout(() => {
+            void fetchNotifications();
+        }, 0);
 
         // Polling optionally to keep fresh without sockets
         const interval = setInterval(fetchNotifications, 60000);
@@ -40,16 +51,7 @@ export default function Navbar() {
             document.removeEventListener("mousedown", handleClickOutside);
             clearInterval(interval);
         };
-    }, []);
-
-    const fetchNotifications = async () => {
-        try {
-            const data = await notificationService.getNotifications();
-            setNotifications(data);
-        } catch (err) {
-            console.error("Failed to fetch notifications:", err);
-        }
-    };
+    }, [fetchNotifications]);
 
     const syncWithExtension = async () => {
         setSyncing(true);

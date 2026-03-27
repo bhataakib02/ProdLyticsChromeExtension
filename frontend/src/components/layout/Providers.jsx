@@ -1,25 +1,26 @@
 "use client";
 
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect, useRef, createContext, useContext } from "react";
 
 const ThemeContext = createContext(null);
 
 export function Providers({ children }) {
-    const [theme, setTheme] = useState("dark");
-    const [mounted, setMounted] = useState(false);
+    const [theme, setTheme] = useState(() => {
+        if (typeof window === "undefined") return "dark";
+        return localStorage.getItem("theme") || "dark";
+    });
+    const hydratedRef = useRef(false);
 
     useEffect(() => {
-        const savedTheme = localStorage.getItem("theme") || "dark";
-        setTheme(savedTheme);
-        setMounted(true);
+        hydratedRef.current = true;
     }, []);
 
     useEffect(() => {
-        if (!mounted) return;
+        if (!hydratedRef.current) return;
         localStorage.setItem("theme", theme);
         // Toggle 'light' class because 'dark' is the default root style in globals.css
         document.documentElement.classList.toggle("light", theme === "light");
-    }, [theme, mounted]);
+    }, [theme]);
 
     const toggleTheme = () => {
         setTheme(prev => prev === "dark" ? "light" : "dark");

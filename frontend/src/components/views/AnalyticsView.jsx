@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import Image from "next/image";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { trackingService } from "@/services/tracking.service";
 import {
@@ -40,13 +41,7 @@ export default function AnalyticsView() {
     const [categoryFilter, setCategoryFilter] = useState("all");
     const [metrics, setMetrics] = useState({ score: 0, productive: 0, unproductive: 0, neutral: 0, total: 0 });
 
-    useEffect(() => {
-        if (user) {
-            synchronizeMetrics();
-        }
-    }, [user, range]);
-
-    async function synchronizeMetrics() {
+    const synchronizeMetrics = useCallback(async () => {
         setLoading(true);
         try {
             const [domainData, metricsData, hourlyData] = await Promise.all([
@@ -77,7 +72,13 @@ export default function AnalyticsView() {
         } finally {
             setLoading(false);
         }
-    }
+    }, [range]);
+
+    useEffect(() => {
+        if (user) {
+            synchronizeMetrics();
+        }
+    }, [user, synchronizeMetrics]);
 
     function formatTime(seconds) {
         if (!seconds || seconds <= 0) return "0s";
@@ -381,7 +382,7 @@ export default function AnalyticsView() {
                                         {String(index + 1).padStart(2, "0")}
                                     </div>
                                     <div className="flex items-center gap-4 min-w-[220px] w-[300px]">
-                                        <img src={`https://www.google.com/s2/favicons?domain=${domain._id}&sz=64`} alt="" className="w-6 h-6 rounded-md" />
+                                        <Image src={`https://www.google.com/s2/favicons?domain=${domain._id}&sz=64`} alt="" width={24} height={24} className="w-6 h-6 rounded-md" unoptimized />
                                         <div className="flex flex-col">
                                             <span className="text-sm font-bold text-foreground/90">{domain._id}</span>
                                             <span className="mt-1 w-fit rounded-md border-2 border-ui-muted px-2 py-0.5 text-[8px] font-black uppercase">
