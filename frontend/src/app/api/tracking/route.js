@@ -17,7 +17,7 @@ export async function POST(req) {
         await dbConnect();
         const body = await req.json();
         const { website, time, pageTitle, scrolls, clicks, content } = body;
-        console.log(`📡 [API] Received tracking data for: ${website} (${time}s)`);
+
 
         if (!website || typeof time !== 'number' || time <= 0) {
             return withCors(NextResponse.json({ error: "Invalid data" }, { status: 400 }));

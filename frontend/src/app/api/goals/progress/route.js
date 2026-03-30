@@ -23,14 +23,17 @@ export async function GET(req) {
             let currentSeconds = 0;
 
             if (goal.type === "productive") {
+                // If the goal targets a specific website, filter tracking by that site.
+                // If website is blank or "*", sum all productive time.
+                const hasTargetSite = goal.website && goal.website.trim() !== "" && goal.website.trim() !== "*";
+                const matchCondition = {
+                    userId: new mongoose.Types.ObjectId(MOCK_USER_ID),
+                    date: { $gte: startOfToday },
+                    category: "productive",
+                    ...(hasTargetSite && { website: new RegExp(goal.website.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') }),
+                };
                 const stats = await Tracking.aggregate([
-                    {
-                        $match: {
-                            userId: new mongoose.Types.ObjectId(MOCK_USER_ID),
-                            date: { $gte: startOfToday },
-                            category: "productive"
-                        }
-                    },
+                    { $match: matchCondition },
                     { $group: { _id: null, total: { $sum: "$time" } } }
                 ]);
                 currentSeconds = stats[0]?.total || 0;
@@ -40,7 +43,7 @@ export async function GET(req) {
                         $match: {
                             userId: new mongoose.Types.ObjectId(MOCK_USER_ID),
                             date: { $gte: startOfToday },
-                            website: new RegExp(goal.website, 'i')
+                            website: new RegExp(goal.website.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')
                         }
                     },
                     { $group: { _id: null, total: { $sum: "$time" } } }

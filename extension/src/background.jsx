@@ -239,8 +239,8 @@ async function refreshGoalsAndPopupCache(opts = {}) {
         const goalsAvgProgress =
             goals.length > 0
                 ? Math.round(
-                      goals.reduce((acc, g) => acc + Math.min(100, Math.max(0, Number(g.progress) || 0)), 0) / goals.length,
-                  )
+                    goals.reduce((acc, g) => acc + Math.min(100, Math.max(0, Number(g.progress) || 0)), 0) / goals.length,
+                )
                 : 0;
 
         const goalsDisplay = goals.map((g) => ({
@@ -320,7 +320,7 @@ async function heartbeat() {
 
         if (lastDate && lastDate !== today) {
             console.log("🕛 Date changed detected in heartbeat. Performing midnight reset...");
-            
+
             // Sync final session before wipe
             if (activeTab && startTime) {
                 const start = lastSaveTime || startTime;
@@ -330,7 +330,7 @@ async function heartbeat() {
                     const siteTimes = data.siteTimes || {};
                     siteTimes[activeTab] = (siteTimes[activeTab] || 0) + elapsed;
                     await chrome.storage.local.set({ siteTimes });
-                } catch(e) {}
+                } catch (e) { }
             }
 
             await chrome.storage.local.set({
@@ -372,7 +372,7 @@ async function heartbeat() {
                 currentSiteTimes = data.siteTimes || {};
                 currentSiteTimes[activeTab] = (currentSiteTimes[activeTab] || 0) + elapsed;
                 await chrome.storage.local.set({ siteTimes: currentSiteTimes });
-                
+
                 lastSaveTime = now;
                 await chrome.storage.local.set({ lastSaveTime });
             }
@@ -389,8 +389,8 @@ async function heartbeat() {
             const pending = totalTime - alreadySynced;
 
             if (pending >= 5 || (pending > 0 && !activeTab)) { // Sync if 5s pending or session ended
-                console.log(`📡 [SYNC] Attempting to sync ${pending}s for ${site}`);
-                
+
+
                 // Add engagement data only if it is the current active tab
                 let title = "", s = 0, c = 0, pc = "";
                 if (site === activeTab) {
@@ -404,7 +404,7 @@ async function heartbeat() {
                 if (success) {
                     currentSyncedTimes[site] = (currentSyncedTimes[site] || 0) + pending;
                     await chrome.storage.local.set({ syncedTimes: currentSyncedTimes });
-                    
+
                     // Reset engagement buffers after a successful sync of the active tab
                     if (site === activeTab) {
                         scrollCount = 0;
@@ -431,11 +431,26 @@ async function heartbeat() {
 
 // ==================== CORE TRACKING ====================
 
+/** Prefixes of subdomains that are CDN / asset servers — not worth tracking as separate sites. */
+const CDN_SUBDOMAIN_PREFIXES = ["avatars.", "static.", "cdn.", "assets.", "img.", "images.", "media.", "raw.", "objects."];
+
+/**
+ * Returns true if this hostname is a CDN subdomain that should not be tracked separately.
+ * e.g. avatars.githubusercontent.com → true (skip), en.wikipedia.org → false (track)
+ */
+function isCdnSubdomain(hostname) {
+    if (!hostname) return false;
+    const lower = hostname.toLowerCase();
+    return CDN_SUBDOMAIN_PREFIXES.some((prefix) => lower.startsWith(prefix));
+}
+
 function isTrackable(url) {
     if (!url) return false;
     try {
         const u = new URL(url);
-        return u.protocol === "http:" || u.protocol === "https:";
+        if (u.protocol !== "http:" && u.protocol !== "https:") return false;
+        if (isCdnSubdomain(u.hostname)) return false;
+        return true;
     } catch {
         return false;
     }
@@ -460,7 +475,7 @@ async function saveSession(website, timeSeconds, pageTitle = "", scrolls = 0, cl
 
         if (response.ok) {
             const result = await response.json();
-            console.log(`✅ [SYNC] Successfully uploaded data for ${website}`);
+
 
             if (result.category === "unproductive") {
                 const totalUnproductive = await addUnproductiveTime(website, timeSeconds);
@@ -499,13 +514,13 @@ async function handleTabSwitch(url, title = "") {
     if (activeTab && startTime) {
         const start = lastSaveTime || startTime;
         const elapsed = (Date.now() - start) / 1000;
-        
+
         try {
             const data = await chrome.storage.local.get(["siteTimes"]);
             const siteTimes = data.siteTimes || {};
             siteTimes[activeTab] = (siteTimes[activeTab] || 0) + elapsed;
             await chrome.storage.local.set({ siteTimes });
-        } catch (err) {}
+        } catch (err) { }
     }
 
     lastSaveTime = null;
@@ -660,7 +675,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
                 const siteTimes = data.siteTimes || {};
                 siteTimes[activeTab] = (siteTimes[activeTab] || 0) + elapsed;
                 await chrome.storage.local.set({ siteTimes });
-            } catch (err) {}
+            } catch (err) { }
         }
 
         // Ideally we would wait for a heartbeat to sync the final chunk, but as a reset
@@ -772,7 +787,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (activeTab && reqHost && reqHost === activeTab) {
             scrollCount += request.scrolls || 0;
             clickCount += request.clicks || 0;
-            console.log(`🖱️ Activity synced: ${scrollCount}s, ${clickCount}c`);
         }
     }
 });
@@ -796,13 +810,40 @@ function scheduleMidnightReset() {
 // ==================== INIT ====================
 
 async function init() {
-    const storage = await chrome.storage.local.get(["activeTab", "activeTitle", "startTime", "lastSaveTime", "blocklist", "preferences"]);
+    const storage = await chrome.storage.local.get(["activeTab", "activeTitle", "startTime", "blocklist", "preferences", "currentDate", "siteTimes", "syncedTimes"]);
 
-    if (storage.activeTab && storage.startTime) {
-        activeTab = storage.activeTab;
-        activeTitle = storage.activeTitle || "";
-        startTime = storage.startTime;
-        lastSaveTime = storage.lastSaveTime || null;
+    // ── Bug fix: date-change check on startup ──────────────────────────────────
+    // If the worker was idle overnight, siteTimes/syncedTimes may contain stale
+    // data from a previous day. Wipe them immediately so phantom sites don't show.
+    const today = new Date().toDateString();
+    if (storage.currentDate && storage.currentDate !== today) {
+        console.log("🕛 [init] Date changed since last run — wiping stale tracking data.");
+        await chrome.storage.local.set({
+            siteTimes: {},
+            syncedTimes: {},
+            unproductiveDaily: {},
+            goalProgressSnapshot: {},
+            currentDate: today,
+            lastSaveTime: null,
+        });
+        // Don't restore any stale activeTab — start fresh
+    } else {
+        if (!storage.currentDate) {
+            await chrome.storage.local.set({ currentDate: today });
+        }
+        // ── Bug fix: NEVER restore lastSaveTime from storage ─────────────────────
+        // If we restore an old lastSaveTime the elapsed window becomes (now - hours_ago)
+        // which inflates times massively. Always start fresh; the heartbeat will
+        // set it correctly on its first tick.
+        if (storage.activeTab && storage.startTime) {
+            activeTab = storage.activeTab;
+            activeTitle = storage.activeTitle || "";
+            // Reset startTime to now so elapsed is measured from worker restart, not
+            // the original tab-open time (which may have been hours ago).
+            startTime = Date.now();
+            lastSaveTime = null;
+            await chrome.storage.local.set({ startTime, lastSaveTime: null });
+        }
     }
 
     if (storage.blocklist) blocklist = storage.blocklist;
@@ -833,6 +874,6 @@ chrome.storage.onChanged.addListener((changes, area) => {
             preferences = mergePreferenceDefaults(changes.preferences.newValue || preferences);
             scheduleFlowReminderAlarm();
         }
-        console.log("💾 Storage update detected, local state synced.");
+
     }
 });

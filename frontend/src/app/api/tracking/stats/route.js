@@ -7,16 +7,14 @@ const MOCK_USER_ID = "65f1a2b3c4d5e6f7a8b9c0d1";
 
 export async function GET(req) {
     try {
-        console.log("📊 [STATS] Fetching tracking stats...");
         await dbConnect();
-        console.log("🔌 [STATS] Database connected. ReadyState:", mongoose.connection.readyState);
 
         const { searchParams } = new URL(req.url);
         const range = searchParams.get('range') || 'today';
-        console.log(`🔍 [STATS] Range: ${range}`);
+
 
         const now = new Date();
-        console.log(`🕒 [STATS] Current Time (Server): ${now.toISOString()}`);
+
 
         let start;
         let endExclusive = null;
@@ -37,17 +35,16 @@ export async function GET(req) {
             console.error("❌ [STATS] Invalid Start Date calculated:", start);
             throw new Error("Invalid Start Date calculated");
         }
-        console.log(`📅 [STATS] Start Date: ${start.toISOString()}`);
 
-        console.log(`👤 [STATS] Using MOCK_USER_ID: ${MOCK_USER_ID}`);
+
+
         const userObjectId = new mongoose.Types.ObjectId(MOCK_USER_ID);
-        console.log(`🆔 [STATS] User ObjectId: ${userObjectId}`);
 
         const dateMatch = endExclusive
             ? { $gte: start, $lt: endExclusive }
             : { $gte: start };
 
-        console.log("🧬 [STATS] Running aggregation...");
+
         const data = await Tracking.aggregate([
             { $match: { userId: userObjectId, date: dateMatch } },
             {
@@ -57,7 +54,7 @@ export async function GET(req) {
                 },
             },
         ]);
-        console.log("📈 [STATS] Aggregation result:", JSON.stringify(data, null, 2));
+
 
         let productiveTime = 0, unproductiveTime = 0, neutralTime = 0;
         data.forEach(({ _id, totalTime }) => {
@@ -70,7 +67,7 @@ export async function GET(req) {
         const denominator = productiveTime + unproductiveTime + neutralTime * 0.5;
         const score = denominator > 0 ? Math.round((productiveTime / denominator) * 100) : 0;
 
-        console.log("🧬 [STATS] Running Peak Hour aggregation...");
+
         const peakHourData = await Tracking.aggregate([
             { $match: { userId: userObjectId, date: dateMatch, category: "productive" } },
             { $group: { _id: "$hour", totalTime: { $sum: "$time" } } },
@@ -79,7 +76,7 @@ export async function GET(req) {
         ]);
         const peakHour = peakHourData.length > 0 ? peakHourData[0]._id : null;
 
-        console.log("🧬 [STATS] Running Streak aggregation...");
+
         const activeDaysData = await Tracking.aggregate([
             { $match: { userId: userObjectId, category: "productive" } },
             { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } } } },
@@ -106,7 +103,7 @@ export async function GET(req) {
             }
         }
 
-        console.log(`✅ [STATS] Returning totals: Prod=${productiveTime}, Unprod=${unproductiveTime}, Neut=${neutralTime}, Score=${score}, Streak=${streak}, PeakHour=${peakHour}`);
+
 
         return NextResponse.json({ score, totalTime, productiveTime, unproductiveTime, neutralTime, streak, peakHour });
     } catch (err) {

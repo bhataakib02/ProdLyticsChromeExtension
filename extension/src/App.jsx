@@ -84,9 +84,13 @@ function App() {
   const readStorage = useCallback(() => {
     if (typeof chrome === "undefined" || !chrome.storage?.local) return;
     chrome.storage.local.get(
-      ["siteTimes", "activeTab", "startTime", "lastSaveTime", "preferences", "isDarkMode", "extensionPopupCache"],
+      ["siteTimes", "activeTab", "startTime", "lastSaveTime", "preferences", "isDarkMode", "extensionPopupCache", "currentDate"],
       (data) => {
-        let times = data.siteTimes || {};
+        // Bug fix: if the background worker hasn't done its midnight reset yet,
+        // the stored siteTimes belong to a previous day. Don't display them.
+        const today = new Date().toDateString();
+        const isStaleDate = data.currentDate && data.currentDate !== today;
+        let times = isStaleDate ? {} : (data.siteTimes || {});
 
         let dark = true;
         if (data.preferences?.theme === "light" || data.preferences?.theme === "dark") {
@@ -97,13 +101,14 @@ function App() {
         setIsDarkMode(dark);
         applyThemeToChrome(dark);
 
-        if (data.activeTab && data.startTime) {
+        // Only add live elapsed time if the date is current (not stale)
+        if (!isStaleDate && data.activeTab && data.startTime) {
           const start = data.lastSaveTime || data.startTime;
           const elapsed = (Date.now() - start) / 1000;
           times = { ...times, [data.activeTab]: (times[data.activeTab] || 0) + elapsed };
         }
         setSiteTimes(times);
-        setActiveTab(data.activeTab);
+        setActiveTab(isStaleDate ? null : data.activeTab);
 
         if (data.extensionPopupCache && typeof data.extensionPopupCache === "object") {
           setPopupCache({ ...defaultCache, ...data.extensionPopupCache });
