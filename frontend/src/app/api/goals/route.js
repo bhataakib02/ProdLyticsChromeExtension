@@ -53,7 +53,7 @@ export async function PUT(req) {
         if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
 
         const body = await req.json();
-        const goal = await Goal.findOneAndUpdate({ _id: id, userId: new mongoose.Types.ObjectId(MOCK_USER_ID) }, body, { new: true });
+        const goal = await Goal.findOneAndUpdate({ _id: id, userId: new mongoose.Types.ObjectId(MOCK_USER_ID) }, body, { returnDocument: "after" });
         return NextResponse.json(goal);
     } catch (err) {
         console.error("Goals PUT Error:", err);

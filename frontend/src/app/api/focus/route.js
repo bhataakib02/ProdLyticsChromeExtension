@@ -80,7 +80,7 @@ export async function POST(req) {
         const block = await FocusBlock.findOneAndUpdate(
             { userId: userObjectId, website: normalized },
             { schedule, isActive: true, source: "manual" },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: "after" }
         );
 
         return withCors(NextResponse.json(block));

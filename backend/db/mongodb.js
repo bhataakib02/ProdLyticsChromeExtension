@@ -20,6 +20,12 @@ const isNetworkDbError = (err) => {
 export const isDbUnavailableError = (err) =>
     err?.code === "DB_UNAVAILABLE" || isNetworkDbError(err);
 
+/** Log-safe URI (never print credentials). */
+function redactMongoUri(uri) {
+    if (!uri || typeof uri !== "string") return "[missing]";
+    return uri.replace(/\/\/([^@/]+)@/, "//***@");
+}
+
 async function dbConnect() {
     const MONGODB_URI = process.env.MONGO_URI;
 
@@ -62,7 +68,7 @@ async function dbConnect() {
             socketTimeoutMS: 20000,
         };
 
-        console.log("📡 Connecting to MongoDB:", MONGODB_URI);
+        console.log("📡 Connecting to MongoDB:", redactMongoUri(MONGODB_URI));
         cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
             console.log("🟢 New MongoDB connection established");
             cached.unavailableUntil = 0;

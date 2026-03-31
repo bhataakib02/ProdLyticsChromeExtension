@@ -44,7 +44,7 @@ export async function POST(req) {
                     confidence: aiResult.confidence,
                     tags: aiResult.tags,
                 },
-                { upsert: true, new: true }
+                { upsert: true, returnDocument: "after" }
             );
         }
 

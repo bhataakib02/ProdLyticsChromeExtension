@@ -7,8 +7,11 @@ const getHeaders = () => {
 };
 
 export const trackingService = {
-    async getMetrics(range = "today") {
-        const response = await axios.get(`${API_URL}/tracking?range=${range}`, { headers: getHeaders() });
+    async getMetrics(range = "today", requestConfig = {}) {
+        const response = await axios.get(`${API_URL}/tracking?range=${range}`, {
+            headers: getHeaders(),
+            ...requestConfig,
+        });
         return response.data;
     },
 
@@ -18,13 +21,19 @@ export const trackingService = {
         return response.data;
     },
 
-    async getScore(range = "today") {
-        const response = await axios.get(`${API_URL}/tracking/score?range=${range}`, { headers: getHeaders() });
+    async getScore(range = "today", requestConfig = {}) {
+        const response = await axios.get(`${API_URL}/tracking/score?range=${range}`, {
+            headers: getHeaders(),
+            ...requestConfig,
+        });
         return response.data;
     },
 
-    async getHourlyMetrics(range = "today") {
-        const response = await axios.get(`${API_URL}/tracking/hourly?range=${range}`, { headers: getHeaders() });
+    async getHourlyMetrics(range = "today", requestConfig = {}) {
+        const response = await axios.get(`${API_URL}/tracking/hourly?range=${range}`, {
+            headers: getHeaders(),
+            ...requestConfig,
+        });
         return response.data;
     },
 

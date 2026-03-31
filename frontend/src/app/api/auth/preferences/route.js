@@ -73,7 +73,7 @@ export async function PUT(req) {
         const pref = await Preference.findOneAndUpdate(
             { userId: new mongoose.Types.ObjectId(MOCK_USER_ID) },
             { $set },
-            { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
+            { upsert: true, returnDocument: "after", runValidators: true, setDefaultsOnInsert: true }
         ).lean();
 
         return withCors(NextResponse.json(mergeDocIntoDefaults(pref)));

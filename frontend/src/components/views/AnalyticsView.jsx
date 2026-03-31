@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import { useAuth } from "@/context/AuthContext";
 import { trackingService } from "@/services/tracking.service";
 import {
@@ -41,44 +42,53 @@ export default function AnalyticsView() {
     const [categoryFilter, setCategoryFilter] = useState("all");
     const [metrics, setMetrics] = useState({ score: 0, productive: 0, unproductive: 0, neutral: 0, total: 0 });
 
-    const synchronizeMetrics = useCallback(async () => {
-        setLoading(true);
-        try {
-            const [domainData, metricsData, hourlyData] = await Promise.all([
-                trackingService.getMetrics(range),
-                trackingService.getScore(range),
-                trackingService.getHourlyMetrics(range)
-            ]);
-
-            setDomains(domainData);
-            setMetrics(metricsData);
-
-            const distData = [
-                { name: "Productive", value: metricsData.productive, color: "var(--color-success)", glow: "rgba(16, 185, 129, 0.4)" },
-                { name: "Neutral", value: metricsData.neutral, color: "var(--color-muted)", glow: "rgba(156, 163, 175, 0.2)" },
-                { name: "Unproductive", value: metricsData.unproductive, color: "var(--color-danger)", glow: "rgba(239, 68, 68, 0.4)" }
-            ].filter(d => d.value > 0);
-            setDistribution(distData);
-
-            const hourlyChartData = hourlyData.map(h => ({
-                hour: h.hour,
-                display: `${h.hour}:00`,
-                total: Math.round((h.productive + h.unproductive + h.neutral) / 60)
-            }));
-            setHourly(hourlyChartData);
-
-        } catch (err) {
-            console.error("Error fetching analytics data:", err);
-        } finally {
-            setLoading(false);
-        }
-    }, [range]);
-
     useEffect(() => {
-        if (user) {
-            synchronizeMetrics();
-        }
-    }, [user, synchronizeMetrics]);
+        if (!user) return;
+        const ac = new AbortController();
+        const req = { signal: ac.signal };
+
+        (async () => {
+            setLoading(true);
+            try {
+                const [domainData, metricsData, hourlyData] = await Promise.all([
+                    trackingService.getMetrics(range, req),
+                    trackingService.getScore(range, req),
+                    trackingService.getHourlyMetrics(range, req),
+                ]);
+
+                if (ac.signal.aborted) return;
+
+                setDomains(domainData);
+                setMetrics(metricsData);
+
+                const distData = [
+                    { name: "Productive", value: metricsData.productive, color: "var(--color-success)", glow: "rgba(16, 185, 129, 0.4)" },
+                    { name: "Neutral", value: metricsData.neutral, color: "var(--color-muted)", glow: "rgba(156, 163, 175, 0.2)" },
+                    { name: "Unproductive", value: metricsData.unproductive, color: "var(--color-danger)", glow: "rgba(239, 68, 68, 0.4)" }
+                ].filter(d => d.value > 0);
+                setDistribution(distData);
+
+                const hourlyChartData = hourlyData.map(h => ({
+                    hour: h.hour,
+                    display: `${h.hour}:00`,
+                    total: Math.round((h.productive + h.unproductive + h.neutral) / 60)
+                }));
+                setHourly(hourlyChartData);
+            } catch (err) {
+                const aborted =
+                    ac.signal.aborted ||
+                    err?.code === "ERR_CANCELED" ||
+                    axios.isCancel?.(err) ||
+                    err?.name === "CanceledError";
+                if (aborted) return;
+                console.error("Error fetching analytics data:", err);
+            } finally {
+                if (!ac.signal.aborted) setLoading(false);
+            }
+        })();
+
+        return () => ac.abort();
+    }, [user, range]);
 
     function formatTime(seconds) {
         if (!seconds || seconds <= 0) return "0s";
