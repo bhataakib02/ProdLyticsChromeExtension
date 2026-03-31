@@ -3,7 +3,8 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const __projectRoot = fileURLToPath(new URL("..", import.meta.url));
+const monorepoRoot = path.resolve(__dirname, "..");
+const jspdfBrowser = path.join(__dirname, "node_modules", "jspdf", "dist", "jspdf.es.min.js");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -13,11 +14,17 @@ const nextConfig = {
     // Disabled experimental features to resolve SSR hang
   },
   turbopack: {
-    root: __projectRoot,
-    // Use browser build of jsPDF (avoid Node worker path from jspdf.node.min.js during bundling)
+    root: monorepoRoot,
     resolveAlias: {
-      jspdf: path.join(__dirname, "node_modules", "jspdf", "dist", "jspdf.es.min.js"),
+      jspdf: jspdfBrowser,
     },
+  },
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      jspdf: jspdfBrowser,
+    };
+    return config;
   },
 };
 
