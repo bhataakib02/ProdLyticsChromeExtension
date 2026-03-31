@@ -197,8 +197,8 @@ function App() {
         <div>
           <h1 className="pl-title">ProdLytics</h1>
           <p className="pl-popup-hint">
-            Your stats and goals stay on this browser only—nothing to sign in. Each install gets its own private
-            space on the server.
+            Same session as the ProdLytics dashboard in this Chrome profile—no sign-in. Your data stays private to
+            you, not mixed with other users.
           </p>
         </div>
         <button

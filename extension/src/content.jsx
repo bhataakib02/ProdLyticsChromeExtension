@@ -17,16 +17,88 @@ function safeRuntimeSendMessage(payload) {
     }
 }
 
-// Dashboard (same origin as built-in DASHBOARD_ORIGIN) → background: sync + workspace toasts
+// Dashboard (same origin as built-in DASHBOARD_ORIGIN) → background: sync, JWT bridge, workspace toasts
 (() => {
     try {
         const { origin } = window.location;
         const expected = DASHBOARD_ORIGIN.replace(/\/+$/, "");
         if (origin !== expected) return;
+
+        function pushTokenToPageLocalStorage(token) {
+            try {
+                if (token && typeof token === "string") {
+                    localStorage.setItem("accessToken", token);
+                } else {
+                    localStorage.removeItem("accessToken");
+                }
+            } catch {
+                /* ignore */
+            }
+        }
+
+        chrome.storage.local.get(["accessToken"], (r) => {
+            if (chrome.runtime.lastError) return;
+            if (r?.accessToken) pushTokenToPageLocalStorage(r.accessToken);
+        });
+
+        chrome.storage.onChanged.addListener((changes, area) => {
+            if (area !== "local" || !changes.accessToken) return;
+            const next = changes.accessToken.newValue;
+            if (next === undefined) {
+                pushTokenToPageLocalStorage("");
+            } else if (typeof next === "string") {
+                pushTokenToPageLocalStorage(next);
+            }
+        });
+
         window.addEventListener("message", (event) => {
             if (event.source !== window) return;
             if (event.origin !== origin) return;
             if (event.data?.source !== "prodlytics-dashboard") return;
+
+            if (event.data?.type === "PRODLYTICS_GET_ACCESS_TOKEN") {
+                const nonce = event.data.nonce;
+                chrome.storage.local.get(["accessToken"], (r) => {
+                    if (chrome.runtime.lastError) {
+                        window.postMessage(
+                            {
+                                source: "prodlytics-extension-bridge",
+                                type: "PRODLYTICS_ACCESS_TOKEN_REPLY",
+                                nonce,
+                                accessToken: "",
+                            },
+                            origin
+                        );
+                        return;
+                    }
+                    window.postMessage(
+                        {
+                            source: "prodlytics-extension-bridge",
+                            type: "PRODLYTICS_ACCESS_TOKEN_REPLY",
+                            nonce,
+                            accessToken: r?.accessToken && typeof r.accessToken === "string" ? r.accessToken : "",
+                        },
+                        origin
+                    );
+                });
+                return;
+            }
+
+            if (event.data?.type === "PRODLYTICS_SET_ACCESS_TOKEN") {
+                const t = event.data.accessToken;
+                if (typeof t === "string" && t.length > 0) {
+                    chrome.storage.local.set({ accessToken: t });
+                    pushTokenToPageLocalStorage(t);
+                }
+                return;
+            }
+
+            if (event.data?.type === "PRODLYTICS_CLEAR_ACCESS_TOKEN") {
+                chrome.storage.local.remove("accessToken");
+                pushTokenToPageLocalStorage("");
+                return;
+            }
+
             if (event.data?.type === "PRODLYTICS_SYNC_EXTENSION") {
                 safeRuntimeSendMessage({ action: "syncAll" });
                 return;
@@ -117,6 +189,21 @@ function showProdlyticsWorkspaceToast(title, message, variant = "success") {
 }
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    if (msg?.action === "exportAccessTokenForBackground") {
+        try {
+            const { origin } = window.location;
+            const expected = DASHBOARD_ORIGIN.replace(/\/+$/, "");
+            if (origin !== expected) {
+                sendResponse({ accessToken: null });
+                return true;
+            }
+            const t = localStorage.getItem("accessToken");
+            sendResponse({ accessToken: t && typeof t === "string" ? t : null });
+        } catch {
+            sendResponse({ accessToken: null });
+        }
+        return true;
+    }
     if (msg?.action === "showWorkspaceToast") {
         try {
             showProdlyticsWorkspaceToast(msg.title, msg.message, msg.variant);

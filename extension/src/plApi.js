@@ -1,9 +1,30 @@
 /**
- * Authenticated fetch for ProdLytics API. Creates a silent per-install session (no sign-in UI).
+ * Authenticated fetch for ProdLytics API. Shares JWT with the dashboard (same Chrome profile).
  */
-import { API_BASE } from "./buildEnv.js";
+import { API_BASE, DASHBOARD_ORIGIN } from "./buildEnv.js";
 
-async function ensureAnonymousJwt() {
+async function tryPullTokenFromDashboardTab() {
+    try {
+        const base = DASHBOARD_ORIGIN.replace(/\/+$/, "");
+        const tabs = await chrome.tabs.query({ url: `${base}/*` });
+        for (const tab of tabs) {
+            if (!tab.id) continue;
+            try {
+                const r = await chrome.tabs.sendMessage(tab.id, { action: "exportAccessTokenForBackground" });
+                if (r?.accessToken && typeof r.accessToken === "string" && r.accessToken.length > 0) {
+                    return r.accessToken;
+                }
+            } catch {
+                /* tab without content script or not ready */
+            }
+        }
+    } catch {
+        /* ignore */
+    }
+    return null;
+}
+
+async function obtainNewJwt() {
     const res = await fetch(`${API_BASE}/auth/anonymous`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -20,11 +41,27 @@ async function ensureAnonymousJwt() {
     return data.accessToken;
 }
 
+/**
+ * Ensures chrome.storage has a valid JWT: reuse existing, copy from an open dashboard tab, or POST /anonymous.
+ */
+async function ensureAccessToken() {
+    const { accessToken: existing } = await chrome.storage.local.get("accessToken");
+    if (existing && typeof existing === "string" && existing.length > 0) {
+        return existing;
+    }
+    const pulled = await tryPullTokenFromDashboardTab();
+    if (pulled) {
+        await chrome.storage.local.set({ accessToken: pulled });
+        return pulled;
+    }
+    return obtainNewJwt();
+}
+
 export async function plFetch(url, init = {}) {
     let { accessToken } = await chrome.storage.local.get("accessToken");
     if (!accessToken) {
         try {
-            await ensureAnonymousJwt();
+            await ensureAccessToken();
             accessToken = (await chrome.storage.local.get("accessToken")).accessToken;
         } catch {
             /* request may 401 below */
@@ -39,7 +76,8 @@ export async function plFetch(url, init = {}) {
     if (res.status !== 401) return res;
 
     try {
-        await ensureAnonymousJwt();
+        await chrome.storage.local.remove("accessToken");
+        await ensureAccessToken();
     } catch {
         return res;
     }

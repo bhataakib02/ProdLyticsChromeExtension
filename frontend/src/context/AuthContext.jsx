@@ -3,7 +3,12 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import { requestExtensionSync } from "@/lib/extensionSync";
+import {
+    requestExtensionSync,
+    bridgeGetAccessToken,
+    bridgeSetAccessToken,
+    bridgeClearAccessToken,
+} from "@/lib/extensionSync";
 
 const AuthContext = createContext();
 
@@ -69,6 +74,7 @@ export function AuthProvider({ children }) {
             return;
         }
         localStorage.setItem("accessToken", token);
+        bridgeSetAccessToken(token);
         const sessionUser = await loadSession(token);
         setUser(sessionUser);
     }, []);
@@ -79,22 +85,50 @@ export function AuthProvider({ children }) {
             setLoading(true);
             setBootstrapError("");
             try {
-                let token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-                if (token) {
+                if (typeof window !== "undefined") {
+                    await new Promise((r) => setTimeout(r, 120));
+                }
+                const fromBridge =
+                    typeof window !== "undefined" ? await bridgeGetAccessToken({ timeoutMs: 550 }) : null;
+                const fromLs = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+
+                const trySession = async (t) => {
                     try {
-                        const sessionUser = await loadSession(token);
+                        return await loadSession(t);
+                    } catch {
+                        return null;
+                    }
+                };
+
+                if (fromBridge) {
+                    const sessionUser = await trySession(fromBridge);
+                    if (sessionUser) {
+                        localStorage.setItem("accessToken", fromBridge);
+                        bridgeSetAccessToken(fromBridge);
                         if (!cancelled) setUser(sessionUser);
                         return;
-                    } catch {
-                        if (typeof window !== "undefined") localStorage.removeItem("accessToken");
-                        token = null;
                     }
                 }
+
+                if (fromLs) {
+                    const sessionUser = await trySession(fromLs);
+                    if (sessionUser) {
+                        localStorage.setItem("accessToken", fromLs);
+                        bridgeSetAccessToken(fromLs);
+                        if (!cancelled) setUser(sessionUser);
+                        return;
+                    }
+                    localStorage.removeItem("accessToken");
+                }
+
+                bridgeClearAccessToken();
+
                 const { data } = await axios.post(`${API_URL}/auth/anonymous`, {});
                 if (!data?.accessToken) {
                     throw new Error("No session token from server.");
                 }
                 if (typeof window !== "undefined") localStorage.setItem("accessToken", data.accessToken);
+                bridgeSetAccessToken(data.accessToken);
                 const sessionUser = await loadSession(data.accessToken);
                 if (!cancelled) setUser(sessionUser);
             } catch (err) {
@@ -146,6 +180,7 @@ export function AuthProvider({ children }) {
 
     const logout = useCallback(() => {
         localStorage.removeItem("accessToken");
+        bridgeClearAccessToken();
         setUser(null);
         setSessionKey((k) => k + 1);
         router.push("/");
