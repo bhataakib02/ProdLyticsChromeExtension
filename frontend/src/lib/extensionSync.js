@@ -87,11 +87,19 @@ export function bridgeClearAccessToken() {
 /**
  * @param {object} opts
  * @param {boolean} [opts.systemNotify] — also show a Chrome / OS notification (goal, deep work, etc.)
+ * @param {string} [opts.targetHost] — bare hostname (e.g. youtube.com): show in-page toast on every open tab on that site
  */
-export function requestExtensionWorkspaceToast({ title, message, variant = "success", systemNotify = false }) {
+export function requestExtensionWorkspaceToast({
+    title,
+    message,
+    variant = "success",
+    systemNotify = false,
+    targetHost,
+}) {
     if (typeof window === "undefined") return;
     if (!isProdlyticsDashboardPage()) return;
     const { origin } = window.location;
+    const th = typeof targetHost === "string" ? targetHost.trim() : "";
     window.postMessage(
         {
             type: "PRODLYTICS_WORKSPACE_TOAST",
@@ -100,6 +108,7 @@ export function requestExtensionWorkspaceToast({ title, message, variant = "succ
             message: message || "",
             variant,
             systemNotify: Boolean(systemNotify),
+            ...(th && th !== "*" ? { targetHost: th } : {}),
         },
         origin
     );

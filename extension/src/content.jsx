@@ -110,6 +110,7 @@ function safeRuntimeSendMessage(payload) {
                     message: event.data.message,
                     variant: event.data.variant || "success",
                     systemNotify: Boolean(event.data.systemNotify),
+                    targetHost: typeof event.data.targetHost === "string" ? event.data.targetHost : "",
                 });
             }
         });

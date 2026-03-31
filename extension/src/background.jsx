@@ -211,8 +211,14 @@ async function refreshGoalsAndPopupCache(opts = {}) {
             const prev = goalProgressSnapshot[id];
             if (prev !== undefined && g.isActive && prog >= 100 && prev < 100) {
                 const name = String(g.label || g.website || "Your goal").trim() || "Your goal";
+                const siteRaw = String(g.website || "").trim();
+                const targetHost =
+                    siteRaw && siteRaw !== "*"
+                        ? siteRaw.replace(/^www\./i, "").toLowerCase()
+                        : "";
                 await showWorkspaceToastOnActiveTab("Goal achieved", `${name} — you hit today's target.`, "success", {
                     systemNotify: true,
+                    targetHost,
                 });
             }
             nextSnap[id] = prog;
@@ -270,26 +276,70 @@ async function refreshGoalsAndPopupCache(opts = {}) {
     }
 }
 
+/** Bare hostname for goal matching (e.g. youtube.com). */
+function normalizeToastTargetHost(raw) {
+    if (!raw || typeof raw !== "string") return "";
+    const s = raw.trim().toLowerCase().replace(/^www\./, "");
+    if (!s || s === "*") return "";
+    return s;
+}
+
+/** Tab URL host matches goal host (youtube.com, www.youtube.com, m.youtube.com). */
+function tabUrlMatchesGoalHost(tabUrl, goalHostNorm) {
+    if (!goalHostNorm || !tabUrl) return false;
+    try {
+        const u = new URL(tabUrl);
+        if (!/^https?:$/i.test(u.protocol)) return false;
+        const h = u.hostname.toLowerCase().replace(/^www\./, "");
+        return h === goalHostNorm || h.endsWith("." + goalHostNorm);
+    } catch {
+        return false;
+    }
+}
+
 async function showWorkspaceToastOnActiveTab(title, message, variant = "success", opts = {}) {
-    const { systemNotify = false } = opts;
+    const { systemNotify = false, targetHost: targetHostRaw = "" } = opts;
+    const goalHost = normalizeToastTargetHost(targetHostRaw);
     const t = title || "ProdLytics";
     const m = message || "";
     const v = variant || "success";
+    const payload = { action: "showWorkspaceToast", title: t, message: m, variant: v };
     let tabDelivered = false;
-    try {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (tab?.id && /^https?:/i.test(tab.url || "")) {
-            await chrome.tabs.sendMessage(tab.id, {
-                action: "showWorkspaceToast",
-                title: t,
-                message: m,
-                variant: v,
-            });
-            tabDelivered = true;
+
+    async function tryTab(tabId) {
+        if (!tabId) return false;
+        try {
+            await chrome.tabs.sendMessage(tabId, payload);
+            return true;
+        } catch {
+            return false;
         }
-    } catch (e) {
-        /* restricted URL or content script not loaded */
     }
+
+    if (goalHost) {
+        try {
+            const tabs = await chrome.tabs.query({});
+            for (const tab of tabs) {
+                if (tab.id && tabUrlMatchesGoalHost(tab.url || "", goalHost)) {
+                    if (await tryTab(tab.id)) tabDelivered = true;
+                }
+            }
+        } catch {
+            /* ignore */
+        }
+    }
+
+    if (!tabDelivered && !goalHost) {
+        try {
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (tab?.id && /^https?:/i.test(tab.url || "")) {
+                if (await tryTab(tab.id)) tabDelivered = true;
+            }
+        } catch {
+            /* ignore */
+        }
+    }
+
     if (systemNotify || !tabDelivered) {
         try {
             await chrome.notifications.create(`pl-ws-${Date.now()}`, {
@@ -299,7 +349,7 @@ async function showWorkspaceToastOnActiveTab(title, message, variant = "success"
                 message: m,
                 priority: 2,
             });
-        } catch (e2) {
+        } catch {
             /* ignore */
         }
     }
@@ -760,6 +810,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "workspaceToastFromDashboard") {
         showWorkspaceToastOnActiveTab(request.title, request.message, request.variant, {
             systemNotify: Boolean(request.systemNotify),
+            targetHost: typeof request.targetHost === "string" ? request.targetHost : "",
         })
             .then(() => sendResponse({ ok: true }))
             .catch(() => sendResponse({ ok: false }));

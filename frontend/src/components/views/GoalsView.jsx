@@ -53,10 +53,16 @@ export default function GoalsView() {
                 setCelebratedObjective(newlyCompleted);
                 sessionStorage.setItem(`celebrated_${newlyCompleted._id}`, "true");
                 const name = String(newlyCompleted.label || newlyCompleted.website || "Objective").trim() || "Objective";
+                const siteRaw = String(newlyCompleted.website || "").trim();
+                const targetHost =
+                    siteRaw && siteRaw !== "*"
+                        ? normalizeWebsiteHost(siteRaw) || siteRaw.replace(/^www\./i, "").toLowerCase()
+                        : "";
                 requestExtensionWorkspaceToast({
                     title: "Objective achieved",
                     message: `${name} — you hit today's target. Great work.`,
                     systemNotify: true,
+                    targetHost: targetHost || undefined,
                 });
             }
         } catch (err) {
