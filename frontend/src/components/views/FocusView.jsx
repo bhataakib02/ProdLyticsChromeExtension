@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useDashboard } from "@/context/DashboardContext";
+import { matchesActivitySearch } from "@/lib/activitySearch";
 import { goalsService } from "@/services/goals.service";
 import {
     ShieldAlert,
@@ -24,6 +26,7 @@ import { normalizeWebsiteHost } from "@/lib/normalizeWebsiteHost";
 
 export default function FocusView() {
     const { user, updatePreference } = useAuth();
+    const { activitySearchQuery } = useDashboard();
     const [domains, setDomains] = useState([]);
     const [newDomain, setNewDomain] = useState("");
     const [loading, setLoading] = useState(true);
@@ -77,6 +80,8 @@ export default function FocusView() {
 
     if (!user) return null;
 
+    const visibleBlocklist = domains.filter((d) => matchesActivitySearch(activitySearchQuery, d.website));
+
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-16 relative pb-20">
             <motion.header
@@ -104,7 +109,9 @@ export default function FocusView() {
                                 <Lock size={16} /> Neural Blocklist
                             </h2>
                             <span className="rounded-full border-2 border-ui bg-foreground/5 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-muted">
-                                {domains.length} Active Rules
+                                {activitySearchQuery.trim()
+                                    ? `${visibleBlocklist.length} shown · ${domains.length} total`
+                                    : `${domains.length} Active Rules`}
                             </span>
                         </div>
 
@@ -130,8 +137,12 @@ export default function FocusView() {
                                 <AnimatePresence mode="popLayout">
                                     {domains.length === 0 ? (
                                         <div className="py-20 text-center opacity-30 italic">No restrictions active.</div>
+                                    ) : visibleBlocklist.length === 0 ? (
+                                        <div className="py-16 text-center text-sm text-muted">
+                                            No blocklist sites match your search.
+                                        </div>
                                     ) : (
-                                        domains.map((domain) => (
+                                        visibleBlocklist.map((domain) => (
                                             <motion.div key={domain._id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="group flex items-center justify-between rounded-3xl border-2 border-ui bg-foreground/[0.02] p-6 transition-all duration-500 hover:border-primary/40 hover:bg-foreground/[0.05]">
                                                 <div className="flex items-center gap-5 flex-wrap">
                                                     <Image src={`https://www.google.com/s2/favicons?domain=${domain.website}&sz=64`} alt="" width={24} height={24} className="w-6 h-6 rounded-md" unoptimized />

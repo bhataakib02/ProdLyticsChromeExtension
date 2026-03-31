@@ -9,11 +9,9 @@
         "storage",
         "tabs",
         "activeTab",
-        "scripting",
         "notifications",
         "idle",
         "alarms",
-        "identity",
         "webNavigation"
     ],
     "host_permissions": [

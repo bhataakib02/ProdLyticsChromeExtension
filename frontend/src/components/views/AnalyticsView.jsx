@@ -4,6 +4,8 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "@/context/AuthContext";
+import { useDashboard } from "@/context/DashboardContext";
+import { matchesActivitySearch } from "@/lib/activitySearch";
 import { trackingService } from "@/services/tracking.service";
 import {
     BarChart3,
@@ -34,6 +36,7 @@ import {
 
 export default function AnalyticsView() {
     const { user } = useAuth();
+    const { activitySearchQuery } = useDashboard();
     const [range, setRange] = useState("today");
     const [domains, setDomains] = useState([]);
     const [distribution, setDistribution] = useState([]);
@@ -109,10 +112,11 @@ export default function AnalyticsView() {
     if (!user) return null;
 
     const filteredDomains = domains
-        .filter(domain => categoryFilter === "all" || domain.category === categoryFilter)
+        .filter((domain) => categoryFilter === "all" || domain.category === categoryFilter)
+        .filter((domain) => matchesActivitySearch(activitySearchQuery, domain._id))
         .slice(0, 20);
 
-    const maxTime = domains.length > 0 ? domains[0].totalTime : 1;
+    const maxTime = filteredDomains.length > 0 ? filteredDomains[0].totalTime : 1;
     const rangeLabels = { today: "Today", week: "This Week", month: "This Month" };
 
     return (
@@ -171,8 +175,12 @@ export default function AnalyticsView() {
                 <PremiumStatCard
                     icon={<Globe size={22} />}
                     label="Domains Active"
-                    value={domains.length.toString()}
-                    subLabel="Total Active"
+                    value={
+                        activitySearchQuery.trim()
+                            ? `${filteredDomains.length}/${domains.length}`
+                            : String(domains.length)
+                    }
+                    subLabel={activitySearchQuery.trim() ? "Matching / total" : "Total Active"}
                     color="warning"
                     loading={loading}
                 />
@@ -381,6 +389,12 @@ export default function AnalyticsView() {
 
                 {loading ? (
                     <div className="p-24 text-center">Analyzing Data...</div>
+                ) : filteredDomains.length === 0 ? (
+                    <div className="p-16 text-center text-sm text-muted">
+                        {activitySearchQuery.trim()
+                            ? "No sites match your search for this range and filter."
+                            : "No activity recorded for this period."}
+                    </div>
                 ) : (
                     <div className="p-4 space-y-3">
                         {filteredDomains.map((domain, index) => {

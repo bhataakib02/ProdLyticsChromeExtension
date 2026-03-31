@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useDashboard } from "@/context/DashboardContext";
+import { matchesActivitySearch } from "@/lib/activitySearch";
 import { goalsService } from "@/services/goals.service";
 import {
     Target,
@@ -21,6 +23,7 @@ import { requestExtensionWorkspaceToast } from "@/lib/extensionSync";
 
 export default function GoalsView() {
     const { user } = useAuth();
+    const { activitySearchQuery } = useDashboard();
     const [objectives, setObjectives] = useState([]);
     const [showNewObjective, setShowNewObjective] = useState(false);
     const [celebratedObjective, setCelebratedObjective] = useState(null);
@@ -107,6 +110,10 @@ export default function GoalsView() {
 
     if (!user) return null;
 
+    const filteredObjectives = objectives.filter((g) =>
+        matchesActivitySearch(activitySearchQuery, g.label, g.website, g.type)
+    );
+
     const fieldLabel =
         "block text-[10px] font-black uppercase tracking-widest text-foreground/65";
     const fieldBase =
@@ -135,8 +142,12 @@ export default function GoalsView() {
                             Create Your First Objective
                         </button>
                     </div>
+                ) : filteredObjectives.length === 0 ? (
+                    <div className="col-span-full py-16 text-center text-sm text-muted">
+                        No objectives match your search. Clear the navbar search or try another keyword.
+                    </div>
                 ) : (
-                    objectives.map((goal) => (
+                    filteredObjectives.map((goal) => (
                         <div key={goal._id} className="glass-card p-8 group hover:border-primary/50 transition-all">
                             <div className="flex justify-between items-start mb-6">
                                 <div className={`p-3 rounded-2xl ${goal.type === 'productive' ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'}`}>

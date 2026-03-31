@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useDashboard } from "@/context/DashboardContext";
+import { matchesActivitySearch } from "@/lib/activitySearch";
 import { trackingService } from "@/services/tracking.service";
 import { goalsService } from "@/services/goals.service";
 import {
@@ -20,6 +22,7 @@ import Image from "next/image";
 
 export default function OverviewView({ onTabChange }) {
     const { user } = useAuth();
+    const { activitySearchQuery } = useDashboard();
     const [metrics, setMetrics] = useState({ score: 0, totalTime: 0, productiveTime: 0, unproductiveTime: 0, neutralTime: 0, streak: 0, peakHour: null });
     const [objectives, setObjectives] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -89,6 +92,8 @@ export default function OverviewView({ onTabChange }) {
     }
 
     if (!user) return null;
+
+    const domainMatches = (d) => matchesActivitySearch(activitySearchQuery, d._id);
 
     const distribution = [
         { name: "Productive", value: metrics.productiveTime || 0, color: "var(--color-success)" },
@@ -204,7 +209,12 @@ export default function OverviewView({ onTabChange }) {
                         <h3 className="text-sm font-black uppercase tracking-widest text-foreground/90">Top Productive</h3>
                     </div>
                     <div className="space-y-4">
-                        {topDomains.filter(d => d.category === "productive").slice(0, 5).map((domain) => (
+                        {topDomains.filter((d) => d.category === "productive" && domainMatches(d)).slice(0, 5).length === 0 ? (
+                            <p className="py-6 text-center text-xs text-muted">
+                                {activitySearchQuery.trim() ? "No productive sites match your search." : "No productive sites yet."}
+                            </p>
+                        ) : null}
+                        {topDomains.filter((d) => d.category === "productive" && domainMatches(d)).slice(0, 5).map((domain) => (
                             <div
                                 key={domain._id}
                                 className="flex items-center justify-between rounded-2xl border-2 border-transparent p-3 transition-colors hover:border-ui hover:bg-foreground/[0.04]"
@@ -227,7 +237,12 @@ export default function OverviewView({ onTabChange }) {
                         <h3 className="text-sm font-black uppercase tracking-widest text-foreground/90">Top Distractions</h3>
                     </div>
                     <div className="space-y-4">
-                        {topDomains.filter(d => d.category === "unproductive").slice(0, 5).map((domain) => (
+                        {topDomains.filter((d) => d.category === "unproductive" && domainMatches(d)).slice(0, 5).length === 0 ? (
+                            <p className="py-6 text-center text-xs text-muted">
+                                {activitySearchQuery.trim() ? "No distracting sites match your search." : "No distracting sites yet."}
+                            </p>
+                        ) : null}
+                        {topDomains.filter((d) => d.category === "unproductive" && domainMatches(d)).slice(0, 5).map((domain) => (
                             <div
                                 key={domain._id}
                                 className="flex items-center justify-between rounded-2xl border-2 border-transparent p-3 transition-colors hover:border-ui hover:bg-foreground/[0.04]"
@@ -246,7 +261,10 @@ export default function OverviewView({ onTabChange }) {
             <section className="space-y-6 mb-20">
                 <h3 className="text-xs font-black text-muted uppercase tracking-[0.3em] flex items-center gap-3"><TrendingUp size={16} /> Activity History</h3>
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                    {topDomains.slice(0, 5).map((domain) => (
+                    {topDomains.filter(domainMatches).length === 0 && activitySearchQuery.trim() ? (
+                        <div className="col-span-full py-8 text-center text-sm text-muted">No sites match your search.</div>
+                    ) : null}
+                    {topDomains.filter(domainMatches).slice(0, 5).map((domain) => (
                         <div
                             key={domain._id}
                             className="glass-card group p-5 transition-all hover:bg-foreground/[0.06]"
