@@ -2,6 +2,21 @@ import { NextResponse } from 'next/server';
 import dbConnect, { isDbUnavailableError } from '../../../../../backend/db/mongodb.js';
 import Goal from '../../../../../backend/models/Goal.js';
 import { getUserIdFromRequest } from '@/lib/apiUser';
+import { normalizeWebsiteHost } from '@/lib/normalizeWebsiteHost';
+
+function normalizeGoalWebsite(body) {
+    if (!body || typeof body !== 'object') return body;
+    const next = { ...body };
+    if (typeof next.website === 'string') {
+        const raw = next.website.trim();
+        if (raw === '*' || raw === '') {
+            next.website = raw;
+        } else {
+            next.website = normalizeWebsiteHost(next.website) || raw;
+        }
+    }
+    return next;
+}
 
 export async function GET(req) {
     try {
@@ -38,7 +53,7 @@ export async function POST(req) {
         if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
-        const body = await req.json();
+        const body = normalizeGoalWebsite(await req.json());
         const goal = await Goal.create({ ...body, userId });
         return NextResponse.json(goal);
     } catch (err) {
@@ -62,7 +77,7 @@ export async function PUT(req) {
 
         if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
 
-        const body = await req.json();
+        const body = normalizeGoalWebsite(await req.json());
         const goal = await Goal.findOneAndUpdate({ _id: id, userId }, body, { returnDocument: "after" });
         return NextResponse.json(goal);
     } catch (err) {

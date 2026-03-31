@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { requestExtensionWorkspaceToast } from "@/lib/extensionSync";
+import { normalizeWebsiteHost } from "@/lib/normalizeWebsiteHost";
 
 export default function GoalsView() {
     const { user } = useAuth();
@@ -67,13 +68,20 @@ export default function GoalsView() {
 
     async function handleSaveObjective(e) {
         e.preventDefault();
+        const website = normalizeWebsiteHost(newObjective.website);
+        if (!website) {
+            window.alert("Enter a valid website or URL (e.g. twitter.com or https://www.twitter.com).");
+            return;
+        }
+        const payload = { ...newObjective, website };
+        setNewObjective(payload);
         try {
             let res;
             if (editingObjective) {
-                res = await goalsService.updateObjective(editingObjective._id, newObjective);
-                setObjectives(objectives.map(g => g._id === res._id ? res : g));
+                res = await goalsService.updateObjective(editingObjective._id, payload);
+                setObjectives(objectives.map((g) => (g._id === res._id ? res : g)));
             } else {
-                res = await goalsService.createObjective(newObjective);
+                res = await goalsService.createObjective(payload);
                 setObjectives([...objectives, res]);
             }
             setShowNewObjective(false);
@@ -86,7 +94,12 @@ export default function GoalsView() {
 
     const openEditModal = (goal) => {
         setEditingObjective(goal);
-        setNewObjective({ label: goal.label, targetSeconds: goal.targetSeconds, type: goal.type, website: goal.website || "" });
+        setNewObjective({
+            label: goal.label,
+            targetSeconds: goal.targetSeconds,
+            type: goal.type,
+            website: normalizeWebsiteHost(goal.website || "") || goal.website || "",
+        });
         setShowNewObjective(true);
     };
 
@@ -294,13 +307,25 @@ export default function GoalsView() {
                                         <input
                                             id="objective-website"
                                             required
-                                            placeholder="e.g. twitter.com"
+                                            placeholder="twitter.com, www.x.com, or full URL"
                                             className={fieldBase}
                                             value={newObjective.website}
                                             onChange={(e) =>
                                                 setNewObjective({ ...newObjective, website: e.target.value })
                                             }
+                                            onBlur={() => {
+                                                setNewObjective((prev) => {
+                                                    const n = normalizeWebsiteHost(prev.website);
+                                                    return n ? { ...prev, website: n } : prev;
+                                                });
+                                            }}
+                                            autoComplete="url"
+                                            inputMode="url"
                                         />
+                                        <p className="text-[10px] font-medium text-muted/90 leading-snug">
+                                            We normalize to the bare domain (no <code className="text-foreground/80">https://</code> or{" "}
+                                            <code className="text-foreground/80">www.</code>) so progress matches extension tracking.
+                                        </p>
                                     </div>
                                 </div>
                                 <button type="submit" className="btn-primary-lg mt-4">
