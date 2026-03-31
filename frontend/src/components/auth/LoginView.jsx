@@ -1,12 +1,48 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function LoginView() {
     const { completeGoogleLogin, authError, clearAuthError } = useAuth();
     const btnRef = useRef(null);
-    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+    const [clientId, setClientId] = useState(() => process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "");
+    const [configLoading, setConfigLoading] = useState(() => !process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
+    const [configError, setConfigError] = useState("");
+
+    useEffect(() => {
+        if (clientId) {
+            setConfigLoading(false);
+            return;
+        }
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await fetch("/api/auth/config", { cache: "no-store" });
+                const data = await res.json();
+                if (cancelled) return;
+                if (data.googleClientId) {
+                    setClientId(data.googleClientId);
+                    if (!data.authReady) {
+                        setConfigError(
+                            "Add JWT_SECRET (16+ characters) in Vercel → Settings → Environment Variables, then redeploy."
+                        );
+                    }
+                } else {
+                    setConfigError(
+                        "Add GOOGLE_CLIENT_ID (Web application client ID from Google Cloud) on Vercel, then redeploy."
+                    );
+                }
+            } catch {
+                if (!cancelled) setConfigError("Could not load sign-in configuration.");
+            } finally {
+                if (!cancelled) setConfigLoading(false);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [clientId]);
 
     const handleCredential = useCallback(
         async (response) => {
@@ -62,14 +98,31 @@ export default function LoginView() {
                     Sign in with Google to see your own focus data, goals, and blocklist. Each account is private.
                 </p>
             </div>
-            {!clientId ? (
-                <p className="max-w-md text-center text-sm text-amber-600 dark:text-amber-400">
-                    Set <code className="rounded bg-muted px-1 py-0.5">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> and{" "}
-                    <code className="rounded bg-muted px-1 py-0.5">JWT_SECRET</code> in{" "}
-                    <code className="rounded bg-muted px-1 py-0.5">frontend/.env.local</code> (and on Vercel).
-                </p>
+            {configLoading ? (
+                <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            ) : !clientId ? (
+                <div className="max-w-md space-y-2 text-center text-sm text-amber-600 dark:text-amber-400">
+                    <p>
+                        <strong>Vercel:</strong> Project → Settings → Environment Variables → add{" "}
+                        <code className="rounded bg-muted px-1 py-0.5">GOOGLE_CLIENT_ID</code> (Web client ID) and{" "}
+                        <code className="rounded bg-muted px-1 py-0.5">JWT_SECRET</code> (long random string, 16+
+                        chars), then <strong>Redeploy</strong>.
+                    </p>
+                    {configError ? <p>{configError}</p> : null}
+                    <p className="text-muted-foreground">
+                        Local dev: put the same keys in <code className="rounded bg-muted px-1">frontend/.env.local</code>
+                        . Optional: <code className="rounded bg-muted px-1">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> (same
+                        value as <code className="rounded bg-muted px-1">GOOGLE_CLIENT_ID</code>) to skip the config
+                        fetch.
+                    </p>
+                </div>
             ) : (
-                <div ref={btnRef} className="min-h-[40px]" />
+                <>
+                    <div ref={btnRef} className="min-h-[40px]" />
+                    {configError ? (
+                        <p className="max-w-md text-center text-sm text-amber-600 dark:text-amber-400">{configError}</p>
+                    ) : null}
+                </>
             )}
             {authError ? (
                 <p className="max-w-md text-center text-sm text-red-600 dark:text-red-400">{authError}</p>

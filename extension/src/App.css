@@ -65,6 +65,15 @@
   letter-spacing: -0.02em;
 }
 
+.pl-popup-hint {
+  margin: 4px 0 0;
+  max-width: 220px;
+  font-size: 0.65rem;
+  line-height: 1.35;
+  color: var(--pl-muted);
+  font-weight: 400;
+}
+
 /* Theme: sun / moon icon (tap to switch) */
 .pl-theme-icon-btn {
   flex-shrink: 0;
