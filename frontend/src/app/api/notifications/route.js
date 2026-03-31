@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server';
-import mongoose from 'mongoose';
 import dbConnect, { isDbUnavailableError } from '../../../../../backend/db/mongodb.js';
 import Notification from '../../../../../backend/models/Notification.js';
-
-const MOCK_USER_ID = "65f1a2b3c4d5e6f7a8b9c0d1";
+import { getUserIdFromRequest } from '@/lib/apiUser';
 
 export async function GET(req) {
     try {
         await dbConnect();
-        const userObjectId = new mongoose.Types.ObjectId(MOCK_USER_ID);
+        const userObjectId = await getUserIdFromRequest(req);
+        if (!userObjectId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
 
         const notifications = await Notification.find({ userId: userObjectId })
             .sort({ createdAt: -1 })
@@ -24,7 +25,10 @@ export async function GET(req) {
 export async function POST(req) {
     try {
         await dbConnect();
-        const userObjectId = new mongoose.Types.ObjectId(MOCK_USER_ID);
+        const userObjectId = await getUserIdFromRequest(req);
+        if (!userObjectId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
         const body = await req.json();
 
         const notification = new Notification({
@@ -44,7 +48,10 @@ export async function POST(req) {
 export async function PATCH(req) {
     try {
         await dbConnect();
-        const userObjectId = new mongoose.Types.ObjectId(MOCK_USER_ID);
+        const userObjectId = await getUserIdFromRequest(req);
+        if (!userObjectId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
 
         // Mark all unread notifications as read for this user
         await Notification.updateMany(

@@ -1,20 +1,22 @@
 import { NextResponse } from 'next/server';
-import mongoose from 'mongoose';
 import dbConnect, { isDbUnavailableError } from '../../../../../backend/db/mongodb.js';
 import Tracking from '../../../../../backend/models/Tracking.js';
 import Category from '../../../../../backend/models/Category.js';
 import aiClassifier from '../../../../../backend/services/aiClassifier.js';
 import { withCors, corsOptions } from '@/lib/cors';
+import { getUserIdFromRequest } from '@/lib/apiUser';
 
 export async function OPTIONS() {
     return corsOptions();
 }
 
-// Mock user ID for now since auth is mocked in frontend
-const MOCK_USER_ID = "65f1a2b3c4d5e6f7a8b9c0d1";
 export async function POST(req) {
     try {
         await dbConnect();
+        const userId = await getUserIdFromRequest(req);
+        if (!userId) {
+            return withCors(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
+        }
         const body = await req.json();
         const { website, time, pageTitle, scrolls, clicks, content } = body;
 
@@ -24,7 +26,7 @@ export async function POST(req) {
         }
 
         // Determine category
-        let catDoc = await Category.findOne({ userId: MOCK_USER_ID, website });
+        let catDoc = await Category.findOne({ userId, website });
         let category = "neutral";
         let source = "default";
 
@@ -37,7 +39,7 @@ export async function POST(req) {
             source = "ai";
 
             await Category.findOneAndUpdate(
-                { userId: MOCK_USER_ID, website },
+                { userId, website },
                 {
                     category: aiResult.category,
                     source: "ai",
@@ -49,7 +51,7 @@ export async function POST(req) {
         }
 
         await Tracking.create({
-            userId: MOCK_USER_ID,
+            userId,
             website,
             pageTitle: pageTitle || "",
             time,
@@ -74,6 +76,10 @@ export async function POST(req) {
 export async function GET(req) {
     try {
         await dbConnect();
+        const userId = await getUserIdFromRequest(req);
+        if (!userId) {
+            return withCors(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
+        }
         const { searchParams } = new URL(req.url);
         const range = searchParams.get('range') || 'today';
 
@@ -86,7 +92,7 @@ export async function GET(req) {
         else start = new Date(0);
 
         const data = await Tracking.aggregate([
-            { $match: { userId: new mongoose.Types.ObjectId(MOCK_USER_ID), date: { $gte: start } } },
+            { $match: { userId, date: { $gte: start } } },
             {
                 $group: {
                     _id: "$website",
@@ -112,7 +118,11 @@ export async function GET(req) {
 export async function DELETE(req) {
     try {
         await dbConnect();
-        await Tracking.deleteMany({ userId: MOCK_USER_ID });
+        const userId = await getUserIdFromRequest(req);
+        if (!userId) {
+            return withCors(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
+        }
+        await Tracking.deleteMany({ userId });
         return withCors(NextResponse.json({ success: true, message: "Cleared all data" }));
     } catch (err) {
         console.error("Tracking DELETE Error:", err);

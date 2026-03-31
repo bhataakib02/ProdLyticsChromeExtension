@@ -67,6 +67,18 @@ function writeManifest() {
             ...(isDevTarget ? ["http://localhost:3000/*", "http://127.0.0.1:3000/*"] : []),
         ],
     };
+
+    const extensionOAuthClientId =
+        process.env.GOOGLE_EXTENSION_CLIENT_ID || process.env.GOOGLE_OAUTH_EXTENSION_CLIENT_ID;
+    if (extensionOAuthClientId) {
+        manifest.oauth2 = {
+            client_id: extensionOAuthClientId,
+            scopes: ["openid", "email", "profile"],
+        };
+    } else {
+        delete manifest.oauth2;
+    }
+
     writeFileSync(resolve(__dirname, "dist/manifest.json"), JSON.stringify(manifest, null, 4));
 }
 

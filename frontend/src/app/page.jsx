@@ -10,18 +10,10 @@ import FocusView from "@/components/views/FocusView";
 import TimerView from "@/components/views/TimerView";
 import InsightsView from "@/components/views/InsightsView";
 import SetupView from "@/components/views/SetupView";
+import LoginView from "@/components/auth/LoginView";
 
-export default function DashboardSPA() {
-  const { user, loading } = useAuth();
+function DashboardSPA() {
   const { activeTab, setActiveTab } = useDashboard();
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
 
   const renderTab = () => {
     switch (activeTab) {
@@ -51,4 +43,18 @@ export default function DashboardSPA() {
       </AnimatePresence>
     </div>
   );
+}
+
+export default function HomePage() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return null;
+  }
+
+  if (!user) {
+    return <LoginView />;
+  }
+
+  return <DashboardSPA />;
 }

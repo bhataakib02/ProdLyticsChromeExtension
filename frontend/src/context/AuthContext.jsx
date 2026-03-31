@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { requestExtensionSync } from "@/lib/extensionSync";
@@ -31,10 +31,86 @@ function mergePreferencesFromApi(data) {
     return next;
 }
 
+function authHeaders(token) {
+    return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function loadSession(token) {
+    const [meRes, prefRes] = await Promise.all([
+        axios.get(`${API_URL}/auth/me`, { headers: authHeaders(token) }),
+        axios.get(`${API_URL}/auth/preferences`, { headers: authHeaders(token) }),
+    ]);
+    const me = meRes.data;
+    const preferences = mergePreferencesFromApi(prefRes.data);
+    return {
+        id: me.id,
+        email: me.email,
+        name: me.name,
+        avatar: me.avatar || "",
+        isActive: true,
+        preferences,
+    };
+}
+
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [authError, setAuthError] = useState("");
     const router = useRouter();
+
+    const clearAuthError = useCallback(() => setAuthError(""), []);
+
+    const applyToken = useCallback(async (token) => {
+        if (!token) {
+            setUser(null);
+            return;
+        }
+        localStorage.setItem("accessToken", token);
+        const sessionUser = await loadSession(token);
+        setUser(sessionUser);
+    }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+                if (!token) {
+                    if (!cancelled) setUser(null);
+                    return;
+                }
+                const sessionUser = await loadSession(token);
+                if (!cancelled) setUser(sessionUser);
+            } catch {
+                if (typeof window !== "undefined") localStorage.removeItem("accessToken");
+                if (!cancelled) setUser(null);
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const completeGoogleLogin = useCallback(
+        async (idToken) => {
+            setAuthError("");
+            try {
+                const { data } = await axios.post(`${API_URL}/auth/google`, { idToken });
+                if (!data?.accessToken) {
+                    setAuthError("Sign-in failed: no token returned.");
+                    return;
+                }
+                await applyToken(data.accessToken);
+                router.refresh();
+            } catch (err) {
+                const msg = err.response?.data?.error || err.message || "Sign-in failed.";
+                setAuthError(String(msg));
+            }
+        },
+        [applyToken, router]
+    );
 
     const login = async () => {
         router.push("/");
@@ -46,12 +122,15 @@ export function AuthProvider({ children }) {
         return { success: true };
     };
 
-    const logout = () => {
+    const logout = useCallback(() => {
+        localStorage.removeItem("accessToken");
+        setUser(null);
         router.push("/");
-    };
+        router.refresh();
+    }, [router]);
 
     const updateUser = (updates) => {
-        setUser(prev => prev ? { ...prev, ...updates } : prev);
+        setUser((prev) => (prev ? { ...prev, ...updates } : prev));
     };
 
     const syncWithExtension = () => {
@@ -60,32 +139,24 @@ export function AuthProvider({ children }) {
 
     const updatePreference = async (key, value) => {
         if (!user) return;
-
-        // Merge with defaults so keys like breakMinutes are never dropped from context.
         const newPrefs = { ...DEFAULT_PREFERENCES, ...(user.preferences || {}), [key]: value };
         updateUser({ preferences: newPrefs });
-
         try {
             const token = localStorage.getItem("accessToken");
-            await axios.put(`${API_URL}/auth/preferences`, { [key]: value }, {
-                headers: token ? { Authorization: `Bearer ${token}` } : {},
-            });
+            await axios.put(`${API_URL}/auth/preferences`, { [key]: value }, { headers: authHeaders(token) });
             syncWithExtension();
         } catch (err) {
             console.error(`Error updating focus preference ${key}:`, err);
         }
     };
 
-    /** Save several preference keys at once (e.g. timer work + break defaults). */
     const updatePreferences = async (partial) => {
         if (!user || !partial || typeof partial !== "object") return false;
         const newPrefs = { ...(user.preferences || DEFAULT_PREFERENCES), ...partial };
         updateUser({ preferences: newPrefs });
         try {
             const token = localStorage.getItem("accessToken");
-            await axios.put(`${API_URL}/auth/preferences`, partial, {
-                headers: token ? { Authorization: `Bearer ${token}` } : {},
-            });
+            await axios.put(`${API_URL}/auth/preferences`, partial, { headers: authHeaders(token) });
             syncWithExtension();
             return true;
         } catch (err) {
@@ -94,42 +165,8 @@ export function AuthProvider({ children }) {
         }
     };
 
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            try {
-                const { data } = await axios.get(`${API_URL}/auth/preferences`);
-                if (cancelled) return;
-                const preferences = mergePreferencesFromApi(data);
-                setUser({
-                    name: "ProdLytics User",
-                    email: "local@prodlytics.com",
-                    isActive: true,
-                    avatar: "",
-                    preferences,
-                });
-            } catch {
-                if (!cancelled) {
-                    setUser({
-                        name: "ProdLytics User",
-                        email: "local@prodlytics.com",
-                        isActive: true,
-                        avatar: "",
-                        preferences: { ...DEFAULT_PREFERENCES },
-                    });
-                }
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        })();
-        return () => {
-            cancelled = true;
-        };
-    }, []);
-
     const checkUser = async () => {
-        // Mock checkUser function
-        return true;
+        return Boolean(localStorage.getItem("accessToken"));
     };
 
     return (
@@ -137,6 +174,9 @@ export function AuthProvider({ children }) {
             value={{
                 user,
                 loading,
+                authError,
+                clearAuthError,
+                completeGoogleLogin,
                 login,
                 register,
                 logout,
@@ -158,4 +198,3 @@ export const useAuth = () => {
     }
     return context;
 };
-

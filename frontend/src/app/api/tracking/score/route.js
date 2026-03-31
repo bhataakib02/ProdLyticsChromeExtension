@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server';
-import mongoose from 'mongoose';
 import dbConnect, { isDbUnavailableError } from '../../../../../../backend/db/mongodb.js';
 import Tracking from '../../../../../../backend/models/Tracking.js';
-
-const MOCK_USER_ID = "65f1a2b3c4d5e6f7a8b9c0d1";
+import { getUserIdFromRequest } from '@/lib/apiUser';
 
 export async function GET(req) {
     try {
         await dbConnect();
+        const userId = await getUserIdFromRequest(req);
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
         const { searchParams } = new URL(req.url);
         const range = searchParams.get('range') || 'today';
 
@@ -19,7 +21,7 @@ export async function GET(req) {
         else start = new Date(0);
 
         const data = await Tracking.aggregate([
-            { $match: { userId: new mongoose.Types.ObjectId(MOCK_USER_ID), date: { $gte: start } } },
+            { $match: { userId, date: { $gte: start } } },
             {
                 $group: {
                     _id: "$category",

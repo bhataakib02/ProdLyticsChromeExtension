@@ -1,16 +1,19 @@
 import { NextResponse } from 'next/server';
-import mongoose from 'mongoose';
 import dbConnect, { isDbUnavailableError } from '../../../../../../backend/db/mongodb.js';
 import Goal from '../../../../../../backend/models/Goal.js';
 import Tracking from '../../../../../../backend/models/Tracking.js';
-
-const MOCK_USER_ID = "65f1a2b3c4d5e6f7a8b9c0d1";
+import { getUserIdFromRequest } from '@/lib/apiUser';
+import { withCors } from '@/lib/cors';
 
 export async function GET(req) {
     try {
         await dbConnect();
+        const userId = await getUserIdFromRequest(req);
+        if (!userId) {
+            return withCors(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
+        }
 
-        let goals = await Goal.find({ userId: new mongoose.Types.ObjectId(MOCK_USER_ID), isActive: true });
+        let goals = await Goal.find({ userId, isActive: true });
 
         // Only return an empty list if they have really deleted everything.
         // We'll remove the auto-create logic from the GET request to prevent "voodoo" reappearing.
@@ -27,7 +30,7 @@ export async function GET(req) {
                 // If website is blank or "*", sum all productive time.
                 const hasTargetSite = goal.website && goal.website.trim() !== "" && goal.website.trim() !== "*";
                 const matchCondition = {
-                    userId: new mongoose.Types.ObjectId(MOCK_USER_ID),
+                    userId,
                     date: { $gte: startOfToday },
                     category: "productive",
                     ...(hasTargetSite && { website: new RegExp(goal.website.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') }),
@@ -41,7 +44,7 @@ export async function GET(req) {
                 const stats = await Tracking.aggregate([
                     {
                         $match: {
-                            userId: new mongoose.Types.ObjectId(MOCK_USER_ID),
+                            userId,
                             date: { $gte: startOfToday },
                             website: new RegExp(goal.website.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')
                         }
@@ -63,12 +66,12 @@ export async function GET(req) {
             };
         }));
 
-        return NextResponse.json(goalsWithProgress);
+        return withCors(NextResponse.json(goalsWithProgress));
     } catch (err) {
         console.error("Goals Progress API Error:", err);
         if (isDbUnavailableError(err)) {
-            return NextResponse.json([]);
+            return withCors(NextResponse.json([]));
         }
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        return withCors(NextResponse.json({ error: err.message }, { status: 500 }));
     }
 }

@@ -1,19 +1,21 @@
 import { NextResponse } from 'next/server';
-import mongoose from 'mongoose';
 import dbConnect, { isDbUnavailableError } from '../../../../../backend/db/mongodb.js';
 import DeepWorkSession from '../../../../../backend/models/DeepWorkSession.js';
 import { withCors, corsOptions } from '@/lib/cors';
-
-const MOCK_USER_ID = "65f1a2b3c4d5e6f7a8b9c0d1";
+import { getUserIdFromRequest } from '@/lib/apiUser';
 
 export async function OPTIONS() {
     return corsOptions();
 }
 
-export async function GET() {
+export async function GET(req) {
     try {
         await dbConnect();
-        const sessions = await DeepWorkSession.find({ userId: new mongoose.Types.ObjectId(MOCK_USER_ID) })
+        const userId = await getUserIdFromRequest(req);
+        if (!userId) {
+            return withCors(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
+        }
+        const sessions = await DeepWorkSession.find({ userId })
             .sort({ startedAt: -1 })
             .limit(20)
             .lean();
@@ -32,12 +34,16 @@ const ALLOWED_TYPES = new Set(["work", "short_break", "long_break"]);
 export async function POST(req) {
     try {
         await dbConnect();
+        const userId = await getUserIdFromRequest(req);
+        if (!userId) {
+            return withCors(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
+        }
         const body = await req.json();
         const type = ALLOWED_TYPES.has(body?.type) ? body.type : "work";
         const durationMinutes = Math.min(480, Math.max(1, Number(body?.durationMinutes) || 25));
         const actualMinutes = Math.min(480, Math.max(0, Number(body?.actualMinutes) ?? durationMinutes));
         const doc = {
-            userId: new mongoose.Types.ObjectId(MOCK_USER_ID),
+            userId,
             type,
             durationMinutes,
             actualMinutes,

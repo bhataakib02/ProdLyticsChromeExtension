@@ -5,11 +5,9 @@ export async function OPTIONS() {
     return corsOptions();
 }
 
-import mongoose from 'mongoose';
 import dbConnect, { isDbUnavailableError } from '../../../../../../backend/db/mongodb.js';
 import Preference from '../../../../../../backend/models/Preference.js';
-
-const MOCK_USER_ID = "65f1a2b3c4d5e6f7a8b9c0d1";
+import { getUserIdFromRequest } from '@/lib/apiUser';
 
 const DEFAULT_PREFERENCES = {
     strictMode: true,
@@ -48,10 +46,14 @@ function pickPreferenceUpdates(body) {
     return set;
 }
 
-export async function GET() {
+export async function GET(req) {
     try {
         await dbConnect();
-        const pref = await Preference.findOne({ userId: new mongoose.Types.ObjectId(MOCK_USER_ID) }).lean();
+        const userId = await getUserIdFromRequest(req);
+        if (!userId) {
+            return withCors(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
+        }
+        const pref = await Preference.findOne({ userId }).lean();
         const payload = pref ? mergeDocIntoDefaults(pref) : DEFAULT_PREFERENCES;
         return withCors(NextResponse.json(payload));
     } catch (err) {
@@ -64,6 +66,10 @@ export async function GET() {
 export async function PUT(req) {
     try {
         await dbConnect();
+        const userId = await getUserIdFromRequest(req);
+        if (!userId) {
+            return withCors(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
+        }
         const body = await req.json();
         const $set = pickPreferenceUpdates(body);
         if (Object.keys($set).length === 0) {
@@ -71,7 +77,7 @@ export async function PUT(req) {
         }
 
         const pref = await Preference.findOneAndUpdate(
-            { userId: new mongoose.Types.ObjectId(MOCK_USER_ID) },
+            { userId },
             { $set },
             { upsert: true, returnDocument: "after", runValidators: true, setDefaultsOnInsert: true }
         ).lean();

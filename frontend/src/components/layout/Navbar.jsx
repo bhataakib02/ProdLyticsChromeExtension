@@ -1,8 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { useDashboard } from "@/context/DashboardContext";
-import { Bell, Search, UserCircle, RefreshCw, LogOut, Settings, ExternalLink } from "lucide-react";
+import { Bell, Search, UserCircle, RefreshCw, LogOut } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { notificationService } from "@/services/notification.service";
@@ -10,7 +9,6 @@ import { requestExtensionSync } from "@/lib/extensionSync";
 
 export default function Navbar() {
     const { user, logout } = useAuth();
-    const { setActiveTab } = useDashboard();
     const [syncing, setSyncing] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
     const [notifications, setNotifications] = useState([]);
@@ -149,7 +147,38 @@ export default function Navbar() {
                     </AnimatePresence>
                 </div>
 
-
+                <div className="relative" ref={profileRef}>
+                    <button
+                        type="button"
+                        onClick={() => setShowProfile((v) => !v)}
+                        className={`btn-icon btn-icon-sm ${showProfile ? "border-primary/30 bg-primary/10 text-primary" : ""}`}
+                        aria-expanded={showProfile}
+                        aria-label="Account menu"
+                    >
+                        <UserCircle size={20} />
+                    </button>
+                    <AnimatePresence>
+                        {showProfile && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                className="glass-card absolute right-0 z-50 mt-3 w-56 p-3 shadow-2xl"
+                            >
+                                <p className="truncate px-1 text-sm font-medium text-foreground">{user.name}</p>
+                                <p className="mb-2 truncate px-1 text-[10px] text-muted">{user.email}</p>
+                                <DropdownAction
+                                    icon={<LogOut size={14} />}
+                                    label="Sign out"
+                                    onClick={() => {
+                                        setShowProfile(false);
+                                        logout();
+                                    }}
+                                />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
             </div>
         </header>
     );

@@ -1,20 +1,21 @@
 import { NextResponse } from 'next/server';
-import mongoose from 'mongoose';
 import dbConnect, { isDbUnavailableError } from '../../../../../backend/db/mongodb.js';
 import FocusBlock from '../../../../../backend/models/FocusBlock.js';
 import { withCors, corsOptions } from '@/lib/cors';
 import { normalizeWebsiteHost } from '@/lib/normalizeWebsiteHost.js';
+import { getUserIdFromRequest } from '@/lib/apiUser';
 
 export async function OPTIONS() {
     return corsOptions();
 }
 
-const MOCK_USER_ID = "65f1a2b3c4d5e6f7a8b9c0d1";
-
-export async function GET() {
+export async function GET(req) {
     try {
         await dbConnect();
-        const userObjectId = new mongoose.Types.ObjectId(MOCK_USER_ID);
+        const userObjectId = await getUserIdFromRequest(req);
+        if (!userObjectId) {
+            return withCors(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
+        }
         let blocks = await FocusBlock.find({ userId: userObjectId, isActive: true });
         // Self-heal rows saved as full URLs (e.g. https://www.youtube.com/) so blocking matches hostnames
         for (const b of blocks) {
@@ -43,6 +44,10 @@ export async function GET() {
 export async function POST(req) {
     try {
         await dbConnect();
+        const userObjectId = await getUserIdFromRequest(req);
+        if (!userObjectId) {
+            return withCors(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
+        }
         const { website, schedule, source: sourceRaw } = await req.json();
         if (!website) return withCors(NextResponse.json({ error: "Website URL is required." }, { status: 400 }));
 
@@ -50,8 +55,6 @@ export async function POST(req) {
         if (!normalized) {
             return withCors(NextResponse.json({ error: "Could not parse a hostname from that value." }, { status: 400 }));
         }
-
-        const userObjectId = new mongoose.Types.ObjectId(MOCK_USER_ID);
         const fromSmartCap = sourceRaw === "smart_daily_cap";
 
         if (fromSmartCap) {
@@ -96,12 +99,16 @@ export async function POST(req) {
 export async function DELETE(req) {
     try {
         await dbConnect();
+        const userObjectId = await getUserIdFromRequest(req);
+        if (!userObjectId) {
+            return withCors(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
+        }
         const { searchParams } = new URL(req.url);
         const id = searchParams.get("id");
 
         if (!id) return withCors(NextResponse.json({ error: "ID required" }, { status: 400 }));
 
-        await FocusBlock.findOneAndDelete({ _id: id, userId: new mongoose.Types.ObjectId(MOCK_USER_ID) });
+        await FocusBlock.findOneAndDelete({ _id: id, userId: userObjectId });
         return withCors(NextResponse.json({ success: true }));
     } catch (err) {
         console.error("Focus DELETE Error:", err);
