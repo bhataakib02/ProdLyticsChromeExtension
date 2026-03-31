@@ -5,6 +5,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const monorepoRoot = path.resolve(__dirname, "..");
 const jspdfBrowser = path.join(__dirname, "node_modules", "jspdf", "dist", "jspdf.es.min.js");
+const nm = (...segments) => path.join(__dirname, "node_modules", ...segments);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -23,6 +24,9 @@ const nextConfig = {
     config.resolve.alias = {
       ...config.resolve.alias,
       jspdf: jspdfBrowser,
+      // Backend package lives in ../backend; hoisted deps are only under frontend/node_modules.
+      mongoose: nm("mongoose"),
+      bcryptjs: nm("bcryptjs"),
     };
     return config;
   },

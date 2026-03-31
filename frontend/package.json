@@ -14,6 +14,7 @@
   "dependencies": {
     "@prodlytics/backend": "file:../backend",
     "axios": "^1.13.6",
+    "bcryptjs": "^2.4.3",
     "clsx": "^2.1.1",
     "d3": "^7.9.0",
     "framer-motion": "^12.38.0",

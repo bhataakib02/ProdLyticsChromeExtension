@@ -20,7 +20,7 @@ function peakLabel(hour) {
  */
 export async function downloadOverviewPdf({ userName, metrics, objectives, topDomains, formatTime }) {
   const [{ jsPDF }, { default: autoTable }] = await Promise.all([
-    import("jspdf/dist/jspdf.es.min.js"),
+    import("jspdf"),
     import("jspdf-autotable"),
   ]);
 
