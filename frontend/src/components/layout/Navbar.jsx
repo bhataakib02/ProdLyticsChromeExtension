@@ -166,10 +166,12 @@ export default function Navbar() {
                                 className="glass-card absolute right-0 z-50 mt-3 w-56 p-3 shadow-2xl"
                             >
                                 <p className="truncate px-1 text-sm font-medium text-foreground">{user.name}</p>
-                                <p className="mb-2 truncate px-1 text-[10px] text-muted">{user.email}</p>
+                                <p className="mb-2 truncate px-1 text-[10px] text-muted">
+                                    {user.email || "Private session — this browser only"}
+                                </p>
                                 <DropdownAction
                                     icon={<LogOut size={14} />}
-                                    label="Sign out"
+                                    label={user.isAnonymous ? "New session" : "Sign out"}
                                     onClick={() => {
                                         setShowProfile(false);
                                         logout();

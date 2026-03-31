@@ -1,50 +1,36 @@
 /**
- * Authenticated fetch for ProdLytics API. On 401, runs Google sign-in (chrome.identity) and retries once.
+ * Authenticated fetch for ProdLytics API. Creates a silent per-install session (no sign-in UI).
  */
 import { API_BASE } from "./buildEnv.js";
 
-function exchangeGoogleForJwt(googleAccessToken) {
-    return fetch(`${API_BASE}/auth/google`, {
+async function ensureAnonymousJwt() {
+    const res = await fetch(`${API_BASE}/auth/anonymous`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accessToken: googleAccessToken }),
     });
-}
-
-function signInWithGoogleInteractive() {
-    return new Promise((resolve, reject) => {
-        chrome.identity.getAuthToken({ interactive: true }, async (googleToken) => {
-            if (chrome.runtime.lastError) {
-                reject(new Error(chrome.runtime.lastError.message));
-                return;
-            }
-            if (!googleToken) {
-                reject(new Error("No Google token"));
-                return;
-            }
-            try {
-                const res = await exchangeGoogleForJwt(googleToken);
-                if (!res.ok) {
-                    const errText = await res.text();
-                    reject(new Error(errText || `Auth failed (${res.status})`));
-                    return;
-                }
-                const data = await res.json();
-                if (!data?.accessToken) {
-                    reject(new Error("No JWT from server"));
-                    return;
-                }
-                await chrome.storage.local.set({ accessToken: data.accessToken });
-                resolve(data.accessToken);
-            } catch (e) {
-                reject(e);
-            }
-        });
-    });
+    if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText || `Session failed (${res.status})`);
+    }
+    const data = await res.json();
+    if (!data?.accessToken) {
+        throw new Error("No JWT from server");
+    }
+    await chrome.storage.local.set({ accessToken: data.accessToken });
+    return data.accessToken;
 }
 
 export async function plFetch(url, init = {}) {
-    const { accessToken } = await chrome.storage.local.get("accessToken");
+    let { accessToken } = await chrome.storage.local.get("accessToken");
+    if (!accessToken) {
+        try {
+            await ensureAnonymousJwt();
+            accessToken = (await chrome.storage.local.get("accessToken")).accessToken;
+        } catch {
+            /* request may 401 below */
+        }
+    }
+
     const headers = {
         ...(init.headers || {}),
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
@@ -53,7 +39,7 @@ export async function plFetch(url, init = {}) {
     if (res.status !== 401) return res;
 
     try {
-        await signInWithGoogleInteractive();
+        await ensureAnonymousJwt();
     } catch {
         return res;
     }

@@ -197,8 +197,8 @@ function App() {
         <div>
           <h1 className="pl-title">ProdLytics</h1>
           <p className="pl-popup-hint">
-            Sign in with Google the first time the extension talks to the server so your tracking and goals stay on
-            your account only—not mixed with anyone else’s.
+            Your stats and goals stay on this browser only—nothing to sign in. Each install gets its own private
+            space on the server.
           </p>
         </div>
         <button

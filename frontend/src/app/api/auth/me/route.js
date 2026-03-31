@@ -15,16 +15,18 @@ export async function GET(req) {
         if (!userId) {
             return withCors(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
         }
-        const user = await User.findById(userId).select("name email avatar").lean();
+        const user = await User.findById(userId).select("name email avatar isAnonymous").lean();
         if (!user) {
             return withCors(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
         }
+        const anonymous = Boolean(user.isAnonymous) || String(user.email || "").startsWith("anon-");
         return withCors(
             NextResponse.json({
                 id: user._id.toString(),
-                email: user.email,
-                name: user.name,
-                avatar: user.avatar || "",
+                email: anonymous ? "" : user.email,
+                name: anonymous ? "ProdLytics user" : user.name,
+                avatar: anonymous ? "" : user.avatar || "",
+                isAnonymous: anonymous,
             })
         );
     } catch (err) {

@@ -6,9 +6,11 @@ import { NextResponse } from "next/server";
  */
 export async function GET() {
     const googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
-    const configured = Boolean(googleClientId && process.env.JWT_SECRET && process.env.JWT_SECRET.length >= 16);
+    const jwtOk = Boolean(process.env.JWT_SECRET && process.env.JWT_SECRET.length >= 16);
     return NextResponse.json({
         googleClientId,
-        authReady: configured,
+        /** Anonymous sessions work with JWT + MongoDB only; Google is optional. */
+        authReady: jwtOk,
+        googleConfigured: Boolean(googleClientId),
     });
 }

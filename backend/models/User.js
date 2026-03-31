@@ -35,6 +35,9 @@ const UserSchema = new mongoose.Schema(
         googleId: { type: String, sparse: true },
         avatar: { type: String, default: "" },
 
+        /** Created via POST /api/auth/anonymous (no sign-in). One row per browser / extension install. */
+        isAnonymous: { type: Boolean, default: false },
+
         // User preferences
         preferences: {
             theme: { type: String, enum: ["light", "dark", "midnight"], default: "dark" },

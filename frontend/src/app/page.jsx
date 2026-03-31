@@ -10,8 +10,6 @@ import FocusView from "@/components/views/FocusView";
 import TimerView from "@/components/views/TimerView";
 import InsightsView from "@/components/views/InsightsView";
 import SetupView from "@/components/views/SetupView";
-import LoginView from "@/components/auth/LoginView";
-
 function DashboardSPA() {
   const { activeTab, setActiveTab } = useDashboard();
 
@@ -46,14 +44,19 @@ function DashboardSPA() {
 }
 
 export default function HomePage() {
-  const { user, loading } = useAuth();
+  const { user, loading, bootstrapError } = useAuth();
 
   if (loading) {
     return null;
   }
 
-  if (!user) {
-    return <LoginView />;
+  if (bootstrapError || !user) {
+    return (
+      <div className="mx-auto flex min-h-[50vh] max-w-lg flex-col justify-center gap-3 px-6 py-16 text-center text-muted">
+        <p className="text-sm text-foreground">Unable to connect to ProdLytics.</p>
+        <p className="text-xs">{bootstrapError || "No session. Ensure the API and database are configured."}</p>
+      </div>
+    );
   }
 
   return <DashboardSPA />;

@@ -44,9 +44,10 @@ async function loadSession(token) {
     const preferences = mergePreferencesFromApi(prefRes.data);
     return {
         id: me.id,
-        email: me.email,
+        email: me.email || "",
         name: me.name,
         avatar: me.avatar || "",
+        isAnonymous: Boolean(me.isAnonymous),
         isActive: true,
         preferences,
     };
@@ -55,6 +56,8 @@ async function loadSession(token) {
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [bootstrapError, setBootstrapError] = useState("");
+    const [sessionKey, setSessionKey] = useState(0);
     const [authError, setAuthError] = useState("");
     const router = useRouter();
 
@@ -73,17 +76,36 @@ export function AuthProvider({ children }) {
     useEffect(() => {
         let cancelled = false;
         (async () => {
+            setLoading(true);
+            setBootstrapError("");
             try {
-                const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-                if (!token) {
-                    if (!cancelled) setUser(null);
-                    return;
+                let token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+                if (token) {
+                    try {
+                        const sessionUser = await loadSession(token);
+                        if (!cancelled) setUser(sessionUser);
+                        return;
+                    } catch {
+                        if (typeof window !== "undefined") localStorage.removeItem("accessToken");
+                        token = null;
+                    }
                 }
-                const sessionUser = await loadSession(token);
+                const { data } = await axios.post(`${API_URL}/auth/anonymous`, {});
+                if (!data?.accessToken) {
+                    throw new Error("No session token from server.");
+                }
+                if (typeof window !== "undefined") localStorage.setItem("accessToken", data.accessToken);
+                const sessionUser = await loadSession(data.accessToken);
                 if (!cancelled) setUser(sessionUser);
-            } catch {
-                if (typeof window !== "undefined") localStorage.removeItem("accessToken");
-                if (!cancelled) setUser(null);
+            } catch (err) {
+                const msg =
+                    err.response?.data?.error ||
+                    err.message ||
+                    "Could not start a session. Check MONGO_URI and JWT_SECRET on the server.";
+                if (!cancelled) {
+                    setBootstrapError(String(msg));
+                    setUser(null);
+                }
             } finally {
                 if (!cancelled) setLoading(false);
             }
@@ -91,7 +113,7 @@ export function AuthProvider({ children }) {
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [sessionKey]);
 
     const completeGoogleLogin = useCallback(
         async (idToken) => {
@@ -125,6 +147,7 @@ export function AuthProvider({ children }) {
     const logout = useCallback(() => {
         localStorage.removeItem("accessToken");
         setUser(null);
+        setSessionKey((k) => k + 1);
         router.push("/");
         router.refresh();
     }, [router]);
@@ -174,6 +197,7 @@ export function AuthProvider({ children }) {
             value={{
                 user,
                 loading,
+                bootstrapError,
                 authError,
                 clearAuthError,
                 completeGoogleLogin,
