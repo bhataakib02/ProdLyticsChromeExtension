@@ -1,42 +1,112 @@
-// build.js - Custom build script for Chrome Extension
-// Uses Vite CLI for popup and esbuild CLI for background + content
+// build.js — Chrome extension: Vite (popup) + esbuild (background/content) + manifest for target URL
+import { execSync } from "child_process";
+import { copyFileSync, mkdirSync, existsSync, cpSync, readFileSync, writeFileSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
+import * as esbuild from "esbuild";
 
-import { execSync } from 'child_process'
-import { copyFileSync, mkdirSync, existsSync, cpSync } from 'fs'
-import { resolve, dirname } from 'path'
-import { fileURLToPath } from 'url'
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const run = (cmd) => execSync(cmd, { stdio: 'inherit', cwd: __dirname })
+const isDevTarget = process.env.PRODLYTICS_EXTENSION_TARGET === "development";
+const dashboardOrigin = (
+    process.env.PRODLYTICS_DASHBOARD_ORIGIN ||
+    (isDevTarget ? "http://localhost:3000" : "https://prodlytics.vercel.app")
+).replace(/\/+$/, "");
+const apiBase = `${dashboardOrigin}/api`;
 
-// 1. Build React popup with Vite CLI
-console.log('📦 Building React popup...')
-run('npx vite build --config vite.config.jsx')
+const define = {
+    __DASHBOARD_ORIGIN__: JSON.stringify(dashboardOrigin),
+    __API_BASE__: JSON.stringify(apiBase),
+};
 
-// 2. Bundle background.jsx with esbuild CLI
-console.log('⚙️  Bundling background.js...')
-run('npx esbuild src/background.jsx --bundle --format=esm --platform=browser --target=chrome120 --outfile=dist/background.js')
+function runVite() {
+    execSync("npx vite build --config vite.config.jsx", {
+        stdio: "inherit",
+        cwd: __dirname,
+        env: {
+            ...process.env,
+            PRODLYTICS_DASHBOARD_ORIGIN: dashboardOrigin,
+            PRODLYTICS_EXTENSION_TARGET: isDevTarget ? "development" : "production",
+        },
+    });
+}
 
-// 3. Bundle content.jsx with esbuild CLI
-console.log('⚙️  Bundling content.js...')
-run('npx esbuild src/content.jsx --bundle --format=esm --platform=browser --target=chrome120 --outfile=dist/content.js')
+async function bundleExtensionScripts() {
+    const common = {
+        bundle: true,
+        format: "esm",
+        platform: "browser",
+        target: "chrome120",
+        define,
+    };
+    await esbuild.build({
+        ...common,
+        entryPoints: [resolve(__dirname, "src/background.jsx")],
+        outfile: resolve(__dirname, "dist/background.js"),
+    });
+    await esbuild.build({
+        ...common,
+        entryPoints: [resolve(__dirname, "src/content.jsx")],
+        outfile: resolve(__dirname, "dist/content.js"),
+    });
+}
 
-// 4. Copy manifest.json to dist/
-console.log('📋 Copying manifest.json...')
-copyFileSync(resolve(__dirname, 'manifest.json'), resolve(__dirname, 'dist/manifest.json'))
+function writeManifest() {
+    const manifestPath = resolve(__dirname, "manifest.json");
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+    const apiHost = `${dashboardOrigin}/*`;
+    const hostPermissions = [apiHost];
+    if (isDevTarget) {
+        hostPermissions.push("http://localhost:3000/*", "http://127.0.0.1:3000/*");
+    }
+    hostPermissions.push("<all_urls>");
+    manifest.host_permissions = hostPermissions;
+    manifest.externally_connectable = {
+        matches: [
+            apiHost,
+            ...(isDevTarget ? ["http://localhost:3000/*", "http://127.0.0.1:3000/*"] : []),
+        ],
+    };
+    writeFileSync(resolve(__dirname, "dist/manifest.json"), JSON.stringify(manifest, null, 4));
+}
 
-// 5. Copy icons/ to dist/icons/
-console.log('🎨 Copying icons...')
-const iconsOut = resolve(__dirname, 'dist/icons')
-if (!existsSync(iconsOut)) mkdirSync(iconsOut, { recursive: true })
-cpSync(resolve(__dirname, 'icons'), iconsOut, { recursive: true })
+function copyStaticAssets() {
+    const iconsOut = resolve(__dirname, "dist/icons");
+    if (!existsSync(iconsOut)) mkdirSync(iconsOut, { recursive: true });
+    cpSync(resolve(__dirname, "icons"), iconsOut, { recursive: true });
 
-// 6. Copy blocked page assets (blocked.html references blocked.css + blocked.js)
-const blockedHtml = resolve(__dirname, 'blocked.html')
-const blockedCss = resolve(__dirname, 'blocked.css')
-const blockedJs = resolve(__dirname, 'blocked.js')
-if (existsSync(blockedHtml)) copyFileSync(blockedHtml, resolve(__dirname, 'dist/blocked.html'))
-if (existsSync(blockedCss)) copyFileSync(blockedCss, resolve(__dirname, 'dist/blocked.css'))
-if (existsSync(blockedJs)) copyFileSync(blockedJs, resolve(__dirname, 'dist/blocked.js'))
+    const blockedHtml = resolve(__dirname, "blocked.html");
+    const blockedCss = resolve(__dirname, "blocked.css");
+    if (existsSync(blockedHtml)) copyFileSync(blockedHtml, resolve(__dirname, "dist/blocked.html"));
+    if (existsSync(blockedCss)) copyFileSync(blockedCss, resolve(__dirname, "dist/blocked.css"));
 
-console.log('✅ Extension built! Load the dist/ folder in Chrome.')
+    const blockedJsPath = resolve(__dirname, "blocked.js");
+    if (existsSync(blockedJsPath)) {
+        let blockedSrc = readFileSync(blockedJsPath, "utf8");
+        blockedSrc = blockedSrc.replace(/__PRODLYTICS_DASHBOARD_ORIGIN__/g, dashboardOrigin);
+        writeFileSync(resolve(__dirname, "dist/blocked.js"), blockedSrc);
+    }
+}
+
+async function main() {
+    console.log(`ProdLytics extension → dashboard ${dashboardOrigin} (${isDevTarget ? "development" : "production"} build)`);
+
+    console.log("📦 Building React popup (Vite)...");
+    runVite();
+
+    console.log("⚙️  Bundling background.js & content.js (esbuild)...");
+    await bundleExtensionScripts();
+
+    console.log("📋 Writing manifest.json...");
+    writeManifest();
+
+    console.log("🎨 Copying icons & blocked page...");
+    copyStaticAssets();
+
+    console.log("✅ Extension built in dist/. Zip dist/ contents for Chrome Web Store (not the folder itself).");
+}
+
+main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+});

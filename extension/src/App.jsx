@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import "./App.css";
+import { DASHBOARD_ORIGIN } from "./buildEnv.js";
 
 const defaultCache = {
   productiveToday: 0,
@@ -164,7 +165,7 @@ function App() {
   };
 
   const handleDashboard = () => {
-    const dashboardUrl = "http://localhost:3000";
+    const dashboardUrl = DASHBOARD_ORIGIN;
     if (typeof chrome !== "undefined" && chrome.tabs?.create) {
       chrome.tabs.create({ url: dashboardUrl });
       return;

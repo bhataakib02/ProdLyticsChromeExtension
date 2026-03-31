@@ -6,7 +6,7 @@
  * =====================================================
  */
 
-const API_URL = "http://localhost:3000/api";
+import { API_BASE } from "./buildEnv.js";
 
 /** Blocklist may contain full URLs from older clients; compare using hostname only. */
 function normalizeBlockedHost(raw) {
@@ -133,13 +133,13 @@ async function addHostToNeuralBlocklist(host) {
     if (!norm) return;
     if (matchesManualBlocklist(norm)) return;
     try {
-        const res = await fetch(`${API_URL}/focus`, {
+        const res = await fetch(`${API_BASE}/focus`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ website: norm, source: "smart_daily_cap" }),
         });
         if (!res.ok) return;
-        const blockRes = await fetch(`${API_URL}/focus/`);
+        const blockRes = await fetch(`${API_BASE}/focus/`);
         if (blockRes.ok) {
             const data = await blockRes.json();
             blocklist = [...new Set(data.map((site) => normalizeBlockedHost(site.website)).filter(Boolean))];
@@ -182,8 +182,8 @@ async function refreshGoalsAndPopupCache(opts = {}) {
     lastGoalPollMs = now;
     try {
         const [goalsRes, statsRes] = await Promise.all([
-            fetch(`${API_URL}/goals/progress`),
-            fetch(`${API_URL}/tracking/stats?range=today`),
+            fetch(`${API_BASE}/goals/progress`),
+            fetch(`${API_BASE}/tracking/stats?range=today`),
         ]);
 
         let goals = [];
@@ -460,7 +460,7 @@ async function saveSession(website, timeSeconds, pageTitle = "", scrolls = 0, cl
     if (!website || timeSeconds <= 0) return false;
 
     try {
-        const response = await fetch(`${API_URL}/tracking`, {
+        const response = await fetch(`${API_BASE}/tracking`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -560,7 +560,7 @@ async function updateSyncData() {
     console.log("🔄 Fetching latest focus data from API...");
     try {
         // 1. Fetch Blocklist
-        const blockRes = await fetch(`${API_URL}/focus/`);
+        const blockRes = await fetch(`${API_BASE}/focus/`);
         if (blockRes.ok) {
             const data = await blockRes.json();
             blocklist = [...new Set(data.map((site) => normalizeBlockedHost(site.website)).filter(Boolean))];
@@ -569,7 +569,7 @@ async function updateSyncData() {
         }
 
         // 2. Fetch Preferences
-        const prefRes = await fetch(`${API_URL}/auth/preferences`);
+        const prefRes = await fetch(`${API_BASE}/auth/preferences`);
         if (prefRes.ok) {
             preferences = mergePreferenceDefaults(await prefRes.json());
             await chrome.storage.local.set({ preferences });

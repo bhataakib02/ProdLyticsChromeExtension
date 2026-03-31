@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "node build.js",
+    "build:dev": "cross-env PRODLYTICS_EXTENSION_TARGET=development node build.js",
+    "build:store": "node build.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -15,6 +17,8 @@
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
+    "esbuild": "^0.25.0",
     "@eslint/js": "^9.39.4",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

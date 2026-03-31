@@ -4,6 +4,8 @@
  * Tracks scroll and interaction activity for engagement proxy
  */
 
+import { DASHBOARD_ORIGIN } from "./buildEnv.js";
+
 /** After extension reload, old content scripts throw "Extension context invalidated" on sendMessage — swallow so Errors page stays clean. */
 function safeRuntimeSendMessage(payload) {
     try {
@@ -15,12 +17,12 @@ function safeRuntimeSendMessage(payload) {
     }
 }
 
-// Dashboard (localhost) → background: sync + workspace toasts (shown on active tab, not only dashboard)
+// Dashboard (same origin as built-in DASHBOARD_ORIGIN) → background: sync + workspace toasts
 (() => {
     try {
-        const { protocol, hostname, origin } = window.location;
-        if (protocol !== "http:") return;
-        if (hostname !== "localhost" && hostname !== "127.0.0.1") return;
+        const { origin } = window.location;
+        const expected = DASHBOARD_ORIGIN.replace(/\/+$/, "");
+        if (origin !== expected) return;
         window.addEventListener("message", (event) => {
             if (event.source !== window) return;
             if (event.origin !== origin) return;
