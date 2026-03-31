@@ -1,4 +1,8 @@
-# Host the privacy policy on GitHub Pages (quick path)
+# Optional: mirror the privacy policy on GitHub Pages
+
+**Primary policy URL for the Chrome Web Store:** deploy the Next.js app and use  
+**`https://prodlytics.vercel.app/privacy-policy`** (see `frontend/src/app/privacy-policy/page.jsx`).  
+You only need GitHub Pages if you want a second copy at `*.github.io`.
 
 1. In your GitHub repo, use the file **`docs/chrome-web-store/PRIVACY_POLICY.md`** (or copy its contents).  
 2. Enable **GitHub Pages**:  

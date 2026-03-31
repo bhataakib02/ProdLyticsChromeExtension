@@ -7,6 +7,9 @@ dist/
 build/
 out/
 
+# Chrome Web Store upload artifact (regenerate with npm run zip:store in extension/)
+extension/prodlytics-extension-store.zip
+
 # Environment variables
 .env
 .env.local

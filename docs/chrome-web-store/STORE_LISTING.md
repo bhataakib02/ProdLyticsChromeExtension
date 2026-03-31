@@ -1,6 +1,8 @@
 # Chrome Web Store — copy for ProdLytics
 
-Use the sections below in the [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole). Replace bracketed placeholders.
+**Step-by-step checklist:** see **`PUBLISH_CHECKLIST.md`** in this folder.
+
+Use the sections below in the [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole).
 
 ---
 
@@ -32,7 +34,8 @@ The extension runs in the background and records **which sites you use** and **h
 
 **Privacy**
 
-We don’t sell your browsing history. Data is tied to **your account** and used only to power ProdLytics. Read our full **Privacy Policy**: *[paste your public privacy policy URL here]*
+We don’t sell your browsing history. Data is tied to **your account** and used only to power ProdLytics. Read our full **Privacy Policy**: **https://prodlytics.vercel.app/privacy-policy**  
+*(After deploy, open that URL once to confirm it loads. If you use a custom domain, use `https://<your-domain>/privacy-policy` everywhere instead.)*
 
 **Why broad site access**
 

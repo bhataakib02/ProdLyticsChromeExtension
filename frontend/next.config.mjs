@@ -30,6 +30,14 @@ const nextConfig = {
     };
     return config;
   },
+  /** If App Router /privacy-policy is missing from a deploy, fall back to public/privacy-policy.html */
+  async rewrites() {
+    return {
+      afterFiles: [
+        { source: "/privacy-policy", destination: "/privacy-policy.html" },
+      ],
+    };
+  },
 };
 
 export default nextConfig;
