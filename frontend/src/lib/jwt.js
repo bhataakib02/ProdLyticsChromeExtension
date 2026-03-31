@@ -1,4 +1,4 @@
-import * as jose from "jose";
+import { SignJWT, jwtVerify } from "jose";
 
 function secretKey() {
     const s = process.env.JWT_SECRET;
@@ -11,7 +11,7 @@ export async function signUserJwt(userIdString) {
     if (!secret) {
         throw new Error("JWT_SECRET is missing or too short (min 16 characters). Set it in .env.local and on Vercel.");
     }
-    return new jose.SignJWT({})
+    return new SignJWT({})
         .setProtectedHeader({ alg: "HS256" })
         .setSubject(userIdString)
         .setIssuedAt()
@@ -23,7 +23,7 @@ export async function verifyUserJwt(token) {
     try {
         const secret = secretKey();
         if (!secret) return null;
-        const { payload } = await jose.jwtVerify(token, secret, { algorithms: ["HS256"] });
+        const { payload } = await jwtVerify(token, secret, { algorithms: ["HS256"] });
         return payload;
     } catch {
         return null;
