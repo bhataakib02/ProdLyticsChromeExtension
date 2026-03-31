@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect, { isDbUnavailableError } from '../../../../../../backend/db/mongodb.js';
 import Tracking from '../../../../../../backend/models/Tracking.js';
 import { getUserIdFromRequest } from '@/lib/apiUser';
+import { resolveTrackingMatch } from '@/lib/trackingRangeServer';
 
 export async function GET(req) {
     try {
@@ -14,37 +15,10 @@ export async function GET(req) {
         const { searchParams } = new URL(req.url);
         const range = searchParams.get('range') || 'today';
 
-
-        const now = new Date();
-
-
-        let start;
-        let endExclusive = null;
-        if (range === 'today') {
-            start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        } else if (range === 'yesterday') {
-            start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-            endExclusive = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        } else if (range === 'week') {
-            start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        } else if (range === 'month') {
-            start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        } else {
-            start = new Date(0);
-        }
-
-        if (isNaN(start.getTime())) {
-            console.error("❌ [STATS] Invalid Start Date calculated:", start);
-            throw new Error("Invalid Start Date calculated");
-        }
-
-        const dateMatch = endExclusive
-            ? { $gte: start, $lt: endExclusive }
-            : { $gte: start };
-
+        const { match, hourZone } = resolveTrackingMatch(userObjectId, range, searchParams);
 
         const data = await Tracking.aggregate([
-            { $match: { userId: userObjectId, date: dateMatch } },
+            { $match: match },
             {
                 $group: {
                     _id: "$category",
@@ -67,10 +41,15 @@ export async function GET(req) {
 
 
         const peakHourData = await Tracking.aggregate([
-            { $match: { userId: userObjectId, date: dateMatch, category: "productive" } },
-            { $group: { _id: "$hour", totalTime: { $sum: "$time" } } },
+            { $match: { ...match, category: "productive" } },
+            {
+                $group: {
+                    _id: { $hour: { date: "$date", timezone: hourZone } },
+                    totalTime: { $sum: "$time" },
+                },
+            },
             { $sort: { totalTime: -1 } },
-            { $limit: 1 }
+            { $limit: 1 },
         ]);
         const peakHour = peakHourData.length > 0 ? peakHourData[0]._id : null;
 

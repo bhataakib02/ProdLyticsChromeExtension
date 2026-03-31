@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect, { isDbUnavailableError } from '../../../../../../backend/db/mongodb.js';
 import Tracking from '../../../../../../backend/models/Tracking.js';
 import { getUserIdFromRequest } from '@/lib/apiUser';
+import { resolveTrackingMatch } from '@/lib/trackingRangeServer';
 
 export async function GET(req) {
     try {
@@ -13,18 +14,16 @@ export async function GET(req) {
         const { searchParams } = new URL(req.url);
         const range = searchParams.get('range') || 'today';
 
-        const now = new Date();
-        let start;
-        if (range === 'today') start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        else if (range === 'week') start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        else if (range === 'month') start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        else start = new Date(0);
+        const { match, hourZone } = resolveTrackingMatch(userId, range, searchParams);
 
         const data = await Tracking.aggregate([
-            { $match: { userId, date: { $gte: start } } },
+            { $match: match },
             {
                 $group: {
-                    _id: { hour: "$hour", category: "$category" },
+                    _id: {
+                        hour: { $hour: { date: "$date", timezone: hourZone } },
+                        category: "$category",
+                    },
                     totalTime: { $sum: "$time" },
                 },
             },
@@ -51,7 +50,9 @@ export async function GET(req) {
     } catch (err) {
         console.error("❌ Hourly Stats API Error:", err);
         if (isDbUnavailableError(err)) {
-            const hourlyData = Array(24).fill(0).map((_, i) => ({ hour: i, time: 0 }));
+            const hourlyData = Array(24)
+                .fill(0)
+                .map((_, i) => ({ hour: i, productive: 0, neutral: 0, unproductive: 0 }));
             return NextResponse.json(hourlyData);
         }
         return NextResponse.json({ error: err.message }, { status: 500 });

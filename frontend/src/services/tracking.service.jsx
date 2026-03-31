@@ -1,14 +1,22 @@
 import axios from "axios";
 import { API_URL } from "@/context/AuthContext";
+import { trackingRangeQueryString } from "@/lib/trackingClientRange";
 
 const getHeaders = () => {
     const token = localStorage.getItem("accessToken");
     return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
+/** Local calendar day + IANA tz for today/yesterday; omit for week/month (server window). */
+function localDayParams(range) {
+    if (range === "today" || range === "yesterday") return trackingRangeQueryString(range);
+    return "";
+}
+
 export const trackingService = {
     async getMetrics(range = "today", requestConfig = {}) {
-        const response = await axios.get(`${API_URL}/tracking?range=${range}`, {
+        const local = localDayParams(range);
+        const response = await axios.get(`${API_URL}/tracking?range=${encodeURIComponent(range)}${local}`, {
             headers: getHeaders(),
             ...requestConfig,
         });
@@ -16,13 +24,15 @@ export const trackingService = {
     },
 
     async getSummary(range = "today") {
-        const q = range && range !== "today" ? `?range=${encodeURIComponent(range)}` : "";
-        const response = await axios.get(`${API_URL}/tracking/stats${q}`, { headers: getHeaders() });
+        const q = range && range !== "today" ? `?range=${encodeURIComponent(range)}` : "?range=today";
+        const local = localDayParams(range);
+        const response = await axios.get(`${API_URL}/tracking/stats${q}${local}`, { headers: getHeaders() });
         return response.data;
     },
 
     async getScore(range = "today", requestConfig = {}) {
-        const response = await axios.get(`${API_URL}/tracking/score?range=${range}`, {
+        const local = localDayParams(range);
+        const response = await axios.get(`${API_URL}/tracking/score?range=${encodeURIComponent(range)}${local}`, {
             headers: getHeaders(),
             ...requestConfig,
         });
@@ -30,7 +40,8 @@ export const trackingService = {
     },
 
     async getHourlyMetrics(range = "today", requestConfig = {}) {
-        const response = await axios.get(`${API_URL}/tracking/hourly?range=${range}`, {
+        const local = localDayParams(range);
+        const response = await axios.get(`${API_URL}/tracking/hourly?range=${encodeURIComponent(range)}${local}`, {
             headers: getHeaders(),
             ...requestConfig,
         });

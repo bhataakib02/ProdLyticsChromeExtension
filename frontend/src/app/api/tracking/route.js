@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect, { isDbUnavailableError } from '../../../../../backend/db/mongodb.js';
 import Tracking from '../../../../../backend/models/Tracking.js';
+import { resolveTrackingMatch } from '@/lib/trackingRangeServer';
 import Category from '../../../../../backend/models/Category.js';
 import aiClassifier from '../../../../../backend/services/aiClassifier.js';
 import { withCors, corsOptions } from '@/lib/cors';
@@ -83,16 +84,10 @@ export async function GET(req) {
         const { searchParams } = new URL(req.url);
         const range = searchParams.get('range') || 'today';
 
-        // Date range helper
-        const now = new Date();
-        let start;
-        if (range === 'today') start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        else if (range === 'week') start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        else if (range === 'month') start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        else start = new Date(0);
+        const { match } = resolveTrackingMatch(userId, range, searchParams);
 
         const data = await Tracking.aggregate([
-            { $match: { userId, date: { $gte: start } } },
+            { $match: match },
             {
                 $group: {
                     _id: "$website",

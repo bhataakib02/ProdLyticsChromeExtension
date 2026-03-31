@@ -68,10 +68,13 @@ export default function AnalyticsView() {
                 ].filter(d => d.value > 0);
                 setDistribution(distData);
 
-                const hourlyChartData = hourlyData.map(h => ({
+                // API returns per-category totals already in minutes (seconds summed, then /60).
+                const hourlyChartData = (Array.isArray(hourlyData) ? hourlyData : []).map((h) => ({
                     hour: h.hour,
                     display: `${h.hour}:00`,
-                    total: Math.round((h.productive + h.unproductive + h.neutral) / 60)
+                    total: Math.round(
+                        (Number(h.productive) || 0) + (Number(h.unproductive) || 0) + (Number(h.neutral) || 0)
+                    ),
                 }));
                 setHourly(hourlyChartData);
             } catch (err) {
@@ -205,7 +208,7 @@ export default function AnalyticsView() {
                     <div className="relative h-72 min-h-72 w-full min-w-0">
                         {loading ? (
                             <div className="absolute inset-0 flex items-center justify-center text-muted/40 animate-pulse font-black uppercase tracking-widest text-xs">Analyzing Data...</div>
-                        ) : hourly.length === 0 ? (
+                        ) : !hourly.some((h) => h.total > 0) ? (
                             <div className="absolute inset-0 flex items-center justify-center text-muted/50 text-sm">No activity recorded for this period</div>
                         ) : (
                             <ResponsiveContainer
