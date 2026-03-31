@@ -39,7 +39,7 @@ python docs/fix_srs_encoding.py
 flowchart LR
     EXT[Chrome Extension] -->|HTTPS /api| API[Next.js on Vercel]
     UI[Dashboard] -->|HTTPS /api| API
-    API -->[(MongoDB)]
+    API --> DB[(MongoDB)]
     UI -.->|postMessage| EXT
 ```
 
