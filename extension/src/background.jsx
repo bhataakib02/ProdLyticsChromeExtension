@@ -358,6 +358,28 @@ async function showWorkspaceToastOnActiveTab(title, message, variant = "success"
 // Initialization
 const initPromise = init();
 
+// ==================== IDLE (don’t count away-from-keyboard time) ====================
+
+/**
+ * True if Chrome considers the user active (not idle/locked for `detectionSeconds`).
+ * Without this, time accrues for whichever tab is focused even when you walk away.
+ */
+function queryUserActiveForTracking(detectionSeconds = 60) {
+    return new Promise((resolve) => {
+        try {
+            if (!chrome.idle?.queryState) {
+                resolve(true);
+                return;
+            }
+            chrome.idle.queryState(detectionSeconds, (state) => {
+                resolve(state === "active");
+            });
+        } catch {
+            resolve(true);
+        }
+    });
+}
+
 // ==================== HEARTBEAT ====================
 
 async function heartbeat() {
@@ -376,12 +398,15 @@ async function heartbeat() {
             if (activeTab && startTime) {
                 const start = lastSaveTime || startTime;
                 const elapsed = (Date.now() - start) / 1000;
-                try {
-                    const data = await chrome.storage.local.get(["siteTimes"]);
-                    const siteTimes = data.siteTimes || {};
-                    siteTimes[activeTab] = (siteTimes[activeTab] || 0) + elapsed;
-                    await chrome.storage.local.set({ siteTimes });
-                } catch (e) { }
+                const countIt = await queryUserActiveForTracking(60);
+                if (countIt && elapsed > 0) {
+                    try {
+                        const data = await chrome.storage.local.get(["siteTimes"]);
+                        const siteTimes = data.siteTimes || {};
+                        siteTimes[activeTab] = (siteTimes[activeTab] || 0) + elapsed;
+                        await chrome.storage.local.set({ siteTimes });
+                    } catch (e) { }
+                }
             }
 
             await chrome.storage.local.set({
@@ -412,18 +437,20 @@ async function heartbeat() {
         } else if (!lastDate) {
             await chrome.storage.local.set({ currentDate: today });
         }
-        // 1. Accumulate time for the active tab first
+        // 1. Accumulate time for the active tab first (skip while user idle / screen locked)
         if (activeTab && startTime) {
             const now = Date.now();
             const start = lastSaveTime || startTime;
             const elapsed = (now - start) / 1000;
 
-            if (elapsed >= 1) { // Only update if at least 1 second passed
-                const data = await chrome.storage.local.get(["siteTimes"]);
-                currentSiteTimes = data.siteTimes || {};
-                currentSiteTimes[activeTab] = (currentSiteTimes[activeTab] || 0) + elapsed;
-                await chrome.storage.local.set({ siteTimes: currentSiteTimes });
-
+            if (elapsed >= 1) {
+                const userActive = await queryUserActiveForTracking(60);
+                if (userActive) {
+                    const data = await chrome.storage.local.get(["siteTimes"]);
+                    currentSiteTimes = data.siteTimes || {};
+                    currentSiteTimes[activeTab] = (currentSiteTimes[activeTab] || 0) + elapsed;
+                    await chrome.storage.local.set({ siteTimes: currentSiteTimes });
+                }
                 lastSaveTime = now;
                 await chrome.storage.local.set({ lastSaveTime });
             }
@@ -565,13 +592,16 @@ async function handleTabSwitch(url, title = "") {
     if (activeTab && startTime) {
         const start = lastSaveTime || startTime;
         const elapsed = (Date.now() - start) / 1000;
+        const userActive = await queryUserActiveForTracking(60);
 
-        try {
-            const data = await chrome.storage.local.get(["siteTimes"]);
-            const siteTimes = data.siteTimes || {};
-            siteTimes[activeTab] = (siteTimes[activeTab] || 0) + elapsed;
-            await chrome.storage.local.set({ siteTimes });
-        } catch (err) { }
+        if (userActive && elapsed > 0) {
+            try {
+                const data = await chrome.storage.local.get(["siteTimes"]);
+                const siteTimes = data.siteTimes || {};
+                siteTimes[activeTab] = (siteTimes[activeTab] || 0) + elapsed;
+                await chrome.storage.local.set({ siteTimes });
+            } catch (err) { }
+        }
     }
 
     lastSaveTime = null;
@@ -721,12 +751,15 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         if (activeTab && startTime) {
             const start = lastSaveTime || startTime;
             const elapsed = (Date.now() - start) / 1000;
-            try {
-                const data = await chrome.storage.local.get(["siteTimes"]);
-                const siteTimes = data.siteTimes || {};
-                siteTimes[activeTab] = (siteTimes[activeTab] || 0) + elapsed;
-                await chrome.storage.local.set({ siteTimes });
-            } catch (err) { }
+            const userActive = await queryUserActiveForTracking(60);
+            if (userActive && elapsed > 0) {
+                try {
+                    const data = await chrome.storage.local.get(["siteTimes"]);
+                    const siteTimes = data.siteTimes || {};
+                    siteTimes[activeTab] = (siteTimes[activeTab] || 0) + elapsed;
+                    await chrome.storage.local.set({ siteTimes });
+                } catch (err) { }
+            }
         }
 
         // Ideally we would wait for a heartbeat to sync the final chunk, but as a reset
