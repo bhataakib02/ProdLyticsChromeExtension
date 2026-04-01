@@ -13,6 +13,7 @@ import {
     ListChecks,
     Target as TargetIcon,
     Save,
+    Volume2,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { trackingService } from "@/services/tracking.service";
@@ -42,6 +43,71 @@ function parseBreakMinutesInput(raw, fallback = 5) {
     return Math.min(60, Math.max(1, n));
 }
 
+function formatTimeForTitle(seconds) {
+    const m = Math.floor(seconds / 60)
+        .toString()
+        .padStart(2, "0");
+    const s = (seconds % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+}
+
+function showBrowserNotification(title, body) {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
+    try {
+        new Notification(title, { body });
+    } catch {
+        /* ignore */
+    }
+}
+
+async function requestNotificationPermission() {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (Notification.permission !== "default") return;
+    try {
+        await Notification.requestPermission();
+    } catch {
+        /* ignore */
+    }
+}
+
+const TIMER_STORAGE_KEY = "prodlytics-deep-work-timer-v1";
+
+function playPhaseEndChime() {
+    const AC = typeof window !== "undefined" && (window.AudioContext || window.webkitAudioContext);
+    if (!AC) return;
+    try {
+        const ctx = new AC();
+        const gain = ctx.createGain();
+        gain.connect(ctx.destination);
+        gain.gain.value = 0.07;
+        [523.25, 659.25].forEach((freq, i) => {
+            const o = ctx.createOscillator();
+            o.type = "sine";
+            o.frequency.value = freq;
+            o.connect(gain);
+            const t = ctx.currentTime + i * 0.12;
+            o.start(t);
+            o.stop(t + 0.11);
+        });
+        void ctx.resume?.();
+    } catch {
+        /* ignore */
+    }
+}
+
+function normalizeTasksFromStorage(raw) {
+    if (!Array.isArray(raw)) return [];
+    return raw
+        .filter((t) => t && typeof t.text === "string")
+        .slice(0, 30)
+        .map((t, i) => ({
+            id: typeof t.id === "number" && Number.isFinite(t.id) ? t.id : Date.now() + i,
+            text: String(t.text).slice(0, 300),
+            completed: !!t.completed,
+        }));
+}
+
 export default function TimerView() {
     const { user, updatePreference, updatePreferences } = useAuth();
     const deepWorkMinutesPref = user?.preferences?.deepWorkMinutes;
@@ -61,9 +127,17 @@ export default function TimerView() {
     const [toast, setToast] = useState(null);
     const [saving, setSaving] = useState(false);
     const [savingDefaults, setSavingDefaults] = useState(false);
+    const [soundEnabled, setSoundEnabled] = useState(false);
+    const [storageReady, setStorageReady] = useState(false);
 
     const workMinInputRef = useRef(null);
     const breakMinInputRef = useRef(null);
+    const timeLeftRef = useRef(timeLeft);
+    const isActiveRef = useRef(isActive);
+    const phaseEndTimeRef = useRef(0);
+    const phaseTransitionLockRef = useRef(false);
+    const baseDocumentTitleRef = useRef("");
+    const timerHydratedForUserRef = useRef(null);
 
     const workMinutes = parseWorkMinutesInput(workMinStr);
     const breakMinutes = parseBreakMinutesInput(breakMinStr);
@@ -87,15 +161,52 @@ export default function TimerView() {
     }, [workMinutes, breakMinutes, timerMode, focusIntention, tasks]);
 
     useEffect(() => {
+        timeLeftRef.current = timeLeft;
+    }, [timeLeft]);
+
+    useEffect(() => {
+        isActiveRef.current = isActive;
+    }, [isActive]);
+
+    useEffect(() => {
+        if (typeof document === "undefined") return;
+        baseDocumentTitleRef.current = document.title;
+        return () => {
+            if (baseDocumentTitleRef.current) {
+                document.title = baseDocumentTitleRef.current;
+            }
+        };
+    }, []);
+
+    useEffect(() => {
+        if (typeof document === "undefined") return;
+        const base = baseDocumentTitleRef.current || "ProdLytics";
+        if (isActive) {
+            const label = timerMode === "work" ? "Focus" : "Break";
+            document.title = `${formatTimeForTitle(timeLeft)} · ${label} — ${base}`;
+        } else {
+            document.title = base;
+        }
+    }, [isActive, timeLeft, timerMode]);
+
+    useEffect(() => {
+        const onBeforeUnload = (e) => {
+            if (isActiveRef.current) {
+                e.preventDefault();
+                e.returnValue = "";
+            }
+        };
+        window.addEventListener("beforeunload", onBeforeUnload);
+        return () => window.removeEventListener("beforeunload", onBeforeUnload);
+    }, []);
+
+    useEffect(() => {
         if (!user) return;
         const w = deepWorkMinutesPref ?? 25;
         const b = breakMinutesPref ?? 5;
         setWorkMinStr(String(w));
         setBreakMinStr(String(b));
-        if (!isActive) {
-            setTimeLeft(timerMode === "work" ? w * 60 : b * 60);
-        }
-    }, [user, deepWorkMinutesPref, breakMinutesPref, isActive, timerMode]);
+    }, [user, deepWorkMinutesPref, breakMinutesPref]);
 
     const synchronizeHistory = useCallback(async () => {
         try {
@@ -119,8 +230,15 @@ export default function TimerView() {
         async (payload) => {
             setSaving(true);
             try {
-                await trackingService.saveDeepWorkSession(payload);
-                await synchronizeHistory();
+                const saved = await trackingService.saveDeepWorkSession(payload);
+                if (saved && saved._id) {
+                    setSessionHistory((prev) => {
+                        const rest = prev.filter((x) => x._id !== saved._id);
+                        return [saved, ...rest].slice(0, 20);
+                    });
+                } else {
+                    await synchronizeHistory();
+                }
             } catch (err) {
                 console.error("Save deep work session:", err);
                 showToast("Could not save session (offline?)", "error");
@@ -130,6 +248,175 @@ export default function TimerView() {
         },
         [synchronizeHistory, showToast]
     );
+
+    const recoverOverdueFromSnapshot = useCallback(
+        (s) => {
+            const wMin = parseWorkMinutesInput(s.workMinStr, 25);
+            const bMin = parseBreakMinutesInput(s.breakMinStr, 5);
+            const mode = s.timerMode === "break" ? "break" : "work";
+            const intention = typeof s.focusIntention === "string" ? s.focusIntention : "";
+            const taskList = normalizeTasksFromStorage(s.tasks).map((t) => ({
+                text: t.text,
+                completed: t.completed,
+            }));
+
+            if (mode === "work") {
+                const extMsg = `${wMin} min focus saved.${intention.trim() ? ` “${intention.trim()}”` : ""} Time for a short break.`;
+                void persistSession({
+                    type: "work",
+                    durationMinutes: wMin,
+                    actualMinutes: wMin,
+                    completed: true,
+                    task: intention.trim(),
+                    subtasks: taskList,
+                });
+                showToast(`Focus block complete — ${wMin} min saved. Time for a break.`);
+                if (s.soundEnabled) playPhaseEndChime();
+                showBrowserNotification("Deep work complete", extMsg);
+                requestExtensionWorkspaceToast({
+                    title: "Deep work complete",
+                    message: extMsg,
+                    systemNotify: true,
+                });
+                setTimerMode("break");
+                setTimeLeft(bMin * 60);
+            } else {
+                const extMsg = `Ready for another ${wMin} minute focus stretch.`;
+                void persistSession({
+                    type: "short_break",
+                    durationMinutes: bMin,
+                    actualMinutes: bMin,
+                    completed: true,
+                    task: "",
+                    subtasks: [],
+                });
+                showToast(`Break done — ready for another ${wMin} min focus stretch.`);
+                if (s.soundEnabled) playPhaseEndChime();
+                showBrowserNotification("Break complete", extMsg);
+                requestExtensionWorkspaceToast({
+                    title: "Break complete",
+                    message: extMsg,
+                    systemNotify: true,
+                });
+                setTimerMode("work");
+                setTimeLeft(wMin * 60);
+            }
+        },
+        [persistSession, showToast]
+    );
+
+    useEffect(() => {
+        if (!user?.id) {
+            timerHydratedForUserRef.current = null;
+            setStorageReady(false);
+            return;
+        }
+        if (timerHydratedForUserRef.current === user.id) {
+            setStorageReady(true);
+            return;
+        }
+        timerHydratedForUserRef.current = user.id;
+
+        const wPref = deepWorkMinutesPref ?? 25;
+        const bPref = breakMinutesPref ?? 5;
+
+        try {
+            const raw = localStorage.getItem(TIMER_STORAGE_KEY);
+            if (raw) {
+                const s = JSON.parse(raw);
+                if (s.v === 1 && s.userId === user.id) {
+                    const tasksNorm = normalizeTasksFromStorage(s.tasks);
+                    const focus = typeof s.focusIntention === "string" ? s.focusIntention : "";
+                    const wm = String(s.workMinStr ?? wPref);
+                    const bm = String(s.breakMinStr ?? bPref);
+                    const mode = s.timerMode === "break" ? "break" : "work";
+                    if (typeof s.soundEnabled === "boolean") setSoundEnabled(s.soundEnabled);
+
+                    if (s.isActive && typeof s.phaseEndsAt === "number") {
+                        const remaining = Math.max(0, Math.ceil((s.phaseEndsAt - Date.now()) / 1000));
+                        setFocusIntention(focus);
+                        setTasks(tasksNorm);
+                        setWorkMinStr(wm);
+                        setBreakMinStr(bm);
+                        setTimerMode(mode);
+                        if (remaining > 0) {
+                            phaseEndTimeRef.current = s.phaseEndsAt;
+                            setTimeLeft(remaining);
+                            setIsActive(true);
+                            setStorageReady(true);
+                            return;
+                        }
+                        setTimeLeft(0);
+                        setIsActive(false);
+                        phaseEndTimeRef.current = 0;
+                        window.queueMicrotask(() => recoverOverdueFromSnapshot(s));
+                        setStorageReady(true);
+                        return;
+                    }
+
+                    setFocusIntention(focus);
+                    setTasks(tasksNorm);
+                    setWorkMinStr(wm);
+                    setBreakMinStr(bm);
+                    setTimerMode(mode);
+                    const fallbackFull =
+                        mode === "work" ? parseWorkMinutesInput(wm, wPref) * 60 : parseBreakMinutesInput(bm, bPref) * 60;
+                    const tl =
+                        typeof s.timeLeft === "number" && Number.isFinite(s.timeLeft)
+                            ? Math.max(0, s.timeLeft)
+                            : fallbackFull;
+                    setTimeLeft(tl);
+                    setIsActive(false);
+                    phaseEndTimeRef.current = 0;
+                    setStorageReady(true);
+                    return;
+                }
+            }
+        } catch {
+            /* ignore corrupt storage */
+        }
+
+        setWorkMinStr(String(wPref));
+        setBreakMinStr(String(bPref));
+        setTimerMode("work");
+        setTimeLeft(wPref * 60);
+        setFocusIntention("");
+        setTasks([]);
+        setStorageReady(true);
+    }, [user?.id, deepWorkMinutesPref, breakMinutesPref, recoverOverdueFromSnapshot]);
+
+    useEffect(() => {
+        if (typeof window === "undefined" || !storageReady || !user?.id) return;
+        const payload = {
+            v: 1,
+            userId: user.id,
+            timerMode,
+            isActive,
+            phaseEndsAt: isActive ? phaseEndTimeRef.current : null,
+            timeLeft,
+            focusIntention,
+            tasks: tasks.map((t) => ({ id: t.id, text: t.text, completed: t.completed })),
+            workMinStr,
+            breakMinStr,
+            soundEnabled,
+        };
+        try {
+            localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(payload));
+        } catch {
+            /* ignore quota / private mode */
+        }
+    }, [
+        storageReady,
+        user?.id,
+        isActive,
+        timeLeft,
+        timerMode,
+        focusIntention,
+        tasks,
+        workMinStr,
+        breakMinStr,
+        soundEnabled,
+    ]);
 
     const handlePhaseComplete = useCallback(() => {
         const {
@@ -141,6 +428,7 @@ export default function TimerView() {
         } = phaseRef.current;
 
         if (mode === "work") {
+            const extMsg = `${wMin} min focus saved.${intention.trim() ? ` “${intention.trim()}”` : ""} Time for a short break.`;
             void persistSession({
                 type: "work",
                 durationMinutes: wMin,
@@ -150,14 +438,17 @@ export default function TimerView() {
                 subtasks: taskList.map((t) => ({ text: t.text, completed: t.completed })),
             });
             showToast(`Focus block complete — ${wMin} min saved. Time for a break.`);
+            if (soundEnabled) playPhaseEndChime();
+            showBrowserNotification("Deep work complete", extMsg);
             requestExtensionWorkspaceToast({
                 title: "Deep work complete",
-                message: `${wMin} min focus saved.${intention.trim() ? ` “${intention.trim()}”` : ""} Time for a short break.`,
+                message: extMsg,
                 systemNotify: true,
             });
             setTimerMode("break");
             setTimeLeft(bMin * 60);
         } else {
+            const extMsg = `Ready for another ${wMin} minute focus stretch.`;
             void persistSession({
                 type: "short_break",
                 durationMinutes: bMin,
@@ -167,35 +458,75 @@ export default function TimerView() {
                 subtasks: [],
             });
             showToast(`Break done — ready for another ${wMin} min focus stretch.`);
+            if (soundEnabled) playPhaseEndChime();
+            showBrowserNotification("Break complete", extMsg);
             requestExtensionWorkspaceToast({
                 title: "Break complete",
-                message: `Ready for another ${wMin} minute focus stretch.`,
+                message: extMsg,
                 systemNotify: true,
             });
             setTimerMode("work");
             setTimeLeft(wMin * 60);
         }
-    }, [persistSession, showToast]);
+    }, [persistSession, showToast, soundEnabled]);
+
+    const runPhaseComplete = useCallback(() => {
+        if (phaseTransitionLockRef.current) return;
+        phaseTransitionLockRef.current = true;
+        setIsActive(false);
+        setTimeLeft(0);
+        window.queueMicrotask(() => {
+            try {
+                handlePhaseComplete();
+            } finally {
+                phaseTransitionLockRef.current = false;
+            }
+        });
+    }, [handlePhaseComplete]);
 
     useEffect(() => {
         if (!isActive) return undefined;
-        const id = window.setInterval(() => {
-            setTimeLeft((t) => {
-                if (t <= 1) {
-                    setIsActive(false);
-                    window.queueMicrotask(() => handlePhaseComplete());
-                    return 0;
-                }
-                return t - 1;
-            });
-        }, 1000);
+        const tick = () => {
+            const end = phaseEndTimeRef.current;
+            const remaining = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+            setTimeLeft(remaining);
+            if (remaining <= 0) {
+                runPhaseComplete();
+            }
+        };
+        tick();
+        const id = window.setInterval(tick, 1000);
         return () => window.clearInterval(id);
-    }, [isActive, handlePhaseComplete]);
+    }, [isActive, runPhaseComplete]);
+
+    useEffect(() => {
+        const onVisibility = () => {
+            if (document.visibilityState !== "visible" || !isActiveRef.current) return;
+            const end = phaseEndTimeRef.current;
+            const remaining = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+            setTimeLeft(remaining);
+            if (remaining <= 0) {
+                runPhaseComplete();
+            }
+        };
+        document.addEventListener("visibilitychange", onVisibility);
+        return () => document.removeEventListener("visibilitychange", onVisibility);
+    }, [runPhaseComplete]);
 
     const totalSeconds = timerMode === "work" ? workMinutes * 60 : breakMinutes * 60;
     const progress = totalSeconds > 0 ? ((totalSeconds - timeLeft) / totalSeconds) * 100 : 0;
 
+    const toggleTimer = useCallback(() => {
+        void requestNotificationPermission();
+        setIsActive((was) => {
+            if (was) return false;
+            phaseEndTimeRef.current = Date.now() + timeLeftRef.current * 1000;
+            return true;
+        });
+    }, []);
+
     const resetTimer = () => {
+        phaseTransitionLockRef.current = false;
         setIsActive(false);
         setTimeLeft(timerMode === "work" ? workMinutes * 60 : breakMinutes * 60);
     };
@@ -420,7 +751,7 @@ export default function TimerView() {
                     <div className="flex flex-wrap gap-4 justify-center">
                         <button
                             type="button"
-                            onClick={() => setIsActive((a) => !a)}
+                            onClick={toggleTimer}
                             className={`px-12 py-4 text-base ${
                                 isActive ? "btn-secondary" : "btn-primary"
                             }`}
@@ -438,8 +769,20 @@ export default function TimerView() {
                         </button>
                     </div>
                     <p className="text-[10px] text-muted text-center max-w-sm">
-                        Finish a full work or break round to save it under Past Sessions. Pause anytime with the button.
+                        Finish a full work or break round to save it under Past Sessions. Pause anytime. Focus, subtasks, and
+                        timer state are saved in this browser and restored after refresh. Allow notifications when prompted for
+                        alerts in other tabs.
                     </p>
+                    <label className="flex cursor-pointer items-center justify-center gap-2.5 text-[10px] text-muted select-none max-w-md mx-auto text-center">
+                        <input
+                            type="checkbox"
+                            checked={soundEnabled}
+                            onChange={(e) => setSoundEnabled(e.target.checked)}
+                            className="size-3.5 rounded border-2 border-ui bg-foreground/5 accent-primary shrink-0"
+                        />
+                        <Volume2 size={14} className="shrink-0 text-primary opacity-90" aria-hidden />
+                        <span className="leading-snug">Short sound when a phase ends (works best after you press Start once)</span>
+                    </label>
                 </div>
 
                 <div className="relative z-10 flex flex-col space-y-6">
