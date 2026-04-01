@@ -3,20 +3,64 @@
  */
 import { API_BASE, DASHBOARD_ORIGIN } from "./buildEnv.js";
 
+/** Same host + port as the built-in dashboard URL (ignores www, treats localhost/127.0.0.1 as same). */
+function tabMatchesDashboard(tabUrl) {
+    if (!tabUrl || typeof tabUrl !== "string" || !tabUrl.startsWith("http")) return false;
+    try {
+        const base = new URL(DASHBOARD_ORIGIN.replace(/\/+$/, "") + "/");
+        const t = new URL(tabUrl);
+        const bh = base.hostname.replace(/^www\./i, "").toLowerCase();
+        const th = t.hostname.replace(/^www\./i, "").toLowerCase();
+        if (bh !== th) {
+            const loc = (h) => h === "localhost" || h === "127.0.0.1";
+            if (!(loc(bh) && loc(th))) return false;
+        }
+        const bp = base.port || (base.protocol === "https:" ? "443" : "80");
+        const tp = t.port || (t.protocol === "https:" ? "443" : "80");
+        return bp === tp;
+    } catch {
+        return false;
+    }
+}
+
+async function readAccessTokenFromTab(tabId) {
+    try {
+        const r = await chrome.tabs.sendMessage(tabId, { action: "exportAccessTokenForBackground" });
+        if (r?.accessToken && typeof r.accessToken === "string" && r.accessToken.length > 0) {
+            return r.accessToken;
+        }
+    } catch {
+        /* content script missing or extension was reloaded — try MAIN world */
+    }
+    try {
+        if (!chrome.scripting?.executeScript) return null;
+        const injected = await chrome.scripting.executeScript({
+            target: { tabId },
+            func: () => {
+                try {
+                    return localStorage.getItem("accessToken");
+                } catch {
+                    return null;
+                }
+            },
+            world: "MAIN",
+        });
+        const token = injected?.[0]?.result;
+        if (token && typeof token === "string" && token.length > 0) return token;
+    } catch {
+        /* restricted page, etc. */
+    }
+    return null;
+}
+
 async function tryPullTokenFromDashboardTab() {
     try {
-        const base = DASHBOARD_ORIGIN.replace(/\/+$/, "");
-        const tabs = await chrome.tabs.query({ url: `${base}/*` });
+        const tabs = await chrome.tabs.query({});
         for (const tab of tabs) {
-            if (!tab.id) continue;
-            try {
-                const r = await chrome.tabs.sendMessage(tab.id, { action: "exportAccessTokenForBackground" });
-                if (r?.accessToken && typeof r.accessToken === "string" && r.accessToken.length > 0) {
-                    return r.accessToken;
-                }
-            } catch {
-                /* tab without content script or not ready */
-            }
+            if (!tab.id || !tab.url) continue;
+            if (!tabMatchesDashboard(tab.url)) continue;
+            const token = await readAccessTokenFromTab(tab.id);
+            if (token) return token;
         }
     } catch {
         /* ignore */
@@ -90,7 +134,12 @@ export async function plFetch(url, init = {}) {
 
     try {
         await chrome.storage.local.remove("accessToken");
-        await ensureAccessToken();
+        const pulled = await tryPullTokenFromDashboardTab();
+        if (pulled) {
+            await chrome.storage.local.set({ accessToken: pulled });
+        } else {
+            await ensureAccessToken();
+        }
     } catch {
         return res;
     }

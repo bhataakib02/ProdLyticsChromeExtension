@@ -6,6 +6,28 @@
 
 import { DASHBOARD_ORIGIN } from "./buildEnv.js";
 
+/** Match built dashboard URL: same host+port, ignore www; localhost ↔ 127.0.0.1. */
+function pageMatchesDashboardBuild() {
+    try {
+        const expected = DASHBOARD_ORIGIN.replace(/\/+$/, "");
+        const pageOrigin = window.location.origin;
+        if (pageOrigin === expected) return true;
+        const base = new URL(expected + "/");
+        const page = new URL(pageOrigin + "/");
+        const bh = base.hostname.replace(/^www\./i, "").toLowerCase();
+        const ph = page.hostname.replace(/^www\./i, "").toLowerCase();
+        if (bh !== ph) {
+            const loc = (h) => h === "localhost" || h === "127.0.0.1";
+            if (!(loc(bh) && loc(ph))) return false;
+        }
+        const bp = base.port || (base.protocol === "https:" ? "443" : "80");
+        const pp = page.port || (page.protocol === "https:" ? "443" : "80");
+        return bp === pp;
+    } catch {
+        return false;
+    }
+}
+
 /** After extension reload, old content scripts throw "Extension context invalidated" on sendMessage — swallow so Errors page stays clean. */
 function safeRuntimeSendMessage(payload) {
     try {
@@ -17,12 +39,11 @@ function safeRuntimeSendMessage(payload) {
     }
 }
 
-// Dashboard (same origin as built-in DASHBOARD_ORIGIN) → background: sync, JWT bridge, workspace toasts
+// Dashboard (same host as built-in DASHBOARD_ORIGIN) → background: sync, JWT bridge, workspace toasts
 (() => {
     try {
+        if (!pageMatchesDashboardBuild()) return;
         const { origin } = window.location;
-        const expected = DASHBOARD_ORIGIN.replace(/\/+$/, "");
-        if (origin !== expected) return;
 
         function pushTokenToPageLocalStorage(token) {
             try {
@@ -192,9 +213,7 @@ function showProdlyticsWorkspaceToast(title, message, variant = "success") {
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg?.action === "exportAccessTokenForBackground") {
         try {
-            const { origin } = window.location;
-            const expected = DASHBOARD_ORIGIN.replace(/\/+$/, "");
-            if (origin !== expected) {
+            if (!pageMatchesDashboardBuild()) {
                 sendResponse({ accessToken: null });
                 return true;
             }
