@@ -2,7 +2,11 @@ import { NextResponse } from 'next/server';
 import dbConnect, { isDbUnavailableError } from '../../../../../../backend/db/mongodb.js';
 import Tracking from '../../../../../../backend/models/Tracking.js';
 import { getUserIdFromRequest } from '@/lib/apiUser';
-import { resolveTrackingMatch } from '@/lib/trackingRangeServer';
+import {
+    resolveTrackingMatch,
+    todayDateKeyInTimezone,
+    previousCalendarDateKey,
+} from '@/lib/trackingRangeServer';
 
 export async function GET(req) {
     try {
@@ -54,29 +58,32 @@ export async function GET(req) {
         const peakHour = peakHourData.length > 0 ? peakHourData[0]._id : null;
 
 
+        const streakTz = searchParams.get("tz") || hourZone || "UTC";
+        const clientDateKey = searchParams.get("dateKey");
+        const todayStr = clientDateKey || todayDateKeyInTimezone(streakTz);
+
         const activeDaysData = await Tracking.aggregate([
             { $match: { userId: userObjectId, category: "productive" } },
-            { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } } } },
-            { $sort: { _id: -1 } }
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$date", timezone: streakTz } },
+                },
+            },
+            { $sort: { _id: -1 } },
         ]);
 
-        let streak = 0;
-        let todayStr = new Date().toISOString().split('T')[0];
-        let yesterdayStr = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+        const activeSet = new Set(activeDaysData.map((d) => d._id).filter(Boolean));
+        const yesterdayStr = previousCalendarDateKey(todayStr);
 
-        let hasToday = activeDaysData.some(d => d._id === todayStr);
-        let hasYesterday = activeDaysData.some(d => d._id === yesterdayStr);
+        let streak = 0;
+        const hasToday = activeSet.has(todayStr);
+        const hasYesterday = Boolean(yesterdayStr && activeSet.has(yesterdayStr));
 
         if (hasToday || hasYesterday) {
-            let currentCheckDate = hasToday ? new Date() : new Date(Date.now() - 86400000);
-            while (true) {
-                const checkStr = currentCheckDate.toISOString().split('T')[0];
-                if (activeDaysData.some(d => d._id === checkStr)) {
-                    streak++;
-                    currentCheckDate.setDate(currentCheckDate.getDate() - 1);
-                } else {
-                    break;
-                }
+            let checkStr = hasToday ? todayStr : yesterdayStr;
+            while (checkStr && activeSet.has(checkStr)) {
+                streak++;
+                checkStr = previousCalendarDateKey(checkStr);
             }
         }
 

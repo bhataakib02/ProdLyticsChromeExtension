@@ -42,3 +42,35 @@ export function resolveTrackingMatch(userId, range, searchParams) {
         hourZone: tz || "UTC",
     };
 }
+
+/** YYYY-MM-DD for "now" in the given IANA timezone (matches dashboard `en-CA` date keys). */
+export function todayDateKeyInTimezone(ianaTz) {
+    const tz = ianaTz || "UTC";
+    return new Intl.DateTimeFormat("en-CA", {
+        timeZone: tz,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    }).format(new Date());
+}
+
+/** Previous Gregorian calendar day for a YYYY-MM-DD key (for streaks / yesterday windows). */
+export function previousCalendarDateKey(dateKey) {
+    if (!dateKey || !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return null;
+    const [y, m, d] = dateKey.split("-").map(Number);
+    const x = new Date(Date.UTC(y, m - 1, d));
+    x.setUTCDate(x.getUTCDate() - 1);
+    return x.toISOString().slice(0, 10);
+}
+
+/**
+ * Mongo match: documents whose `date` falls on `dateKey` in `ianaTz`.
+ */
+export function matchUserCalendarDay(userId, ianaTz, dateKey) {
+    return {
+        userId,
+        $expr: {
+            $eq: [{ $dateToString: { format: "%Y-%m-%d", date: "$date", timezone: ianaTz } }, dateKey],
+        },
+    };
+}

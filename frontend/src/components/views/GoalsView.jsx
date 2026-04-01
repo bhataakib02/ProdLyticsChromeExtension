@@ -5,27 +5,23 @@ import { useAuth } from "@/context/AuthContext";
 import { useDashboard } from "@/context/DashboardContext";
 import { matchesActivitySearch } from "@/lib/activitySearch";
 import { goalsService } from "@/services/goals.service";
-import {
-    Target,
-    CheckCircle2,
-    Circle,
-    Plus,
-    Trophy,
-    Flame,
-    X,
-    Trash2,
-    Zap,
-    Pencil,
-    ShieldAlert
-} from "lucide-react";
+import { todayDateKeyClient } from "@/lib/trackingClientRange";
+import { Target, Plus, Trophy, Flame, X, Trash2, Zap, Pencil, Award, CheckCircle2, CopyPlus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { requestExtensionWorkspaceToast } from "@/lib/extensionSync";
 import { normalizeWebsiteHost } from "@/lib/normalizeWebsiteHost";
 
+function goalHasPinnedDay(goal) {
+    const dk = goal?.dateKey;
+    return dk != null && String(dk).trim() !== "";
+}
+
 export default function GoalsView() {
     const { user } = useAuth();
     const { activitySearchQuery } = useDashboard();
-    const [objectives, setObjectives] = useState([]);
+    const [todayGoals, setTodayGoals] = useState([]);
+    const [yesterdayGoals, setYesterdayGoals] = useState([]);
+    const [dateMeta, setDateMeta] = useState({ todayDateKey: "", yesterdayDateKey: "" });
     const [showNewObjective, setShowNewObjective] = useState(false);
     const [celebratedObjective, setCelebratedObjective] = useState(null);
     const [editingObjective, setEditingObjective] = useState(null);
@@ -34,7 +30,7 @@ export default function GoalsView() {
         label: "",
         targetSeconds: 3600,
         type: "productive",
-        website: ""
+        website: "",
     });
 
     useEffect(() => {
@@ -47,8 +43,21 @@ export default function GoalsView() {
         setLoading(true);
         try {
             const data = await goalsService.getObjectives();
-            setObjectives(data);
-            const newlyCompleted = data.find(g => (g.currentSeconds || 0) >= g.targetSeconds && !sessionStorage.getItem(`celebrated_${g._id}`));
+            const today = Array.isArray(data?.today) ? data.today : Array.isArray(data) ? data : [];
+            const yesterday = Array.isArray(data?.yesterday) ? data.yesterday : [];
+            setTodayGoals(today);
+            setYesterdayGoals(yesterday);
+            setDateMeta({
+                todayDateKey: data?.todayDateKey || "",
+                yesterdayDateKey: data?.yesterdayDateKey || "",
+            });
+
+            const newlyCompleted = today.find(
+                (g) =>
+                    g.type === "productive" &&
+                    g.metToday &&
+                    !sessionStorage.getItem(`celebrated_${g._id}`)
+            );
             if (newlyCompleted) {
                 setCelebratedObjective(newlyCompleted);
                 sessionStorage.setItem(`celebrated_${newlyCompleted._id}`, "true");
@@ -79,22 +88,43 @@ export default function GoalsView() {
             window.alert("Enter a valid website or URL (e.g. twitter.com or https://www.twitter.com).");
             return;
         }
-        const payload = { ...newObjective, website };
-        setNewObjective(payload);
+        const base = { ...newObjective, website };
         try {
-            let res;
             if (editingObjective) {
-                res = await goalsService.updateObjective(editingObjective._id, payload);
-                setObjectives(objectives.map((g) => (g._id === res._id ? res : g)));
+                await goalsService.updateObjective(editingObjective._id, {
+                    ...base,
+                    dateKey: editingObjective.dateKey != null ? editingObjective.dateKey : "",
+                });
             } else {
-                res = await goalsService.createObjective(payload);
-                setObjectives([...objectives, res]);
+                const dk = todayDateKeyClient();
+                await goalsService.createObjective(dk ? { ...base, dateKey: dk } : base);
             }
             setShowNewObjective(false);
             setEditingObjective(null);
             setNewObjective({ label: "", targetSeconds: 3600, type: "productive", website: "" });
+            await synchronizeObjectives();
         } catch (err) {
             console.error("error saving objective:", err);
+        }
+    }
+
+    async function copyGoalToToday(goal) {
+        const dk = todayDateKeyClient();
+        if (!dk) {
+            window.alert("Could not read your local date. Try again from the dashboard.");
+            return;
+        }
+        try {
+            await goalsService.createObjective({
+                label: goal.label,
+                targetSeconds: goal.targetSeconds,
+                type: goal.type,
+                website: goal.website,
+                dateKey: dk,
+            });
+            await synchronizeObjectives();
+        } catch (err) {
+            console.error("error copying objective:", err);
         }
     }
 
@@ -112,7 +142,7 @@ export default function GoalsView() {
     async function removeObjective(id) {
         try {
             await goalsService.deleteObjective(id);
-            setObjectives(objectives.filter(g => g._id !== id));
+            await synchronizeObjectives();
         } catch (err) {
             console.error("error deleting objective");
         }
@@ -127,12 +157,25 @@ export default function GoalsView() {
         return `${m}m`;
     }
 
+    function formatDayLabel(dateKey) {
+        if (!dateKey || typeof dateKey !== "string") return "";
+        const parts = dateKey.split("-").map(Number);
+        if (parts.length !== 3 || parts.some((n) => !Number.isFinite(n))) return dateKey;
+        const [y, mo, d] = parts;
+        const dt = new Date(y, mo - 1, d);
+        return dt.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+    }
+
     if (!user) return null;
 
-    const filteredObjectives = objectives.filter((g) =>
+    const filteredToday = todayGoals.filter((g) =>
+        matchesActivitySearch(activitySearchQuery, g.label, g.website, g.type)
+    );
+    const filteredYesterday = yesterdayGoals.filter((g) =>
         matchesActivitySearch(activitySearchQuery, g.label, g.website, g.type)
     );
 
+    const totalCount = todayGoals.length + yesterdayGoals.length;
     const fieldLabel =
         "block text-[10px] font-black uppercase tracking-widest text-foreground/65";
     const fieldBase =
@@ -143,75 +186,262 @@ export default function GoalsView() {
             <header className="flex justify-between items-center">
                 <div>
                     <h1 className="text-4xl font-bold  tracking-tight">Goals & Targets</h1>
-                    <p className="text-muted mt-2 ">Define your productivity boundaries and track your progress.</p>
+                    <p className="text-muted mt-2 max-w-2xl">
+                        Use <strong className="text-foreground/90 font-semibold">Set Objective</strong> to add what you want to
+                        track <strong className="text-foreground/90 font-semibold">today</strong> only. Yesterday&apos;s list is
+                        saved as a snapshot; it does not roll forward—you add today&apos;s goals yourself.
+                    </p>
                 </div>
                 <button type="button" onClick={() => setShowNewObjective(true)} className="btn-primary">
                     <Plus size={20} /> Set Objective
                 </button>
             </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {loading ? (
-                    <div className="col-span-full py-20 text-center text-muted italic">Analyzing objectives...</div>
-                ) : objectives.length === 0 ? (
-                    <div className="col-span-full glass-card p-20 flex flex-col items-center justify-center text-center space-y-4">
-                        <Target size={48} className="text-muted/20" />
-                        <h3 className="text-xl font-bold ">No objectives set yet</h3>
-                        <button type="button" onClick={() => setShowNewObjective(true)} className="btn-secondary mt-4 px-8">
-                            Create Your First Objective
-                        </button>
-                    </div>
-                ) : filteredObjectives.length === 0 ? (
-                    <div className="col-span-full py-16 text-center text-sm text-muted">
-                        No objectives match your search. Clear the navbar search or try another keyword.
-                    </div>
-                ) : (
-                    filteredObjectives.map((goal) => (
-                        <div key={goal._id} className="glass-card p-8 group hover:border-primary/50 transition-all">
-                            <div className="flex justify-between items-start mb-6">
-                                <div className={`p-3 rounded-2xl ${goal.type === 'productive' ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'}`}>
-                                    {goal.type === 'productive' ? <Zap size={24} /> : <Target size={24} />}
+            {loading ? (
+                <div className="py-20 text-center text-muted italic">Analyzing objectives...</div>
+            ) : totalCount === 0 ? (
+                <div className="glass-card p-20 flex flex-col items-center justify-center text-center space-y-4">
+                    <Target size={48} className="text-muted/20" />
+                    <h3 className="text-xl font-bold ">No objectives for today yet</h3>
+                    <p className="text-sm text-muted max-w-md">
+                        Add goals for today with Set Objective. Tomorrow, add again if you want the same targets.
+                    </p>
+                    <button type="button" onClick={() => setShowNewObjective(true)} className="btn-secondary mt-4 px-8">
+                        Add today&apos;s goals
+                    </button>
+                </div>
+            ) : (
+                <>
+                    {yesterdayGoals.length > 0 && (
+                        <section className="space-y-4">
+                            <h2 className="text-lg font-bold tracking-tight flex items-center gap-2">
+                                <span className="text-muted font-medium text-sm uppercase tracking-widest">Yesterday</span>
+                                <span className="text-foreground">
+                                    {formatDayLabel(dateMeta.yesterdayDateKey) || dateMeta.yesterdayDateKey}
+                                </span>
+                            </h2>
+                            {filteredYesterday.length === 0 && yesterdayGoals.length > 0 ? (
+                                <p className="text-sm text-muted">No yesterday goals match your search.</p>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {filteredYesterday.map((goal) => (
+                                        <div
+                                            key={goal._id}
+                                            className="glass-card p-8 border-foreground/10 bg-foreground/[0.02]"
+                                        >
+                                            <div className="flex justify-between items-start mb-6">
+                                                <div
+                                                    className={`p-3 rounded-2xl ${
+                                                        goal.type === "productive"
+                                                            ? "bg-primary/10 text-primary"
+                                                            : "bg-secondary/10 text-secondary"
+                                                    }`}
+                                                >
+                                                    {goal.type === "productive" ? <Zap size={24} /> : <Target size={24} />}
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => copyGoalToToday(goal)}
+                                                        className="btn-ghost"
+                                                        title="Add same goal for today"
+                                                        aria-label="Add same goal for today"
+                                                    >
+                                                        <CopyPlus size={18} />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeObjective(goal._id)}
+                                                        className="btn-ghost hover:text-danger"
+                                                        aria-label="Delete objective"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <h3 className="text-xl font-bold  mb-2">{goal.label || goal.website}</h3>
+                                            <div className="flex items-center gap-2 text-[10px] text-muted font-black uppercase tracking-widest mb-4">
+                                                <span
+                                                    className={
+                                                        goal.type === "productive" ? "text-primary" : "text-secondary"
+                                                    }
+                                                >
+                                                    {goal.type}
+                                                </span>
+                                                <span>•</span>
+                                                <span>
+                                                    {Math.floor(goal.targetSeconds / 3600)}h{" "}
+                                                    {Math.floor((goal.targetSeconds % 3600) / 60)}m Target
+                                                </span>
+                                            </div>
+                                            <div className="rounded-xl border border-foreground/10 bg-foreground/[0.04] p-4 space-y-2.5">
+                                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-muted">
+                                                        That day · {formatDayLabel(goal.displayDateKey)}
+                                                    </span>
+                                                    {goal.metToday ? (
+                                                        <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                                                            <CheckCircle2 size={15} className="shrink-0" aria-hidden />
+                                                            {goal.type === "productive" ? "Completed" : "Within limit"}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted">
+                                                            Not met
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex justify-between text-[11px] font-bold text-muted">
+                                                    <span>Progress</span>
+                                                    <span>{Math.min(100, Math.max(0, Number(goal.progress) || 0))}%</span>
+                                                </div>
+                                                <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/8">
+                                                    <div
+                                                        className={`h-full transition-[width] duration-300 ${
+                                                            goal.metToday ? "bg-emerald-500/90" : "bg-foreground/25"
+                                                        }`}
+                                                        style={{
+                                                            width: `${Math.min(100, Math.max(0, Number(goal.progress) || 0))}%`,
+                                                        }}
+                                                    />
+                                                </div>
+                                                <p className="text-[10px] font-medium text-muted">
+                                                    Tracked: {formatTrackedToday(goal.currentSeconds)}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <button type="button" onClick={() => openEditModal(goal)} className="btn-ghost" aria-label="Edit objective">
-                                        <Pencil size={18} />
-                                    </button>
-                                    <button type="button" onClick={() => removeObjective(goal._id)} className="btn-ghost hover:text-danger" aria-label="Delete objective">
-                                        <Trash2 size={18} />
-                                    </button>
-                                </div>
-                            </div>
-                            <h3 className="text-xl font-bold  mb-2">{goal.label || goal.website}</h3>
-                            <div className="flex items-center gap-2 text-[10px] text-muted font-black uppercase tracking-widest mb-6">
-                                <span className={goal.type === 'productive' ? 'text-primary' : 'text-secondary'}>{goal.type}</span>
-                                <span>•</span>
-                                <span>{Math.floor(goal.targetSeconds / 3600)}h {Math.floor((goal.targetSeconds % 3600) / 60)}m Target</span>
-                            </div>
-                            <div className="space-y-3">
-                                <div className="flex justify-between text-xs font-bold">
-                                    <span className="text-muted">Progress</span>
-                                    <span>{Math.min(100, Math.max(0, Number(goal.progress) || 0))}%</span>
-                                </div>
-                                <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/5">
-                                    <div
-                                        className="h-full bg-primary transition-[width] duration-300"
-                                        style={{
-                                            width: `${Math.min(100, Math.max(0, Number(goal.progress) || 0))}%`,
-                                        }}
-                                    />
-                                </div>
-                                <p className="text-[10px] font-medium text-muted">
-                                    Today tracked: {formatTrackedToday(goal.currentSeconds)}
-                                    {goal.targetSeconds > 0 &&
-                                        (goal.currentSeconds || 0) >= goal.targetSeconds && (
-                                            <span className="text-primary"> · Target met</span>
-                                        )}
+                            )}
+                        </section>
+                    )}
+
+                    <section className="space-y-4">
+                        <h2 className="text-lg font-bold tracking-tight flex items-center gap-2">
+                            <span className="text-primary font-medium text-sm uppercase tracking-widest">Today</span>
+                            <span className="text-foreground">
+                                {formatDayLabel(dateMeta.todayDateKey) || dateMeta.todayDateKey}
+                            </span>
+                        </h2>
+                        {filteredToday.length === 0 && todayGoals.length > 0 ? (
+                            <p className="text-sm text-muted">No today goals match your search.</p>
+                        ) : filteredToday.length === 0 ? (
+                            <div className="glass-card p-12 text-center space-y-3">
+                                <p className="text-muted">
+                                    You haven&apos;t added any goals for today yet. Use Set Objective to choose what you want to
+                                    track.
                                 </p>
+                                <button type="button" onClick={() => setShowNewObjective(true)} className="btn-primary">
+                                    <Plus size={18} /> Add today&apos;s goals
+                                </button>
                             </div>
-                        </div>
-                    ))
-                )}
-            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {filteredToday.map((goal) => (
+                                    <div key={goal._id} className="glass-card p-8 group hover:border-primary/50 transition-all">
+                                        <div className="flex justify-between items-start mb-6">
+                                            <div
+                                                className={`p-3 rounded-2xl ${
+                                                    goal.type === "productive"
+                                                        ? "bg-primary/10 text-primary"
+                                                        : "bg-secondary/10 text-secondary"
+                                                }`}
+                                            >
+                                                {goal.type === "productive" ? <Zap size={24} /> : <Target size={24} />}
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openEditModal(goal)}
+                                                    className="btn-ghost"
+                                                    aria-label="Edit objective"
+                                                >
+                                                    <Pencil size={18} />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeObjective(goal._id)}
+                                                    className="btn-ghost hover:text-danger"
+                                                    aria-label="Delete objective"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <h3 className="text-xl font-bold  mb-2">{goal.label || goal.website}</h3>
+                                        {!goalHasPinnedDay(goal) && (
+                                            <p className="text-[10px] text-amber-700/90 dark:text-amber-400/95 mb-3 leading-snug">
+                                                Older goal (not tied to a single day). Add new goals with Set Objective to use
+                                                daily lists.
+                                            </p>
+                                        )}
+                                        <div className="flex items-center gap-2 text-[10px] text-muted font-black uppercase tracking-widest mb-4">
+                                            <span
+                                                className={goal.type === "productive" ? "text-primary" : "text-secondary"}
+                                            >
+                                                {goal.type}
+                                            </span>
+                                            <span>•</span>
+                                            <span>
+                                                {Math.floor(goal.targetSeconds / 3600)}h{" "}
+                                                {Math.floor((goal.targetSeconds % 3600) / 60)}m Target
+                                            </span>
+                                        </div>
+                                        {(Number(goal.hitStreakDays) > 0 || Number(goal.totalDaysHit) > 0) && (
+                                            <div className="flex flex-wrap gap-2 mb-5">
+                                                {Number(goal.hitStreakDays) > 0 && (
+                                                    <span
+                                                        className="inline-flex items-center gap-1.5 rounded-full bg-orange-500/12 text-orange-700 dark:text-orange-300 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest"
+                                                        title="Consecutive calendar days this goal was met (today counts if you already met it; otherwise yesterday starts the chain)"
+                                                    >
+                                                        <Flame size={14} className="shrink-0" aria-hidden />
+                                                        {goal.hitStreakDays}-day streak
+                                                    </span>
+                                                )}
+                                                {Number(goal.totalDaysHit) > 0 && (
+                                                    <span
+                                                        className="inline-flex items-center gap-1.5 rounded-full bg-foreground/6 text-foreground/85 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest"
+                                                        title="Days in the last ~2 years with tracking on record where this goal was met"
+                                                    >
+                                                        <Award size={14} className="shrink-0 text-primary" aria-hidden />
+                                                        {goal.totalDaysHit} days met
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+                                        <div className="space-y-3">
+                                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+                                                    Today · {formatDayLabel(dateMeta.todayDateKey)}
+                                                </span>
+                                                <span className="text-xs font-bold text-muted">
+                                                    {Math.min(100, Math.max(0, Number(goal.progress) || 0))}%
+                                                </span>
+                                            </div>
+                                            <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/5">
+                                                <div
+                                                    className="h-full bg-primary transition-[width] duration-300"
+                                                    style={{
+                                                        width: `${Math.min(100, Math.max(0, Number(goal.progress) || 0))}%`,
+                                                    }}
+                                                />
+                                            </div>
+                                            <p className="text-[10px] font-medium text-muted">
+                                                Today tracked: {formatTrackedToday(goal.currentSeconds)}
+                                                {goal.metToday && goal.type === "productive" && (
+                                                    <span className="text-primary"> · Target met today</span>
+                                                )}
+                                                {goal.metToday && goal.type === "unproductive" && (
+                                                    <span className="text-primary"> · Within today&apos;s limit</span>
+                                                )}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </section>
+                </>
+            )}
 
             <AnimatePresence>
                 {showNewObjective && (
@@ -224,15 +454,23 @@ export default function GoalsView() {
                         >
                             <button
                                 type="button"
-                                onClick={() => setShowNewObjective(false)}
+                                onClick={() => {
+                                    setShowNewObjective(false);
+                                    setEditingObjective(null);
+                                }}
                                 className="btn-ghost absolute right-6 top-6"
                                 aria-label="Close"
                             >
                                 <X size={22} />
                             </button>
-                            <h2 className="mb-8 text-3xl font-bold text-foreground">
+                            <h2 className="mb-2 text-3xl font-bold text-foreground">
                                 {editingObjective ? "Edit Objective" : "Set Objective"}
                             </h2>
+                            <p className="mb-8 text-sm text-muted">
+                                {editingObjective
+                                    ? "Update this goal. Its calendar day stays the same."
+                                    : `Adds to today only (${formatDayLabel(todayDateKeyClient()) || "your local date"}). Tomorrow, add again if you want.`}
+                            </p>
                             <form onSubmit={handleSaveObjective} className="space-y-6">
                                 <div className="space-y-2">
                                     <label htmlFor="objective-name" className={fieldLabel}>
@@ -329,8 +567,10 @@ export default function GoalsView() {
                                             inputMode="url"
                                         />
                                         <p className="text-[10px] font-medium text-muted/90 leading-snug">
-                                            We normalize to the bare domain (no <code className="text-foreground/80">https://</code> or{" "}
-                                            <code className="text-foreground/80">www.</code>) so progress matches extension tracking.
+                                            We normalize to the bare domain (no{" "}
+                                            <code className="text-foreground/80">https://</code> or{" "}
+                                            <code className="text-foreground/80">www.</code>) so progress matches extension
+                                            tracking.
                                         </p>
                                     </div>
                                 </div>

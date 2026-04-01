@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useDashboard } from "@/context/DashboardContext";
 import { trackingService } from "@/services/tracking.service";
-import { goalsService } from "@/services/goals.service";
+import { goalsService, goalsProgressTodayList } from "@/services/goals.service";
 import { requestExtensionSync, requestExtensionWorkspaceToast } from "@/lib/extensionSync";
 import {
     BrainCircuit,
@@ -59,7 +59,7 @@ export default function InsightsView() {
             setYesterdayMetrics(yest);
             setCognitiveMetrics(cognitiveResponse?.history || []);
             setInsightsData(cognitiveResponse?.metrics || null);
-            setGoals(Array.isArray(goalsData) ? goalsData : []);
+            setGoals(goalsProgressTodayList(goalsData));
             setDeepSessions(Array.isArray(deep) ? deep.slice(0, 5) : []);
             setLastUpdated(new Date());
         } catch (err) {

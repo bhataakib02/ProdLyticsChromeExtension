@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useDashboard } from "@/context/DashboardContext";
 import { matchesActivitySearch } from "@/lib/activitySearch";
 import { trackingService } from "@/services/tracking.service";
-import { goalsService } from "@/services/goals.service";
+import { goalsService, goalsProgressTodayList } from "@/services/goals.service";
 import {
     Activity,
     TrendingUp,
@@ -47,8 +47,8 @@ export default function OverviewView({ onTabChange }) {
             if (metricsData.status === "fulfilled" && metricsData.value && !metricsData.value.error) {
                 setMetrics(prev => ({ ...prev, ...metricsData.value }));
             }
-            if (objectivesData.status === "fulfilled" && Array.isArray(objectivesData.value)) {
-                setObjectives(objectivesData.value);
+            if (objectivesData.status === "fulfilled" && objectivesData.value) {
+                setObjectives(goalsProgressTodayList(objectivesData.value));
             }
             if (domainsData.status === "fulfilled" && Array.isArray(domainsData.value)) {
                 setTopDomains(domainsData.value);

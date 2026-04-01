@@ -9,6 +9,17 @@
 import { API_BASE } from "./buildEnv.js";
 import { plFetch } from "./plApi.js";
 
+/** IANA tz + YYYY-MM-DD for the user’s calendar day (matches dashboard tracking/goals APIs). */
+function userLocalDayQueryString() {
+    try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const dateKey = new Date().toLocaleDateString("en-CA", { timeZone: tz });
+        return `tz=${encodeURIComponent(tz)}&dateKey=${encodeURIComponent(dateKey)}`;
+    } catch {
+        return "";
+    }
+}
+
 /** Blocklist may contain full URLs from older clients; compare using hostname only. */
 function normalizeBlockedHost(raw) {
     if (!raw || typeof raw !== "string") return "";
@@ -182,15 +193,16 @@ async function refreshGoalsAndPopupCache(opts = {}) {
     if (!force && now - lastGoalPollMs < 90_000) return;
     lastGoalPollMs = now;
     try {
-        const [goalsRes, statsRes] = await Promise.all([
-            plFetch(`${API_BASE}/goals/progress`),
-            plFetch(`${API_BASE}/tracking/stats?range=today`),
-        ]);
+        const dayQs = userLocalDayQueryString();
+        const goalsUrl = `${API_BASE}/goals/progress${dayQs ? `?${dayQs}` : ""}`;
+        const statsUrl = `${API_BASE}/tracking/stats?range=today${dayQs ? `&${dayQs}` : ""}`;
+        const [goalsRes, statsRes] = await Promise.all([plFetch(goalsUrl), plFetch(statsUrl)]);
 
         let goals = [];
         if (goalsRes.ok) {
             const data = await goalsRes.json();
             if (Array.isArray(data)) goals = data;
+            else if (Array.isArray(data?.today)) goals = data.today;
         }
 
         let productiveToday = 0;

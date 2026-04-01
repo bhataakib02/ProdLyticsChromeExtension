@@ -1,6 +1,17 @@
 /**
  * Query params so API can bucket by the user's local calendar day and local hour.
  */
+/** Today’s YYYY-MM-DD in the user’s local timezone (matches API dateKey). */
+export function todayDateKeyClient() {
+    if (typeof window === "undefined") return "";
+    try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        return new Date().toLocaleDateString("en-CA", { timeZone: tz });
+    } catch {
+        return "";
+    }
+}
+
 export function trackingRangeQueryString(range) {
     if (typeof window === "undefined") return "";
     try {

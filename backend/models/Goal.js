@@ -35,10 +35,14 @@ const GoalSchema = new mongoose.Schema(
             enum: ["daily", "weekly", "once"],
             default: "daily",
         },
+
+        // Calendar day this goal was added for (YYYY-MM-DD, user tz). Empty = legacy “rolling” goal.
+        dateKey: { type: String, default: "" },
     },
     { timestamps: true }
 );
 
 GoalSchema.index({ userId: 1, isActive: 1 });
+GoalSchema.index({ userId: 1, dateKey: 1 });
 
 export default mongoose.models.Goal || mongoose.model("Goal", GoalSchema);
