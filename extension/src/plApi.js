@@ -57,6 +57,19 @@ async function ensureAccessToken() {
     return obtainNewJwt();
 }
 
+/**
+ * If a ProdLytics dashboard tab is open, copy its JWT into extension storage so goals/tracking match that account.
+ * @returns {Promise<boolean>} true if storage was updated with a new token
+ */
+export async function syncAccessTokenFromDashboardTab() {
+    const pulled = await tryPullTokenFromDashboardTab();
+    if (!pulled) return false;
+    const { accessToken } = await chrome.storage.local.get("accessToken");
+    if (pulled === accessToken) return false;
+    await chrome.storage.local.set({ accessToken: pulled });
+    return true;
+}
+
 export async function plFetch(url, init = {}) {
     let { accessToken } = await chrome.storage.local.get("accessToken");
     if (!accessToken) {

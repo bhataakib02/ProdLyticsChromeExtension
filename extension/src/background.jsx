@@ -7,7 +7,7 @@
  */
 
 import { API_BASE } from "./buildEnv.js";
-import { plFetch } from "./plApi.js";
+import { plFetch, syncAccessTokenFromDashboardTab } from "./plApi.js";
 
 /** IANA tz + YYYY-MM-DD for the user’s calendar day (matches dashboard tracking/goals APIs). */
 function userLocalDayQueryString() {
@@ -193,6 +193,7 @@ async function refreshGoalsAndPopupCache(opts = {}) {
     if (!force && now - lastGoalPollMs < 90_000) return;
     lastGoalPollMs = now;
     try {
+        await syncAccessTokenFromDashboardTab();
         const dayQs = userLocalDayQueryString();
         const goalsUrl = `${API_BASE}/goals/progress${dayQs ? `?${dayQs}` : ""}`;
         const statsUrl = `${API_BASE}/tracking/stats?range=today${dayQs ? `&${dayQs}` : ""}`;
@@ -652,6 +653,7 @@ async function handleTabSwitch(url, title = "") {
 async function updateSyncData() {
     console.log("🔄 Fetching latest focus data from API...");
     try {
+        await syncAccessTokenFromDashboardTab();
         // 1. Fetch Blocklist
         const blockRes = await plFetch(`${API_BASE}/focus/`);
         if (blockRes.ok) {

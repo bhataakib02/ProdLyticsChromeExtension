@@ -188,8 +188,8 @@ function App() {
 
   const goalsSublabel =
     goalsCount > 0
-      ? `${goalsCount} active objective${goalsCount === 1 ? "" : "s"}`
-      : "Create objectives in the dashboard";
+      ? `${goalsCount} for today`
+      : "Open dashboard + Sync Extension — goals are today only";
 
   return (
     <div className={`pl-popup ${isDarkMode ? "pl-popup--dark" : "pl-popup--light"}`}>
@@ -197,8 +197,8 @@ function App() {
         <div>
           <h1 className="pl-title">ProdLytics</h1>
           <p className="pl-popup-hint">
-            Same session as the ProdLytics dashboard in this Chrome profile—no sign-in. Your data stays private to
-            you, not mixed with other users.
+            Keep a ProdLytics tab open or click Sync Extension on the site so this popup uses the same login and
+            today&apos;s goals.
           </p>
         </div>
         <button
