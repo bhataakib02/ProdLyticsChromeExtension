@@ -148,13 +148,23 @@ export default function GoalsView() {
         }
     }
 
-    function formatTrackedToday(seconds) {
-        const s = Number(seconds) || 0;
+    function formatDurationShort(seconds) {
+        const s = Math.max(0, Number(seconds) || 0);
         if (s <= 0) return "0m";
         const h = Math.floor(s / 3600);
         const m = Math.floor((s % 3600) / 60);
         if (h > 0) return `${h}h ${m}m`;
         return `${m}m`;
+    }
+
+    /** Tracked seconds for this goal vs its target (productive) or max (unproductive). */
+    function formatGoalTrackedVsTarget(goal, trackedSeconds) {
+        const tracked = formatDurationShort(trackedSeconds);
+        const target = formatDurationShort(goal.targetSeconds);
+        if (goal.type === "unproductive") {
+            return `${tracked} on this site · ${target} max for this goal`;
+        }
+        return `${tracked} toward this goal · target ${target}`;
     }
 
     function formatDayLabel(dateKey) {
@@ -305,7 +315,7 @@ export default function GoalsView() {
                                                     />
                                                 </div>
                                                 <p className="text-[10px] font-medium text-muted">
-                                                    Tracked: {formatTrackedToday(goal.currentSeconds)}
+                                                    Goal time: {formatGoalTrackedVsTarget(goal, goal.currentSeconds)}
                                                 </p>
                                             </div>
                                         </div>
@@ -448,14 +458,15 @@ export default function GoalsView() {
                                                     />
                                                 </div>
                                                 <p className="text-[10px] font-medium text-muted">
-                                                    Tracked: {formatTrackedToday(goal.yesterdaySeconds)}
+                                                    Goal time that day:{" "}
+                                                    {formatGoalTrackedVsTarget(goal, goal.yesterdaySeconds)}
                                                 </p>
                                             </div>
                                         )}
                                         <div className="space-y-3">
                                             <div className="flex flex-wrap items-center justify-between gap-2">
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-primary">
-                                                    Today · {formatDayLabel(dateMeta.todayDateKey)}
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-muted">
+                                                    Progress
                                                 </span>
                                                 <span className="text-xs font-bold text-muted">
                                                     {Math.min(100, Math.max(0, Number(goal.progress) || 0))}%
@@ -469,15 +480,17 @@ export default function GoalsView() {
                                                     }}
                                                 />
                                             </div>
-                                            <p className="text-[10px] font-medium text-muted">
-                                                Today tracked: {formatTrackedToday(goal.currentSeconds)}
-                                                {goal.metToday && goal.type === "productive" && (
-                                                    <span className="text-primary"> · Target met today</span>
-                                                )}
-                                                {goal.metToday && goal.type === "unproductive" && (
-                                                    <span className="text-primary"> · Within today&apos;s limit</span>
-                                                )}
-                                            </p>
+                                            {(Number(goal.currentSeconds) > 0 || goal.metToday) && (
+                                                <p className="text-[10px] font-medium text-muted">
+                                                    {formatGoalTrackedVsTarget(goal, goal.currentSeconds)}
+                                                    {goal.metToday && goal.type === "productive" && (
+                                                        <span className="text-primary"> · Target met</span>
+                                                    )}
+                                                    {goal.metToday && goal.type === "unproductive" && (
+                                                        <span className="text-primary"> · Within limit</span>
+                                                    )}
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
