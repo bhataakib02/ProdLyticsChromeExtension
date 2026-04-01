@@ -408,6 +408,50 @@ export default function GoalsView() {
                                                 )}
                                             </div>
                                         )}
+                                        {goal.yesterdayDateKey && !goalHasPinnedDay(goal) && (
+                                            <div className="rounded-xl border border-foreground/10 bg-foreground/[0.04] p-4 mb-5 space-y-2.5">
+                                                <p className="text-[10px] font-medium text-muted leading-snug">
+                                                    Your completed work from yesterday (legacy goals are not stored per day; this
+                                                    is your real tracking for that date).
+                                                </p>
+                                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-muted">
+                                                        Yesterday · {formatDayLabel(goal.yesterdayDateKey)}
+                                                    </span>
+                                                    {goal.metYesterday ? (
+                                                        <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                                                            <CheckCircle2 size={15} className="shrink-0" aria-hidden />
+                                                            {goal.type === "productive" ? "Completed" : "Within limit"}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted">
+                                                            Not met
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex justify-between text-[11px] font-bold text-muted">
+                                                    <span>That day</span>
+                                                    <span>
+                                                        {Math.min(100, Math.max(0, Number(goal.yesterdayProgress) || 0))}%
+                                                    </span>
+                                                </div>
+                                                <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/8">
+                                                    <div
+                                                        className={`h-full transition-[width] duration-300 ${
+                                                            goal.metYesterday
+                                                                ? "bg-emerald-500/90"
+                                                                : "bg-foreground/25"
+                                                        }`}
+                                                        style={{
+                                                            width: `${Math.min(100, Math.max(0, Number(goal.yesterdayProgress) || 0))}%`,
+                                                        }}
+                                                    />
+                                                </div>
+                                                <p className="text-[10px] font-medium text-muted">
+                                                    Tracked: {formatTrackedToday(goal.yesterdaySeconds)}
+                                                </p>
+                                            </div>
+                                        )}
                                         <div className="space-y-3">
                                             <div className="flex flex-wrap items-center justify-between gap-2">
                                                 <span className="text-[10px] font-black uppercase tracking-widest text-primary">

@@ -131,11 +131,32 @@ function hitStreakAndTotalDays(byDay, goal, todayKey, metToday) {
 }
 
 async function buildGoalProgressPayload(goal, userId, dayMatch, ctx) {
-    const { todayKeyForStreak, streakTz, dateFloor, computeStreak, archiveDateKey } = ctx;
+    const {
+        todayKeyForStreak,
+        streakTz,
+        dateFloor,
+        computeStreak,
+        archiveDateKey,
+        yesterdayBaseMatch,
+        yesterdayKeyForStrip,
+    } = ctx;
     const seconds = await sumSecondsForGoal(goal, userId, dayMatch);
     const rawPercent = goal.targetSeconds > 0 ? Math.round((seconds / goal.targetSeconds) * 100) : 0;
     const progress = Math.min(100, Math.max(0, rawPercent));
     const metToday = goalTargetMet(goal, seconds);
+
+    let yesterdaySeconds = 0;
+    let yesterdayProgress = 0;
+    let metYesterday = false;
+    let legacyYesterdayDateKey = null;
+    if (!archiveDateKey && !goalHasPinnedDay(goal) && yesterdayBaseMatch && yesterdayKeyForStrip) {
+        yesterdaySeconds = await sumSecondsForGoal(goal, userId, yesterdayBaseMatch);
+        const rawY =
+            goal.targetSeconds > 0 ? Math.round((yesterdaySeconds / goal.targetSeconds) * 100) : 0;
+        yesterdayProgress = Math.min(100, Math.max(0, rawY));
+        metYesterday = goalTargetMet(goal, yesterdaySeconds);
+        legacyYesterdayDateKey = yesterdayKeyForStrip;
+    }
 
     let hitStreakDays = 0;
     let totalDaysHit = 0;
@@ -152,9 +173,11 @@ async function buildGoalProgressPayload(goal, userId, dayMatch, ctx) {
         currentSeconds: seconds,
         progress,
         metToday,
-        metYesterday: false,
+        metYesterday,
+        yesterdaySeconds,
+        yesterdayProgress,
         todayDateKey: todayKeyForStreak,
-        yesterdayDateKey: null,
+        yesterdayDateKey: legacyYesterdayDateKey,
         displayDateKey: archiveDateKey || todayKeyForStreak,
         isArchive: Boolean(archiveDateKey),
         hitStreakDays,
@@ -207,6 +230,8 @@ export async function GET(req) {
             dateFloor,
             computeStreak: true,
             archiveDateKey: null,
+            yesterdayBaseMatch,
+            yesterdayKeyForStrip: yesterdayKey || null,
         };
         const ctxArchive = {
             todayKeyForStreak,
@@ -214,6 +239,8 @@ export async function GET(req) {
             dateFloor,
             computeStreak: false,
             archiveDateKey: yesterdayKey || null,
+            yesterdayBaseMatch: null,
+            yesterdayKeyForStrip: null,
         };
 
         const today = await Promise.all(
