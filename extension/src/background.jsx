@@ -280,8 +280,10 @@ async function refreshGoalsAndPopupCache(opts = {}) {
         for (const g of goals) {
             const id = String(g._id);
             const prog = typeof g.progress === "number" ? g.progress : 0;
-            const prev = goalProgressSnapshot[id];
-            if (prev !== undefined && g.isActive && prog >= 100 && prev < 100) {
+            const prevRaw = goalProgressSnapshot[id];
+            const prevProg = typeof prevRaw === "number" && Number.isFinite(prevRaw) ? prevRaw : -1;
+            /* Fire when crossing into 100% (including first poll after empty snapshot, e.g. new day / new goal). */
+            if (g.isActive !== false && g.type === "productive" && prog >= 100 && prevProg < 100) {
                 const name = String(g.label || g.website || "Your goal").trim() || "Your goal";
                 const siteRaw = String(g.website || "").trim();
                 const targetHost =
