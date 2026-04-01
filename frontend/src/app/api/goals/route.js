@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect, { isDbUnavailableError } from '../../../../../backend/db/mongodb.js';
 import Goal from '../../../../../backend/models/Goal.js';
 import { getUserIdFromRequest } from '@/lib/apiUser';
-import { splitGoalWebsiteForStorage } from '@/lib/goalWebsiteSpec';
+import { splitGoalWebsiteForStorage, normalizeStoredPathPrefix } from '@/lib/goalWebsiteSpec';
 
 function normalizeGoalWebsite(body) {
     if (!body || typeof body !== "object") return body;
@@ -15,8 +15,11 @@ function normalizeGoalWebsite(body) {
         } else {
             const spec = splitGoalWebsiteForStorage(raw);
             next.website = spec.host;
-            next.pathPrefix = spec.pathPrefix || "";
+            next.pathPrefix = normalizeStoredPathPrefix(spec.pathPrefix);
         }
+    }
+    if ("pathPrefix" in next) {
+        next.pathPrefix = normalizeStoredPathPrefix(next.pathPrefix);
     }
     return next;
 }

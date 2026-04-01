@@ -9,6 +9,7 @@ import {
     previousCalendarDateKey,
     todayDateKeyInTimezone,
 } from '@/lib/trackingRangeServer';
+import { normalizeStoredPathPrefix } from '@/lib/goalWebsiteSpec';
 
 const HISTORY_MS = 730 * 24 * 60 * 60 * 1000;
 const MAX_STREAK_WALK = 400;
@@ -32,8 +33,20 @@ function goalHasPinnedDay(goal) {
 }
 
 function goalPathPrefix(goal) {
-    const p = goal.pathPrefix != null ? String(goal.pathPrefix).trim() : "";
-    return p;
+    return normalizeStoredPathPrefix(goal?.pathPrefix);
+}
+
+/** Only tracking at/after goal creation counts toward progress (same calendar day still applies). */
+function goalProgressSince(goal) {
+    const raw = goal?.createdAt;
+    if (!raw) return null;
+    const d = raw instanceof Date ? raw : new Date(raw);
+    return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function matchGoalCreatedAt(goal) {
+    const since = goalProgressSince(goal);
+    return since ? { date: { $gte: since } } : {};
 }
 
 /** Empty pathPrefix → all paths on host (short-URL / domain-only objectives). */
@@ -51,6 +64,7 @@ async function sumSecondsForGoal(goal, userId, dayBaseMatch) {
            e.g. wikipedia.org as neutral while the user still set a productive target for it. */
         const matchCondition = {
             ...dayBaseMatch,
+            ...matchGoalCreatedAt(goal),
             ...(hasTargetSite
                 ? {
                       website: new RegExp(escapeRegex(goal.website.trim()), "i"),
@@ -69,6 +83,7 @@ async function sumSecondsForGoal(goal, userId, dayBaseMatch) {
             {
                 $match: {
                     ...dayBaseMatch,
+                    ...matchGoalCreatedAt(goal),
                     website: new RegExp(escapeRegex(goal.website.trim()), "i"),
                     ...pathPart,
                 },
@@ -81,7 +96,10 @@ async function sumSecondsForGoal(goal, userId, dayBaseMatch) {
 }
 
 function matchForGoalHistoryAggregate(goal, userId, dateFloor) {
-    const base = { userId, date: { $gte: dateFloor } };
+    const since = goalProgressSince(goal);
+    const floor = dateFloor instanceof Date ? dateFloor : new Date(dateFloor);
+    const start = since && since > floor ? since : floor;
+    const base = { userId, date: { $gte: start } };
     const pathPart = pathMatchForGoal(goal);
     if (goal.type === "productive") {
         const hasTargetSite = goal.website && goal.website.trim() !== "" && goal.website.trim() !== "*";

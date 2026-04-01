@@ -1,5 +1,13 @@
 import { MAX_PATH_LEN } from "./privacyNormalizeUrl";
 
+/** Stored/API: empty, "/", or whitespace → no path filter (whole host counts toward the goal). */
+export function normalizeStoredPathPrefix(raw) {
+    if (raw == null) return "";
+    const s = String(raw).trim();
+    if (!s || s === "/") return "";
+    return s;
+}
+
 /**
  * Parse objective "website" input into stored host + optional path prefix (no query/hash).
  * Host-only → pathPrefix "" (goal counts all time on that domain in real time).
@@ -37,6 +45,7 @@ export function splitGoalWebsiteForStorage(raw) {
     if (path.length > MAX_PATH_LEN) {
         path = path.slice(0, MAX_PATH_LEN);
     }
-    const pathPrefix = path === "/" || path === "" ? "" : path.startsWith("/") ? path : `/${path}`;
+    let pathPrefix = path === "/" || path === "" ? "" : path.startsWith("/") ? path : `/${path}`;
+    pathPrefix = normalizeStoredPathPrefix(pathPrefix);
     return { host, pathPrefix };
 }

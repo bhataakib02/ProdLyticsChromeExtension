@@ -624,13 +624,15 @@ export default function GoalsView() {
                                             inputMode="url"
                                         />
                                         <p className="text-[10px] font-medium text-muted/90 leading-snug">
-                                            <strong className="text-foreground/90">Short host only</strong> (e.g.{" "}
-                                            <code className="text-foreground/80">wikipedia.org</code>) counts{" "}
-                                            <em>all</em> time on that site in real time. Add a{" "}
-                                            <strong className="text-foreground/90">path</strong> (e.g.{" "}
+                                            <strong className="text-foreground/90">Host only</strong> (e.g.{" "}
+                                            <code className="text-foreground/80">wikipedia.org</code>): goal progress
+                                            uses <em>all</em> tracked time on that host (every path)—same data the
+                                            extension sends. Add a <strong className="text-foreground/90">path</strong>{" "}
+                                            (e.g.{" "}
                                             <code className="text-foreground/80">wikipedia.org/wiki/foo</code>) to
-                                            scope the goal. We never store query strings or hashes — only host + path
-                                            for privacy.
+                                            limit to a section. Query strings and hashes are not stored. Progress for
+                                            an objective starts from when you save it; Analytics still shows full site
+                                            time for the day.
                                         </p>
                                     </div>
                                 </div>
