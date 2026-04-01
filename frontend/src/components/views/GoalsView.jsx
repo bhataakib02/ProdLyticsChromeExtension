@@ -157,14 +157,14 @@ export default function GoalsView() {
         return `${m}m`;
     }
 
-    /** Tracked seconds for this goal vs its target (productive) or max (unproductive). */
-    function formatGoalTrackedVsTarget(goal, trackedSeconds) {
-        const tracked = formatDurationShort(trackedSeconds);
-        const target = formatDurationShort(goal.targetSeconds);
+    /** Compact goal time: tracked vs target (e.g. 6m / 1m or 0m / 1m max). */
+    function compactGoalTime(goal, trackedSeconds) {
+        const t = formatDurationShort(trackedSeconds);
+        const tgt = formatDurationShort(goal.targetSeconds);
         if (goal.type === "unproductive") {
-            return `${tracked} on this site · ${target} max for this goal`;
+            return `${t} / ${tgt} max`;
         }
-        return `${tracked} toward this goal · target ${target}`;
+        return `${t} / ${tgt}`;
     }
 
     function formatDayLabel(dateKey) {
@@ -283,9 +283,12 @@ export default function GoalsView() {
                                                 </span>
                                             </div>
                                             <div className="rounded-xl border border-foreground/10 bg-foreground/[0.04] p-4 space-y-2.5">
-                                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                                <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                                                     <span className="text-[10px] font-black uppercase tracking-widest text-muted">
                                                         {formatDayLabel(goal.displayDateKey)}
+                                                    </span>
+                                                    <span className="text-[11px] font-semibold text-muted tabular-nums">
+                                                        {compactGoalTime(goal, goal.currentSeconds)}
                                                     </span>
                                                     <div className="flex flex-wrap items-center gap-2">
                                                         {goal.metToday ? (
@@ -298,7 +301,7 @@ export default function GoalsView() {
                                                                 Not met
                                                             </span>
                                                         )}
-                                                        <span className="text-xs font-bold text-muted">
+                                                        <span className="text-xs font-bold text-muted tabular-nums">
                                                             {Math.min(100, Math.max(0, Number(goal.progress) || 0))}%
                                                         </span>
                                                     </div>
@@ -313,9 +316,6 @@ export default function GoalsView() {
                                                         }}
                                                     />
                                                 </div>
-                                                <p className="text-[10px] font-medium text-muted">
-                                                    {formatGoalTrackedVsTarget(goal, goal.currentSeconds)}
-                                                </p>
                                             </div>
                                         </div>
                                     ))}
@@ -413,9 +413,12 @@ export default function GoalsView() {
                                         )}
                                         {goal.yesterdayDateKey && !goalHasPinnedDay(goal) && (
                                             <div className="rounded-xl border border-foreground/10 bg-foreground/[0.04] p-4 mb-5 space-y-2.5">
-                                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                                <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                                                     <span className="text-[10px] font-black uppercase tracking-widest text-muted">
                                                         Yesterday · {formatDayLabel(goal.yesterdayDateKey)}
+                                                    </span>
+                                                    <span className="text-[11px] font-semibold text-muted tabular-nums">
+                                                        {compactGoalTime(goal, goal.yesterdaySeconds)}
                                                     </span>
                                                     <div className="flex flex-wrap items-center gap-2">
                                                         {goal.metYesterday ? (
@@ -428,7 +431,7 @@ export default function GoalsView() {
                                                                 Not met
                                                             </span>
                                                         )}
-                                                        <span className="text-xs font-bold text-muted">
+                                                        <span className="text-xs font-bold text-muted tabular-nums">
                                                             {Math.min(100, Math.max(0, Number(goal.yesterdayProgress) || 0))}%
                                                         </span>
                                                     </div>
@@ -445,17 +448,23 @@ export default function GoalsView() {
                                                         }}
                                                     />
                                                 </div>
-                                                <p className="text-[10px] font-medium text-muted">
-                                                    {formatGoalTrackedVsTarget(goal, goal.yesterdaySeconds)}
-                                                </p>
                                             </div>
                                         )}
                                         <div className="space-y-3">
-                                            <div className="flex flex-wrap items-center justify-between gap-2">
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-muted">
+                                            <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-muted shrink-0">
                                                     Progress
                                                 </span>
-                                                <span className="text-xs font-bold text-muted">
+                                                <span className="text-[11px] font-semibold text-muted tabular-nums min-w-0 text-center flex-1 px-1">
+                                                    {compactGoalTime(goal, goal.currentSeconds)}
+                                                    {goal.metToday && goal.type === "productive" && (
+                                                        <span className="text-primary"> · Met</span>
+                                                    )}
+                                                    {goal.metToday && goal.type === "unproductive" && (
+                                                        <span className="text-primary"> · Under max</span>
+                                                    )}
+                                                </span>
+                                                <span className="text-xs font-bold text-muted tabular-nums shrink-0">
                                                     {Math.min(100, Math.max(0, Number(goal.progress) || 0))}%
                                                 </span>
                                             </div>
@@ -467,15 +476,6 @@ export default function GoalsView() {
                                                     }}
                                                 />
                                             </div>
-                                            <p className="text-[10px] font-medium text-muted">
-                                                {formatGoalTrackedVsTarget(goal, goal.currentSeconds)}
-                                                {goal.metToday && goal.type === "productive" && (
-                                                    <span className="text-primary"> · Met</span>
-                                                )}
-                                                {goal.metToday && goal.type === "unproductive" && (
-                                                    <span className="text-primary"> · Within limit</span>
-                                                )}
-                                            </p>
                                         </div>
                                     </div>
                                 ))}
