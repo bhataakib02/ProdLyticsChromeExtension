@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { DashboardProvider } from "@/context/DashboardContext";
 import Sidebar from "@/components/layout/Sidebar";
 import Navbar from "@/components/layout/Navbar";
+import DeepWorkTimerStrip from "@/components/layout/DeepWorkTimerStrip";
 
 export default function AppFrame({ children }) {
     const { user, loading } = useAuth();
@@ -26,6 +27,7 @@ export default function AppFrame({ children }) {
                 <Sidebar />
                 <div className="flex min-w-0 flex-1 flex-col">
                     <Navbar />
+                    <DeepWorkTimerStrip />
                     <main className="flex-1 overflow-auto bg-foreground/[0.02]">{children}</main>
                 </div>
             </div>

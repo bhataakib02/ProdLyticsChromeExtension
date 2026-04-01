@@ -23,6 +23,7 @@ const DEFAULT_PREFERENCES = {
     deepWorkMinutes: 25,
     breakMinutes: 5,
     theme: "dark",
+    productivityNudges: true,
 };
 
 function mergePreferencesFromApi(data) {

@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import BurnoutRiskChart from "@/components/D3Charts";
+import { buildTomorrowFocusIcs } from "@/lib/buildTomorrowFocusIcs";
+import { readSessionReflections, REFLECTIONS_UPDATED_EVENT } from "@/lib/sessionReflections";
 
 export default function InsightsView() {
     const { user } = useAuth();
@@ -37,6 +39,8 @@ export default function InsightsView() {
     const [deepSessions, setDeepSessions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [lastUpdated, setLastUpdated] = useState(null);
+    const [weekStats, setWeekStats] = useState(null);
+    const [reflectionTick, setReflectionTick] = useState(0);
 
     const synchronizeInsights = useCallback(async () => {
         setLoading(true);
@@ -47,6 +51,7 @@ export default function InsightsView() {
                 trackingService.getCognitiveLoad(),
                 goalsService.getObjectives(),
                 trackingService.getDeepWorkHistory(),
+                trackingService.getSummary("week"),
             ]);
 
             const today = settled[0].status === "fulfilled" ? settled[0].value : null;
@@ -54,6 +59,7 @@ export default function InsightsView() {
             const cognitiveResponse = settled[2].status === "fulfilled" ? settled[2].value : { history: [], metrics: null };
             const goalsData = settled[3].status === "fulfilled" ? settled[3].value : [];
             const deep = settled[4].status === "fulfilled" ? settled[4].value : [];
+            const week = settled[5].status === "fulfilled" ? settled[5].value : null;
 
             setMetrics(today);
             setYesterdayMetrics(yest);
@@ -61,6 +67,7 @@ export default function InsightsView() {
             setInsightsData(cognitiveResponse?.metrics || null);
             setGoals(goalsProgressTodayList(goalsData));
             setDeepSessions(Array.isArray(deep) ? deep.slice(0, 5) : []);
+            setWeekStats(week);
             setLastUpdated(new Date());
         } catch (err) {
             console.error("error fetching insights:", err);
@@ -73,6 +80,24 @@ export default function InsightsView() {
         if (user) synchronizeInsights();
     }, [user, synchronizeInsights]);
 
+    useEffect(() => {
+        const onVis = () => {
+            if (document.visibilityState === "visible") synchronizeInsights();
+        };
+        document.addEventListener("visibilitychange", onVis);
+        const intervalId = window.setInterval(() => synchronizeInsights(), 3 * 60 * 1000);
+        return () => {
+            document.removeEventListener("visibilitychange", onVis);
+            window.clearInterval(intervalId);
+        };
+    }, [synchronizeInsights]);
+
+    useEffect(() => {
+        const bump = () => setReflectionTick((x) => x + 1);
+        window.addEventListener(REFLECTIONS_UPDATED_EVENT, bump);
+        return () => window.removeEventListener(REFLECTIONS_UPDATED_EVENT, bump);
+    }, []);
+
     const firstName = user?.name?.trim()?.split(/\s+/)?.[0] ?? "there";
     const focusSessionMinutes = Math.min(180, Math.max(5, Number(user?.preferences?.focusSessionMinutes) || 25));
 
@@ -81,6 +106,30 @@ export default function InsightsView() {
         const v = Number(last?.loadScore);
         return Number.isFinite(v) ? v : 0;
     })();
+
+    const attentionFromLatestHour = useMemo(() => {
+        const last = cognitiveMetrics[cognitiveMetrics.length - 1];
+        if (!last?.time) {
+            return {
+                band: "—",
+                sub: "Use the extension for a few hours; we estimate load per calendar hour from scroll, click, and time on page.",
+            };
+        }
+        const d = new Date(last.time);
+        const tf = new Intl.DateTimeFormat(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" });
+        const v = Number(last.loadScore);
+        const band = !Number.isFinite(v)
+            ? "—"
+            : v > 7
+              ? "High — consider a break"
+              : v > 4
+                ? "Moderate"
+                : "Comfortable";
+        return {
+            band,
+            sub: `Latest synced hour: ${tf.format(d)} (your local time). This is not a live second-by-second reading.`,
+        };
+    }, [cognitiveMetrics]);
 
     const peakMeta = useMemo(() => {
         const valid = cognitiveMetrics.filter((p) => p?.time != null && Number.isFinite(Number(p?.loadScore)));
@@ -134,6 +183,30 @@ export default function InsightsView() {
     })();
 
     const goTab = (tab) => setActiveTab(tab);
+
+    const downloadTomorrowFocusIcs = useCallback(() => {
+        if (!peakMeta.best) return;
+        const d0 = peakMeta.best.date;
+        const h = d0.getHours();
+        const mi = d0.getMinutes();
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, h, mi, 0, 0);
+        const end = new Date(start.getTime() + focusSessionMinutes * 60 * 1000);
+        const dk = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`;
+        const ics = buildTomorrowFocusIcs({
+            title: `ProdLytics focus (${focusSessionMinutes} min)`,
+            start,
+            end,
+            uid: `prodlytics-focus-${dk}@prodlytics.app`,
+        });
+        const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `prodlytics-focus-${dk}.ics`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }, [peakMeta.best, focusSessionMinutes]);
 
     const toastBreak = () =>
         requestExtensionWorkspaceToast({
@@ -213,6 +286,9 @@ export default function InsightsView() {
         [metrics, cognitiveMetrics, insightsData]
     );
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- lastUpdated + reflectionTick intentionally invalidate localStorage read
+    const recentReflections = useMemo(() => readSessionReflections(5), [lastUpdated, reflectionTick]);
+
     if (!user) return null;
 
     const m = insightsData || {};
@@ -271,6 +347,72 @@ export default function InsightsView() {
                             </span>
                         </li>
                     </ul>
+                </div>
+            </section>
+
+            <section
+                className="glass-card rounded-[32px] border-2 border-ui p-6 md:p-8"
+                aria-label="Week at a glance"
+            >
+                <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0 flex-1">
+                        <h2 className="text-[10px] font-black uppercase tracking-[0.35em] text-muted mb-2">Rolling 7 days</h2>
+                        <p className="text-xl font-black text-foreground/95 tracking-tight">Week at a glance</p>
+                        <p className="mt-3 text-sm text-muted font-medium leading-relaxed max-w-2xl">
+                            Same focus score idea as today, stretched across your last week of extension-tracked browsing. One bad
+                            day doesn&apos;t erase the trend.
+                        </p>
+                        <ul className="mt-5 flex flex-wrap gap-x-10 gap-y-4 text-sm">
+                            <li>
+                                <span className="block text-[10px] font-black uppercase text-muted tracking-widest mb-1">
+                                    Focus score
+                                </span>
+                                <span className="text-2xl font-black text-primary">
+                                    {weekStats?.score != null ? `${weekStats.score}%` : "—"}
+                                </span>
+                            </li>
+                            <li>
+                                <span className="block text-[10px] font-black uppercase text-muted tracking-widest mb-1">
+                                    Productive (approx.)
+                                </span>
+                                <span className="text-2xl font-black text-foreground/90">
+                                    {weekStats?.productiveTime != null
+                                        ? `${Math.round((Number(weekStats.productiveTime) / 3600) * 10) / 10}h`
+                                        : "—"}
+                                </span>
+                            </li>
+                            <li>
+                                <span className="block text-[10px] font-black uppercase text-muted tracking-widest mb-1">
+                                    Distracting (approx.)
+                                </span>
+                                <span className="text-2xl font-black text-foreground/90">
+                                    {weekStats?.unproductiveTime != null
+                                        ? `${Math.round((Number(weekStats.unproductiveTime) / 3600) * 10) / 10}h`
+                                        : "—"}
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+                    {recentReflections.length > 0 ? (
+                        <div className="w-full shrink-0 lg:max-w-sm lg:border-l border-ui lg:pl-8">
+                            <h3 className="text-[10px] font-black uppercase tracking-widest text-muted mb-3">
+                                After focus — your notes
+                            </h3>
+                            <ul className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                                {recentReflections.map((r, i) => (
+                                    <li
+                                        key={`${r.at}-${i}`}
+                                        className="rounded-xl border border-ui bg-foreground/[0.02] p-3 text-xs text-muted"
+                                    >
+                                        <p className="font-bold text-foreground/90 leading-snug">{r.text}</p>
+                                        <p className="text-[10px] font-medium mt-1 opacity-80">
+                                            {r.at ? new Date(r.at).toLocaleString() : ""}
+                                        </p>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ) : null}
                 </div>
             </section>
 
@@ -337,15 +479,48 @@ export default function InsightsView() {
                                         {scoreDeltaVsYesterday} points vs yesterday
                                     </span>
                                 )}
-                                . <span className="text-foreground/80 font-bold">Estimated attention load right now:</span>{" "}
-                                <span className="text-secondary font-bold">
-                                    {latestLoad > 7 ? "High — consider a break" : latestLoad > 4 ? "Moderate" : "Comfortable"}
-                                </span>
-                                <span className="text-muted text-base font-normal">
-                                    {" "}
-                                    (from recent scroll, click, and time-on-page patterns).
+                                .{" "}
+                                <span className="text-foreground/80 font-bold">Estimated attention load (latest synced hour):</span>{" "}
+                                <span className="text-secondary font-bold">{attentionFromLatestHour.band}</span>
+                                <span className="text-muted text-base font-normal block mt-2 sm:inline sm:mt-0 sm:before:content-[' ']">
+                                    {attentionFromLatestHour.sub}
                                 </span>
                             </p>
+                            {updatedLabel ? (
+                                <p className="mt-3 text-xs font-medium text-muted leading-relaxed max-w-2xl">
+                                    <span className="text-foreground/80 font-bold">Data freshness:</span> dashboard refreshed at{" "}
+                                    {updatedLabel}. This page also refreshes when you return to the tab and about every 3 minutes.
+                                    Use <strong className="text-foreground/90">Sync Extension</strong> in the header so new browsing
+                                    shows up here.
+                                </p>
+                            ) : null}
+                            <div className="mt-6 flex flex-wrap gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => goTab("timer")}
+                                    className="inline-flex items-center gap-2 rounded-2xl bg-primary px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-primary/20 hover:opacity-95"
+                                >
+                                    <Timer size={16} />
+                                    Open deep work timer
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => goTab("focus")}
+                                    className="inline-flex items-center gap-2 rounded-2xl border-2 border-ui bg-foreground/[0.03] px-5 py-3 text-[10px] font-black uppercase tracking-widest hover:bg-foreground/[0.06]"
+                                >
+                                    <Focus size={16} />
+                                    Focus mode
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={downloadTomorrowFocusIcs}
+                                    disabled={!peakMeta.best}
+                                    className="inline-flex items-center gap-2 rounded-2xl border-2 border-secondary/40 bg-secondary/10 px-5 py-3 text-[10px] font-black uppercase tracking-widest text-foreground/90 hover:bg-secondary/15 disabled:opacity-40 disabled:pointer-events-none"
+                                >
+                                    <Calendar size={16} />
+                                    Add tomorrow block (.ics)
+                                </button>
+                            </div>
                             {Number(metrics?.streak) > 0 && (
                                 <p className="mt-3 text-sm font-bold text-foreground/80">
                                     {metrics.streak}-day productive streak — consistency compounds.
@@ -390,6 +565,15 @@ export default function InsightsView() {
                         >
                             <Timer size={16} />
                             Timer
+                        </button>
+                        <button
+                            type="button"
+                            onClick={downloadTomorrowFocusIcs}
+                            disabled={!peakMeta.best}
+                            className="inline-flex items-center gap-2 rounded-2xl border-2 border-secondary/40 bg-secondary/10 px-5 py-3 text-xs font-black uppercase tracking-widest hover:bg-secondary/15 disabled:opacity-40 disabled:pointer-events-none"
+                        >
+                            <Calendar size={16} />
+                            Download .ics
                         </button>
                     </div>
                 </div>

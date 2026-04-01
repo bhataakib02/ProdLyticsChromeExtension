@@ -19,6 +19,11 @@ import { useAuth } from "@/context/AuthContext";
 import { trackingService } from "@/services/tracking.service";
 import { requestExtensionWorkspaceToast } from "@/lib/extensionSync";
 import { TimerAlertsOnboarding } from "@/components/pwa/TimerAlertsOnboarding";
+import {
+    DEEP_WORK_TIMER_STORAGE_KEY,
+    dispatchDeepWorkTimerSync,
+} from "@/lib/deepWorkTimerStorage";
+import { SESSION_REFLECTIONS_KEY, dispatchReflectionsUpdated } from "@/lib/sessionReflections";
 import { motion, AnimatePresence } from "framer-motion";
 
 function formatHistoryType(type) {
@@ -71,8 +76,6 @@ async function requestNotificationPermission() {
         /* ignore */
     }
 }
-
-const TIMER_STORAGE_KEY = "prodlytics-deep-work-timer-v1";
 
 function playPhaseEndChime() {
     const AC = typeof window !== "undefined" && (window.AudioContext || window.webkitAudioContext);
@@ -130,6 +133,8 @@ export default function TimerView() {
     const [savingDefaults, setSavingDefaults] = useState(false);
     const [soundEnabled, setSoundEnabled] = useState(false);
     const [storageReady, setStorageReady] = useState(false);
+    const [reflectionOpen, setReflectionOpen] = useState(false);
+    const [reflectionDraft, setReflectionDraft] = useState("");
 
     const workMinInputRef = useRef(null);
     const breakMinInputRef = useRef(null);
@@ -322,7 +327,7 @@ export default function TimerView() {
         const bPref = breakMinutesPref ?? 5;
 
         try {
-            const raw = localStorage.getItem(TIMER_STORAGE_KEY);
+            const raw = localStorage.getItem(DEEP_WORK_TIMER_STORAGE_KEY);
             if (raw) {
                 const s = JSON.parse(raw);
                 if (s.v === 1 && s.userId === user.id) {
@@ -402,7 +407,8 @@ export default function TimerView() {
             soundEnabled,
         };
         try {
-            localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(payload));
+            localStorage.setItem(DEEP_WORK_TIMER_STORAGE_KEY, JSON.stringify(payload));
+            dispatchDeepWorkTimerSync();
         } catch {
             /* ignore quota / private mode */
         }
@@ -448,6 +454,8 @@ export default function TimerView() {
             });
             setTimerMode("break");
             setTimeLeft(bMin * 60);
+            setReflectionDraft("");
+            setReflectionOpen(true);
         } else {
             const extMsg = `Ready for another ${wMin} minute focus stretch.`;
             void persistSession({
@@ -594,11 +602,66 @@ export default function TimerView() {
         showToast,
     ]);
 
+    const saveReflection = useCallback(() => {
+        const t = reflectionDraft.trim();
+        if (t) {
+            try {
+                const raw = localStorage.getItem(SESSION_REFLECTIONS_KEY);
+                const arr = raw ? JSON.parse(raw) : [];
+                const next = Array.isArray(arr) ? arr : [];
+                next.unshift({ text: t.slice(0, 500), at: new Date().toISOString() });
+                localStorage.setItem(SESSION_REFLECTIONS_KEY, JSON.stringify(next.slice(0, 25)));
+            } catch {
+                /* ignore */
+            }
+            showToast("Saved — see it on AI Insights.");
+            dispatchReflectionsUpdated();
+        }
+        setReflectionOpen(false);
+        setReflectionDraft("");
+    }, [reflectionDraft, showToast]);
+
+    const skipReflection = useCallback(() => {
+        setReflectionOpen(false);
+        setReflectionDraft("");
+    }, []);
+
     if (!user) return null;
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-12 relative">
             <TimerAlertsOnboarding />
+            <AnimatePresence>
+                {reflectionOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 24 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 16 }}
+                        className="fixed bottom-6 left-1/2 z-[90] w-[min(100%-2rem,28rem)] -translate-x-1/2 rounded-2xl border-2 border-primary/35 bg-background/95 p-4 shadow-2xl backdrop-blur-md"
+                        role="dialog"
+                        aria-label="Optional session note"
+                    >
+                        <p className="text-xs font-black uppercase tracking-widest text-primary mb-2">Optional</p>
+                        <p className="text-sm font-bold text-foreground mb-2">What did you just get done?</p>
+                        <textarea
+                            value={reflectionDraft}
+                            onChange={(e) => setReflectionDraft(e.target.value)}
+                            rows={3}
+                            maxLength={500}
+                            placeholder="e.g. Finished design mockups for checkout"
+                            className="mb-3 w-full resize-none rounded-xl border-2 border-ui bg-foreground/5 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/25"
+                        />
+                        <div className="flex flex-wrap gap-2 justify-end">
+                            <button type="button" onClick={skipReflection} className="btn-secondary text-xs font-bold px-4 py-2">
+                                Skip
+                            </button>
+                            <button type="button" onClick={saveReflection} className="btn-primary text-xs font-bold px-4 py-2">
+                                Save note
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
             <AnimatePresence>
                 {toast && (
                     <motion.div

@@ -12,7 +12,9 @@ const PreferenceSchema = new mongoose.Schema({
     /** Pomodoro / Deep Work timer (dashboard Timer tab) */
     deepWorkMinutes: { type: Number, default: 25, min: 1, max: 180 },
     breakMinutes: { type: Number, default: 5, min: 1, max: 60 },
-    theme: { type: String, default: "dark" }
+    theme: { type: String, default: "dark" },
+    /** Periodic gentle reminder (extension) to refocus — synced with dashboard prefs */
+    productivityNudges: { type: Boolean, default: true },
 }, { timestamps: true });
 
 export default mongoose.models.Preference || mongoose.model('Preference', PreferenceSchema);

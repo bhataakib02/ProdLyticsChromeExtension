@@ -17,7 +17,8 @@ const DEFAULT_PREFERENCES = {
     breakSessionMinutes: 5,
     deepWorkMinutes: 25,
     breakMinutes: 5,
-    theme: "dark"
+    theme: "dark",
+    productivityNudges: true,
 };
 
 const PREFERENCE_KEYS = Object.keys(DEFAULT_PREFERENCES);

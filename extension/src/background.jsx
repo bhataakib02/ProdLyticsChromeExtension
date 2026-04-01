@@ -147,6 +147,7 @@ async function redirectTabsMatchingHost(hostPattern) {
 }
 
 const FLOW_REMINDER_ALARM = "flowReminder";
+const PRODUCTIVITY_NUDGE_ALARM = "productivityNudge";
 
 function mergePreferenceDefaults(raw) {
     return {
@@ -157,6 +158,7 @@ function mergePreferenceDefaults(raw) {
         breakSessionMinutes: 5,
         deepWorkMinutes: 25,
         breakMinutes: 5,
+        productivityNudges: true,
         ...(raw && typeof raw === "object" ? raw : {}),
     };
 }
@@ -187,6 +189,23 @@ async function scheduleFlowReminderAlarm() {
     const period = Math.max(1, Math.round(focusMin));
     chrome.alarms.create(FLOW_REMINDER_ALARM, { periodInMinutes: period });
     console.log(`⏰ Flow reminder every ${period} min (idle-aware)`);
+}
+
+function showProductivityNudgeNotification() {
+    const icon = chrome.runtime.getURL("icons/icon.png");
+    chrome.notifications.create(`prodlytics-nudge-${Date.now()}`, {
+        type: "basic",
+        iconUrl: icon,
+        title: "ProdLytics — quick check-in",
+        message: "Still working on what matters? Start a short focus block or timer on your dashboard.",
+        priority: 0,
+    });
+}
+
+async function scheduleProductivityNudgeAlarm() {
+    await chrome.alarms.clear(PRODUCTIVITY_NUDGE_ALARM);
+    if (!preferences.productivityNudges) return;
+    chrome.alarms.create(PRODUCTIVITY_NUDGE_ALARM, { periodInMinutes: 120 });
 }
 
 /** Add host to dashboard Neural Blocklist (visible + enforced with Strict lock). */
@@ -234,6 +253,7 @@ let preferences = {
     breakReminders: false,
     focusSessionMinutes: 25,
     breakSessionMinutes: 5,
+    productivityNudges: true,
 };
 
 let lastGoalPollMs = 0;
@@ -740,12 +760,14 @@ async function updateSyncData() {
             console.log("✅ Preferences updated:", preferences);
         }
         await scheduleFlowReminderAlarm();
+        await scheduleProductivityNudgeAlarm();
     } catch (err) {
         console.warn("⚠️ Sync failed, using cached data:", err.message);
         const cache = await chrome.storage.local.get(["blocklist", "preferences"]);
         if (cache.blocklist) blocklist = cache.blocklist;
         if (cache.preferences) preferences = mergePreferenceDefaults(cache.preferences);
         await scheduleFlowReminderAlarm();
+        await scheduleProductivityNudgeAlarm();
     }
 }
 
@@ -826,6 +848,20 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         } catch (e) {
             console.warn("Flow reminder:", e);
             showFlowBreakNotification();
+        }
+    } else if (alarm.name === PRODUCTIVITY_NUDGE_ALARM) {
+        if (!preferences.productivityNudges) return;
+        try {
+            if (chrome.idle?.queryState) {
+                chrome.idle.queryState(120, (state) => {
+                    if (state === "active") showProductivityNudgeNotification();
+                });
+            } else {
+                showProductivityNudgeNotification();
+            }
+        } catch (e) {
+            console.warn("Productivity nudge:", e);
+            showProductivityNudgeNotification();
         }
     } else if (alarm.name === "midnightReset") {
         console.log("🕛 Midnight reset triggered. Syncing and clearing local data...");
@@ -1074,6 +1110,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
         if (changes.preferences) {
             preferences = mergePreferenceDefaults(changes.preferences.newValue || preferences);
             scheduleFlowReminderAlarm();
+            scheduleProductivityNudgeAlarm();
         }
 
     }
