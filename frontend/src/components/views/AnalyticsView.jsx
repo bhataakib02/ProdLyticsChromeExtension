@@ -399,6 +399,7 @@ export default function AnalyticsView() {
                     <div className="p-4 space-y-3">
                         {filteredDomains.map((domain, index) => {
                             const percentage = maxTime > 0 ? Math.round((domain.totalTime / maxTime) * 100) : 0;
+                            const favHost = String(domain._id || "").split(" · ")[0].trim() || domain._id;
                             return (
                                 <motion.div
                                     key={domain._id}
@@ -409,7 +410,14 @@ export default function AnalyticsView() {
                                         {String(index + 1).padStart(2, "0")}
                                     </div>
                                     <div className="flex items-center gap-4 min-w-[220px] w-[300px]">
-                                        <Image src={`https://www.google.com/s2/favicons?domain=${domain._id}&sz=64`} alt="" width={24} height={24} className="w-6 h-6 rounded-md" unoptimized />
+                                        <Image
+                                            src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(favHost)}&sz=64`}
+                                            alt=""
+                                            width={24}
+                                            height={24}
+                                            className="w-6 h-6 rounded-md"
+                                            unoptimized
+                                        />
                                         <div className="flex flex-col">
                                             <span className="text-sm font-bold text-foreground/90">{domain._id}</span>
                                             <span className="mt-1 w-fit rounded-md border-2 border-ui-muted px-2 py-0.5 text-[8px] font-black uppercase">

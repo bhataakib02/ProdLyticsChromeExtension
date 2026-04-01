@@ -6,6 +6,7 @@ import Category from '../../../../../backend/models/Category.js';
 import aiClassifier from '../../../../../backend/services/aiClassifier.js';
 import { withCors, corsOptions } from '@/lib/cors';
 import { getUserIdFromRequest } from '@/lib/apiUser';
+import { privacyNormalizeUrl, sanitizePathNormField } from '@/lib/privacyNormalizeUrl';
 
 export async function OPTIONS() {
     return corsOptions();
@@ -19,15 +20,26 @@ export async function POST(req) {
             return withCors(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
         }
         const body = await req.json();
-        const { website, time, pageTitle, scrolls, clicks, content } = body;
-
+        const { website, time, pageTitle, scrolls, clicks, content, pathNorm: pathNormRaw, pageUrl } = body;
 
         if (!website || typeof time !== 'number' || time <= 0) {
             return withCors(NextResponse.json({ error: "Invalid data" }, { status: 400 }));
         }
 
-        // Determine category
-        let catDoc = await Category.findOne({ userId, website });
+        const hostKey = String(website).trim().toLowerCase();
+        let pathNorm = "";
+        if (typeof pageUrl === "string" && pageUrl.trim()) {
+            const n = privacyNormalizeUrl(pageUrl.trim());
+            if (n.host && n.host === hostKey) {
+                pathNorm = n.pathNorm;
+            }
+        }
+        if (!pathNorm && pathNormRaw != null) {
+            pathNorm = sanitizePathNormField(pathNormRaw);
+        }
+
+        // Determine category (per host — not per path)
+        let catDoc = await Category.findOne({ userId, website: hostKey });
         let category = "neutral";
         let source = "default";
 
@@ -35,12 +47,12 @@ export async function POST(req) {
             category = catDoc.category;
             source = "user";
         } else {
-            const aiResult = aiClassifier.classify(website, pageTitle || "", content || "");
+            const aiResult = aiClassifier.classify(hostKey, pageTitle || "", content || "");
             category = aiResult.category;
             source = "ai";
 
             await Category.findOneAndUpdate(
-                { userId, website },
+                { userId, website: hostKey },
                 {
                     category: aiResult.category,
                     source: "ai",
@@ -53,7 +65,8 @@ export async function POST(req) {
 
         await Tracking.create({
             userId,
-            website,
+            website: hostKey,
+            pathNorm,
             pageTitle: pageTitle || "",
             time,
             category,
@@ -89,11 +102,33 @@ export async function GET(req) {
         const data = await Tracking.aggregate([
             { $match: match },
             {
+                $addFields: {
+                    pn: { $ifNull: ["$pathNorm", ""] },
+                },
+            },
+            {
                 $group: {
-                    _id: "$website",
+                    _id: {
+                        website: "$website",
+                        pathNorm: "$pn",
+                    },
                     totalTime: { $sum: "$time" },
                     category: { $last: "$category" },
                     sessions: { $sum: 1 },
+                },
+            },
+            {
+                $project: {
+                    _id: {
+                        $cond: [
+                            { $eq: ["$_id.pathNorm", ""] },
+                            "$_id.website",
+                            { $concat: ["$_id.website", " · ", "$_id.pathNorm"] },
+                        ],
+                    },
+                    totalTime: 1,
+                    category: 1,
+                    sessions: 1,
                 },
             },
             { $sort: { totalTime: -1 } },

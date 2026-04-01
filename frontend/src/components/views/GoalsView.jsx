@@ -10,10 +10,19 @@ import { Target, Plus, Trophy, Flame, X, Trash2, Zap, Pencil, Award, CheckCircle
 import { motion, AnimatePresence } from "framer-motion";
 import { requestExtensionWorkspaceToast } from "@/lib/extensionSync";
 import { normalizeWebsiteHost } from "@/lib/normalizeWebsiteHost";
+import { splitGoalWebsiteForStorage } from "@/lib/goalWebsiteSpec";
 
 function goalHasPinnedDay(goal) {
     const dk = goal?.dateKey;
     return dk != null && String(dk).trim() !== "";
+}
+
+function displayGoalWebsiteField(goal) {
+    if (!goal) return "";
+    const w = goal.website || "";
+    if (w === "*") return "*";
+    const p = goal.pathPrefix && typeof goal.pathPrefix === "string" ? goal.pathPrefix : "";
+    return `${w}${p}`;
 }
 
 export default function GoalsView() {
@@ -83,10 +92,17 @@ export default function GoalsView() {
 
     async function handleSaveObjective(e) {
         e.preventDefault();
-        const website = normalizeWebsiteHost(newObjective.website);
+        const website = String(newObjective.website || "").trim();
         if (!website) {
             window.alert("Enter a valid website or URL (e.g. twitter.com or https://www.twitter.com).");
             return;
+        }
+        if (website !== "*") {
+            const { host } = splitGoalWebsiteForStorage(website);
+            if (!host) {
+                window.alert("Enter a valid website or URL (e.g. twitter.com or https://www.twitter.com).");
+                return;
+            }
         }
         const base = { ...newObjective, website };
         try {
@@ -119,7 +135,7 @@ export default function GoalsView() {
                 label: goal.label,
                 targetSeconds: goal.targetSeconds,
                 type: goal.type,
-                website: goal.website,
+                website: displayGoalWebsiteField(goal),
                 dateKey: dk,
             });
             await synchronizeObjectives();
@@ -134,7 +150,7 @@ export default function GoalsView() {
             label: goal.label,
             targetSeconds: goal.targetSeconds,
             type: goal.type,
-            website: normalizeWebsiteHost(goal.website || "") || goal.website || "",
+            website: displayGoalWebsiteField(goal),
         });
         setShowNewObjective(true);
     };
@@ -179,10 +195,10 @@ export default function GoalsView() {
     if (!user) return null;
 
     const filteredToday = todayGoals.filter((g) =>
-        matchesActivitySearch(activitySearchQuery, g.label, g.website, g.type)
+        matchesActivitySearch(activitySearchQuery, g.label, g.website, g.pathPrefix, g.type)
     );
     const filteredYesterday = yesterdayGoals.filter((g) =>
-        matchesActivitySearch(activitySearchQuery, g.label, g.website, g.type)
+        matchesActivitySearch(activitySearchQuery, g.label, g.website, g.pathPrefix, g.type)
     );
 
     const totalCount = todayGoals.length + yesterdayGoals.length;
@@ -267,7 +283,9 @@ export default function GoalsView() {
                                                     </button>
                                                 </div>
                                             </div>
-                                            <h3 className="text-xl font-bold  mb-2">{goal.label || goal.website}</h3>
+                                            <h3 className="text-xl font-bold  mb-2">
+                                                {goal.label || displayGoalWebsiteField(goal)}
+                                            </h3>
                                             <div className="flex items-center gap-2 text-[10px] text-muted font-black uppercase tracking-widest mb-4">
                                                 <span
                                                     className={
@@ -376,7 +394,9 @@ export default function GoalsView() {
                                                 </button>
                                             </div>
                                         </div>
-                                        <h3 className="text-xl font-bold  mb-2">{goal.label || goal.website}</h3>
+                                        <h3 className="text-xl font-bold  mb-2">
+                                            {goal.label || displayGoalWebsiteField(goal)}
+                                        </h3>
                                         <div className="flex items-center gap-2 text-[10px] text-muted font-black uppercase tracking-widest mb-4">
                                             <span
                                                 className={goal.type === "productive" ? "text-primary" : "text-secondary"}
@@ -591,26 +611,29 @@ export default function GoalsView() {
                                         <input
                                             id="objective-website"
                                             required
-                                            placeholder="twitter.com, www.x.com, or full URL"
+                                            placeholder="youtube.com or youtube.com/watch (no ?query — privacy)"
                                             className={fieldBase}
                                             value={newObjective.website}
                                             onChange={(e) =>
                                                 setNewObjective({ ...newObjective, website: e.target.value })
                                             }
                                             onBlur={() => {
-                                                setNewObjective((prev) => {
-                                                    const n = normalizeWebsiteHost(prev.website);
-                                                    return n ? { ...prev, website: n } : prev;
-                                                });
+                                                setNewObjective((prev) => ({
+                                                    ...prev,
+                                                    website: String(prev.website || "").trim(),
+                                                }));
                                             }}
                                             autoComplete="url"
                                             inputMode="url"
                                         />
                                         <p className="text-[10px] font-medium text-muted/90 leading-snug">
-                                            We normalize to the bare domain (no{" "}
-                                            <code className="text-foreground/80">https://</code> or{" "}
-                                            <code className="text-foreground/80">www.</code>) so progress matches extension
-                                            tracking.
+                                            <strong className="text-foreground/90">Short host only</strong> (e.g.{" "}
+                                            <code className="text-foreground/80">wikipedia.org</code>) counts{" "}
+                                            <em>all</em> time on that site in real time. Add a{" "}
+                                            <strong className="text-foreground/90">path</strong> (e.g.{" "}
+                                            <code className="text-foreground/80">wikipedia.org/wiki/foo</code>) to
+                                            scope the goal. We never store query strings or hashes — only host + path
+                                            for privacy.
                                         </p>
                                     </div>
                                 </div>

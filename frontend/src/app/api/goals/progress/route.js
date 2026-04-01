@@ -31,13 +31,32 @@ function goalHasPinnedDay(goal) {
     return dk != null && String(dk).trim() !== '';
 }
 
+function goalPathPrefix(goal) {
+    const p = goal.pathPrefix != null ? String(goal.pathPrefix).trim() : "";
+    return p;
+}
+
+/** Empty pathPrefix → all paths on host (short-URL / domain-only objectives). */
+function pathMatchForGoal(goal) {
+    const px = goalPathPrefix(goal);
+    if (!px) return {};
+    return { pathNorm: new RegExp(`^${escapeRegex(px)}`, "i") };
+}
+
 async function sumSecondsForGoal(goal, userId, dayBaseMatch) {
+    const pathPart = pathMatchForGoal(goal);
     if (goal.type === "productive") {
         const hasTargetSite = goal.website && goal.website.trim() !== "" && goal.website.trim() !== "*";
+        /* Site-specific goals: count all time on that host (any category). Analytics may label
+           e.g. wikipedia.org as neutral while the user still set a productive target for it. */
         const matchCondition = {
             ...dayBaseMatch,
-            category: "productive",
-            ...(hasTargetSite && { website: new RegExp(escapeRegex(goal.website.trim()), "i") }),
+            ...(hasTargetSite
+                ? {
+                      website: new RegExp(escapeRegex(goal.website.trim()), "i"),
+                      ...pathPart,
+                  }
+                : { category: "productive" }),
         };
         const stats = await Tracking.aggregate([
             { $match: matchCondition },
@@ -51,6 +70,7 @@ async function sumSecondsForGoal(goal, userId, dayBaseMatch) {
                 $match: {
                     ...dayBaseMatch,
                     website: new RegExp(escapeRegex(goal.website.trim()), "i"),
+                    ...pathPart,
                 },
             },
             { $group: { _id: null, total: { $sum: "$time" } } },
@@ -62,18 +82,24 @@ async function sumSecondsForGoal(goal, userId, dayBaseMatch) {
 
 function matchForGoalHistoryAggregate(goal, userId, dateFloor) {
     const base = { userId, date: { $gte: dateFloor } };
+    const pathPart = pathMatchForGoal(goal);
     if (goal.type === "productive") {
         const hasTargetSite = goal.website && goal.website.trim() !== "" && goal.website.trim() !== "*";
         return {
             ...base,
-            category: "productive",
-            ...(hasTargetSite && { website: new RegExp(escapeRegex(goal.website.trim()), "i") }),
+            ...(hasTargetSite
+                ? {
+                      website: new RegExp(escapeRegex(goal.website.trim()), "i"),
+                      ...pathPart,
+                  }
+                : { category: "productive" }),
         };
     }
     if (goal.type === "unproductive" && goal.website) {
         return {
             ...base,
             website: new RegExp(escapeRegex(goal.website.trim()), "i"),
+            ...pathPart,
         };
     }
     return null;

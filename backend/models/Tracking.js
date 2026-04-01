@@ -19,6 +19,13 @@ const TrackingSchema = new mongoose.Schema(
             trim: true,
             lowercase: true,
         },
+        /** Normalized path only (leading slash, no query/hash). Empty = whole host / homepage bucket. */
+        pathNorm: {
+            type: String,
+            default: "",
+            trim: true,
+            lowercase: true,
+        },
         pageTitle: {
             type: String,
             default: "",
@@ -73,6 +80,7 @@ const TrackingSchema = new mongoose.Schema(
 // Compound index for efficient user+date queries
 TrackingSchema.index({ userId: 1, date: -1 });
 TrackingSchema.index({ userId: 1, website: 1, date: -1 });
+TrackingSchema.index({ userId: 1, website: 1, pathNorm: 1, date: -1 });
 
 // Auto-fill hour and dayOfWeek before saving
 TrackingSchema.pre("save", function () {

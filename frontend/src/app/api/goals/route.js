@@ -2,17 +2,20 @@ import { NextResponse } from 'next/server';
 import dbConnect, { isDbUnavailableError } from '../../../../../backend/db/mongodb.js';
 import Goal from '../../../../../backend/models/Goal.js';
 import { getUserIdFromRequest } from '@/lib/apiUser';
-import { normalizeWebsiteHost } from '@/lib/normalizeWebsiteHost';
+import { splitGoalWebsiteForStorage } from '@/lib/goalWebsiteSpec';
 
 function normalizeGoalWebsite(body) {
-    if (!body || typeof body !== 'object') return body;
+    if (!body || typeof body !== "object") return body;
     const next = { ...body };
-    if (typeof next.website === 'string') {
+    if (typeof next.website === "string") {
         const raw = next.website.trim();
-        if (raw === '*' || raw === '') {
+        if (raw === "*" || raw === "") {
             next.website = raw;
+            next.pathPrefix = "";
         } else {
-            next.website = normalizeWebsiteHost(next.website) || raw;
+            const spec = splitGoalWebsiteForStorage(raw);
+            next.website = spec.host;
+            next.pathPrefix = spec.pathPrefix || "";
         }
     }
     return next;

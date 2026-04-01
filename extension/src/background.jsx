@@ -8,6 +8,29 @@
 
 import { API_BASE } from "./buildEnv.js";
 import { plFetch, syncAccessTokenFromDashboardTab } from "./plApi.js";
+import { privacyNormalizeUrl } from "./privacyNormalizeUrl.js";
+
+/** Facet key: bare host (all paths rolled up for that bucket) or host + unit separator + pathNorm. */
+const FACET_SEP = "\u001f";
+
+function facetKeyFromUrl(url) {
+    if (!isTrackable(url)) return null;
+    const { host, pathNorm } = privacyNormalizeUrl(url);
+    if (!host) return null;
+    return pathNorm ? `${host}${FACET_SEP}${pathNorm}` : host;
+}
+
+function hostFromFacet(facetKey) {
+    if (!facetKey || typeof facetKey !== "string") return "";
+    const i = facetKey.indexOf(FACET_SEP);
+    return i === -1 ? facetKey : facetKey.slice(0, i);
+}
+
+function pathNormFromFacet(facetKey) {
+    if (!facetKey || typeof facetKey !== "string") return "";
+    const i = facetKey.indexOf(FACET_SEP);
+    return i === -1 ? "" : facetKey.slice(i + FACET_SEP.length);
+}
 
 /** IANA tz + YYYY-MM-DD for the user’s calendar day (matches dashboard tracking/goals APIs). */
 function userLocalDayQueryString() {
@@ -18,6 +41,34 @@ function userLocalDayQueryString() {
     } catch {
         return "";
     }
+}
+
+function userLocalCalendarDateKey() {
+    try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        return new Date().toLocaleDateString("en-CA", { timeZone: tz });
+    } catch {
+        return new Date().toLocaleDateString("en-CA");
+    }
+}
+
+/**
+ * Popup lists the same objectives as the dashboard "Today" block — not yesterday’s pinned row.
+ * Drops archive payloads, wrong-day pins, and anything labeled with yesterday’s display key.
+ */
+function filterGoalsForExtensionPopup(goals, apiTodayKey, apiYesterdayKey) {
+    if (!Array.isArray(goals)) return [];
+    const todayK = typeof apiTodayKey === "string" ? apiTodayKey.trim() : "";
+    const yestK = typeof apiYesterdayKey === "string" ? apiYesterdayKey.trim() : "";
+    if (!todayK) return goals.slice();
+    return goals.filter((g) => {
+        if (g?.isArchive) return false;
+        const dk = g.dateKey != null ? String(g.dateKey).trim() : "";
+        if (dk && dk !== todayK) return false;
+        const disp = g.displayDateKey != null ? String(g.displayDateKey).trim() : "";
+        if (yestK && disp === yestK) return false;
+        return true;
+    });
 }
 
 /** Blocklist may contain full URLs from older clients; compare using hostname only. */
@@ -164,6 +215,8 @@ async function addHostToNeuralBlocklist(host) {
 }
 
 let activeTab = null;
+/** Storage key for siteTimes / sync; host-only or host+path (privacy-normalized, no query/hash). */
+let activeFacetKey = null;
 let activeTitle = "";
 let startTime = null;
 let lastSaveTime = null;
@@ -200,10 +253,17 @@ async function refreshGoalsAndPopupCache(opts = {}) {
         const [goalsRes, statsRes] = await Promise.all([plFetch(goalsUrl), plFetch(statsUrl)]);
 
         let goals = [];
+        let goalsDateKeyForCache = userLocalCalendarDateKey();
         if (goalsRes.ok) {
             const data = await goalsRes.json();
-            if (Array.isArray(data)) goals = data;
-            else if (Array.isArray(data?.today)) goals = data.today;
+            const apiTodayKey = typeof data?.todayDateKey === "string" ? data.todayDateKey.trim() : "";
+            const apiYesterdayKey = typeof data?.yesterdayDateKey === "string" ? data.yesterdayDateKey.trim() : "";
+            if (apiTodayKey) goalsDateKeyForCache = apiTodayKey;
+            if (Array.isArray(data)) {
+                goals = filterGoalsForExtensionPopup(data, apiTodayKey, apiYesterdayKey);
+            } else if (Array.isArray(data?.today)) {
+                goals = filterGoalsForExtensionPopup(data.today, apiTodayKey, apiYesterdayKey);
+            }
         }
 
         let productiveToday = 0;
@@ -281,6 +341,7 @@ async function refreshGoalsAndPopupCache(opts = {}) {
                 goalsAverageProgress: goalsAvgProgress,
                 goalsCount: goals.length,
                 goalsDisplay,
+                goalsDateKey: goalsDateKeyForCache,
                 updatedAt: Date.now(),
             },
         });
@@ -408,7 +469,7 @@ async function heartbeat() {
             console.log("🕛 Date changed detected in heartbeat. Performing midnight reset...");
 
             // Sync final session before wipe
-            if (activeTab && startTime) {
+            if (activeFacetKey && startTime) {
                 const start = lastSaveTime || startTime;
                 const elapsed = (Date.now() - start) / 1000;
                 const countIt = await queryUserActiveForTracking(60);
@@ -416,7 +477,7 @@ async function heartbeat() {
                     try {
                         const data = await chrome.storage.local.get(["siteTimes"]);
                         const siteTimes = data.siteTimes || {};
-                        siteTimes[activeTab] = (siteTimes[activeTab] || 0) + elapsed;
+                        siteTimes[activeFacetKey] = (siteTimes[activeFacetKey] || 0) + elapsed;
                         await chrome.storage.local.set({ siteTimes });
                     } catch (e) { }
                 }
@@ -434,13 +495,18 @@ async function heartbeat() {
                     goalsAverageProgress: 0,
                     goalsCount: 0,
                     goalsDisplay: [],
+                    goalsDateKey: "",
                     updatedAt: Date.now(),
                 },
                 currentDate: today,
                 startTime: Date.now(),
-                lastSaveTime: null
+                lastSaveTime: null,
+                activeTab: null,
+                activeFacetKey: null,
+                activeTitle: "",
             });
             activeTab = null;
+            activeFacetKey = null;
             startTime = Date.now();
             lastSaveTime = null;
             scrollCount = 0;
@@ -451,7 +517,7 @@ async function heartbeat() {
             await chrome.storage.local.set({ currentDate: today });
         }
         // 1. Accumulate time for the active tab first (skip while user idle / screen locked)
-        if (activeTab && startTime) {
+        if (activeFacetKey && startTime) {
             const now = Date.now();
             const start = lastSaveTime || startTime;
             const elapsed = (now - start) / 1000;
@@ -461,7 +527,7 @@ async function heartbeat() {
                 if (userActive) {
                     const data = await chrome.storage.local.get(["siteTimes"]);
                     currentSiteTimes = data.siteTimes || {};
-                    currentSiteTimes[activeTab] = (currentSiteTimes[activeTab] || 0) + elapsed;
+                    currentSiteTimes[activeFacetKey] = (currentSiteTimes[activeFacetKey] || 0) + elapsed;
                     await chrome.storage.local.set({ siteTimes: currentSiteTimes });
                 }
                 lastSaveTime = now;
@@ -474,30 +540,27 @@ async function heartbeat() {
         currentSiteTimes = storage.siteTimes || {};
         currentSyncedTimes = storage.syncedTimes || {};
 
-        for (const site in currentSiteTimes) {
-            const totalTime = Math.floor(currentSiteTimes[site]);
-            const alreadySynced = Math.floor(currentSyncedTimes[site] || 0);
+        for (const facetKey in currentSiteTimes) {
+            const totalTime = Math.floor(currentSiteTimes[facetKey]);
+            const alreadySynced = Math.floor(currentSyncedTimes[facetKey] || 0);
             const pending = totalTime - alreadySynced;
 
-            if (pending >= 5 || (pending > 0 && !activeTab)) { // Sync if 5s pending or session ended
-
-
-                // Add engagement data only if it is the current active tab
+            if (pending >= 5 || (pending > 0 && !activeFacetKey)) {
+                // Add engagement data only if it is the current active facet
                 let title = "", s = 0, c = 0, pc = "";
-                if (site === activeTab) {
+                if (facetKey === activeFacetKey) {
                     title = activeTitle;
                     s = scrollCount;
                     c = clickCount;
                     pc = pageContent;
                 }
 
-                const success = await saveSession(site, pending, title, s, c, pc);
+                const success = await saveSession(facetKey, pending, title, s, c, pc);
                 if (success) {
-                    currentSyncedTimes[site] = (currentSyncedTimes[site] || 0) + pending;
+                    currentSyncedTimes[facetKey] = (currentSyncedTimes[facetKey] || 0) + pending;
                     await chrome.storage.local.set({ syncedTimes: currentSyncedTimes });
 
-                    // Reset engagement buffers after a successful sync of the active tab
-                    if (site === activeTab) {
+                    if (facetKey === activeFacetKey) {
                         scrollCount = 0;
                         clickCount = 0;
                         pageContent = "";
@@ -547,26 +610,31 @@ function isTrackable(url) {
     }
 }
 
-async function saveSession(website, timeSeconds, pageTitle = "", scrolls = 0, clicks = 0, content = "") {
+async function saveSession(facetKey, timeSeconds, pageTitle = "", scrolls = 0, clicks = 0, content = "") {
+    const website = hostFromFacet(facetKey);
+    const pathNorm = pathNormFromFacet(facetKey);
     if (!website || timeSeconds <= 0) return false;
 
     try {
+        const pageUrl =
+            pathNorm !== "" ? `https://${website}${pathNorm}` : `https://${website}/`;
         const response = await plFetch(`${API_BASE}/tracking`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 website,
+                pathNorm,
+                pageUrl,
                 time: timeSeconds,
-                pageTitle: pageTitle || website, // Fallback if no title
+                pageTitle: pageTitle || website,
                 scrolls,
                 clicks,
-                content
-            })
+                content,
+            }),
         });
 
         if (response.ok) {
             const result = await response.json();
-
 
             if (result.category === "unproductive") {
                 const totalUnproductive = await addUnproductiveTime(website, timeSeconds);
@@ -591,18 +659,15 @@ async function saveSession(website, timeSeconds, pageTitle = "", scrolls = 0, cl
 async function handleTabSwitch(url, title = "") {
     await initPromise;
 
-    let nextHost = null;
-    try {
-        if (isTrackable(url)) nextHost = normalizeBlockedHost(new URL(url).hostname);
-    } catch (err) {
-        nextHost = null;
-    }
+    const nextFacet = facetKeyFromUrl(url);
+    const nextHost = nextFacet ? hostFromFacet(nextFacet) : null;
 
-    if (activeTab && nextHost && activeTab === nextHost && title === activeTitle) {
+    if (activeFacetKey && nextFacet && activeFacetKey === nextFacet) {
+        if (title) activeTitle = title;
         return;
     }
 
-    if (activeTab && startTime) {
+    if (activeFacetKey && startTime) {
         const start = lastSaveTime || startTime;
         const elapsed = (Date.now() - start) / 1000;
         const userActive = await queryUserActiveForTracking(60);
@@ -611,7 +676,7 @@ async function handleTabSwitch(url, title = "") {
             try {
                 const data = await chrome.storage.local.get(["siteTimes"]);
                 const siteTimes = data.siteTimes || {};
-                siteTimes[activeTab] = (siteTimes[activeTab] || 0) + elapsed;
+                siteTimes[activeFacetKey] = (siteTimes[activeFacetKey] || 0) + elapsed;
                 await chrome.storage.local.set({ siteTimes });
             } catch (err) { }
         }
@@ -624,27 +689,30 @@ async function handleTabSwitch(url, title = "") {
     chrome.storage.local.remove(["lastSaveTime"]);
 
     if (!isTrackable(url)) {
+        activeFacetKey = null;
         activeTab = null;
         activeTitle = "";
         startTime = null;
-        chrome.storage.local.remove(["activeTab", "activeTitle", "startTime"]);
+        chrome.storage.local.remove(["activeFacetKey", "activeTab", "activeTitle", "startTime"]);
         return;
     }
 
-    if (!nextHost) {
+    if (!nextFacet || !nextHost) {
         console.error("❌ Invalid URL for tracking:", url);
+        activeFacetKey = null;
         activeTab = null;
         activeTitle = title || "";
         startTime = null;
-        chrome.storage.local.remove(["activeTab", "activeTitle", "startTime"]);
+        chrome.storage.local.remove(["activeFacetKey", "activeTab", "activeTitle", "startTime"]);
         return;
     }
 
+    activeFacetKey = nextFacet;
     activeTab = nextHost;
     activeTitle = title || "";
     startTime = Date.now();
 
-    chrome.storage.local.set({ activeTab, activeTitle, startTime });
+    chrome.storage.local.set({ activeFacetKey, activeTab, activeTitle, startTime });
 }
 
 
@@ -762,7 +830,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         console.log("🕛 Midnight reset triggered. Syncing and clearing local data...");
 
         // 1. Save final chunk to local storage
-        if (activeTab && startTime) {
+        if (activeFacetKey && startTime) {
             const start = lastSaveTime || startTime;
             const elapsed = (Date.now() - start) / 1000;
             const userActive = await queryUserActiveForTracking(60);
@@ -770,7 +838,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
                 try {
                     const data = await chrome.storage.local.get(["siteTimes"]);
                     const siteTimes = data.siteTimes || {};
-                    siteTimes[activeTab] = (siteTimes[activeTab] || 0) + elapsed;
+                    siteTimes[activeFacetKey] = (siteTimes[activeFacetKey] || 0) + elapsed;
                     await chrome.storage.local.set({ siteTimes });
                 } catch (err) { }
             }
@@ -793,18 +861,28 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
                 goalsAverageProgress: 0,
                 goalsCount: 0,
                 goalsDisplay: [],
+                goalsDateKey: "",
                 updatedAt: Date.now(),
             },
         });
 
         // 3. Reset internal state
+        activeTab = null;
+        activeFacetKey = null;
+        activeTitle = "";
         startTime = Date.now();
         lastSaveTime = null;
         scrollCount = 0;
         clickCount = 0;
         pageContent = "";
 
-        await chrome.storage.local.set({ startTime, lastSaveTime: null });
+        await chrome.storage.local.set({
+            startTime,
+            lastSaveTime: null,
+            activeTab: null,
+            activeFacetKey: null,
+            activeTitle: "",
+        });
 
         // 4. Reschedule for next midnight
         scheduleMidnightReset();
@@ -821,8 +899,9 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.status === "complete" && tab.active && tab.url) {
-        handleTabSwitch(tab.url, tab.title);
+    if (!tab?.active || !tab.url) return;
+    if (changeInfo.status === "complete" || changeInfo.url) {
+        handleTabSwitch(tab.url, tab.title || "");
     }
 });
 
@@ -878,12 +957,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     } else if (request.action === "titleChanged") {
         console.log("✏️ Title Changed:", request.title);
         activeTitle = request.title;
+        if (typeof request.url === "string" && request.url) {
+            const nf = facetKeyFromUrl(request.url);
+            if (nf && nf !== activeFacetKey) {
+                handleTabSwitch(request.url, request.title);
+            }
+        }
     } else if (request.action === "engagementActivity") {
-        let reqHost = "";
+        let reqFacet = null;
         try {
-            reqHost = normalizeBlockedHost(new URL(request.url).hostname);
+            reqFacet = facetKeyFromUrl(request.url);
         } catch (e) { /* ignore */ }
-        if (activeTab && reqHost && reqHost === activeTab) {
+        if (activeFacetKey && reqFacet && reqFacet === activeFacetKey) {
             scrollCount += request.scrolls || 0;
             clickCount += request.clicks || 0;
         }
@@ -909,7 +994,17 @@ function scheduleMidnightReset() {
 // ==================== INIT ====================
 
 async function init() {
-    const storage = await chrome.storage.local.get(["activeTab", "activeTitle", "startTime", "blocklist", "preferences", "currentDate", "siteTimes", "syncedTimes"]);
+    const storage = await chrome.storage.local.get([
+        "activeFacetKey",
+        "activeTab",
+        "activeTitle",
+        "startTime",
+        "blocklist",
+        "preferences",
+        "currentDate",
+        "siteTimes",
+        "syncedTimes",
+    ]);
 
     // ── Bug fix: date-change check on startup ──────────────────────────────────
     // If the worker was idle overnight, siteTimes/syncedTimes may contain stale
@@ -936,12 +1031,18 @@ async function init() {
         // set it correctly on its first tick.
         if (storage.activeTab && storage.startTime) {
             activeTab = storage.activeTab;
+            activeFacetKey =
+                typeof storage.activeFacetKey === "string" && storage.activeFacetKey
+                    ? storage.activeFacetKey
+                    : storage.activeTab;
             activeTitle = storage.activeTitle || "";
-            // Reset startTime to now so elapsed is measured from worker restart, not
-            // the original tab-open time (which may have been hours ago).
             startTime = Date.now();
             lastSaveTime = null;
-            await chrome.storage.local.set({ startTime, lastSaveTime: null });
+            await chrome.storage.local.set({
+                startTime,
+                lastSaveTime: null,
+                activeFacetKey,
+            });
         }
     }
 

@@ -9,8 +9,39 @@ const defaultCache = {
   goalsAverageProgress: 0,
   goalsCount: 0,
   goalsDisplay: [],
+  goalsDateKey: "",
   updatedAt: 0,
 };
+
+/** YYYY-MM-DD in the user’s timezone (must match background goals request). */
+function popupLocalCalendarDateKey() {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return new Date().toLocaleDateString("en-CA", { timeZone: tz });
+  } catch {
+    return new Date().toLocaleDateString("en-CA");
+  }
+}
+
+/** Must match extension background FACET_SEP — roll up path facets per host in the popup. */
+const FACET_SEP = "\u001f";
+
+function aggregateSiteTimesByHost(siteTimes) {
+  if (!siteTimes || typeof siteTimes !== "object") return {};
+  const acc = {};
+  for (const [k, sec] of Object.entries(siteTimes)) {
+    const i = k.indexOf(FACET_SEP);
+    const host = i === -1 ? k : k.slice(0, i);
+    acc[host] = (acc[host] || 0) + sec;
+  }
+  return acc;
+}
+
+function hostFromStoredFacet(facetOrHost) {
+  if (!facetOrHost || typeof facetOrHost !== "string") return "";
+  const i = facetOrHost.indexOf(FACET_SEP);
+  return i === -1 ? facetOrHost : facetOrHost.slice(0, i);
+}
 
 function formatTime(seconds) {
   if (seconds < 60) return `${Math.floor(seconds)}s`;
@@ -20,6 +51,23 @@ function formatTime(seconds) {
   const h = Math.floor(m / 60);
   const mRemaining = m % 60;
   return `${h}h ${mRemaining}m`;
+}
+
+/** Short duration for goal chips (no seconds if ≥1m). */
+function formatShortDur(sec) {
+  const s = Math.max(0, Math.floor(Number(sec) || 0));
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  return `${h}h ${m % 60}m`;
+}
+
+function goalChipTimeRatio(g) {
+  const cur = formatShortDur(g.currentSeconds);
+  const tgt = formatShortDur(g.targetSeconds);
+  if (g.type === "unproductive") return `${cur} / ${tgt} max`;
+  return `${cur} / ${tgt}`;
 }
 
 function SunIcon() {
@@ -85,13 +133,23 @@ function App() {
   const readStorage = useCallback(() => {
     if (typeof chrome === "undefined" || !chrome.storage?.local) return;
     chrome.storage.local.get(
-      ["siteTimes", "activeTab", "startTime", "lastSaveTime", "preferences", "isDarkMode", "extensionPopupCache", "currentDate"],
+      [
+        "siteTimes",
+        "activeTab",
+        "activeFacetKey",
+        "startTime",
+        "lastSaveTime",
+        "preferences",
+        "isDarkMode",
+        "extensionPopupCache",
+        "currentDate",
+      ],
       (data) => {
         // Bug fix: if the background worker hasn't done its midnight reset yet,
         // the stored siteTimes belong to a previous day. Don't display them.
         const today = new Date().toDateString();
         const isStaleDate = data.currentDate && data.currentDate !== today;
-        let times = isStaleDate ? {} : (data.siteTimes || {});
+        let times = isStaleDate ? {} : aggregateSiteTimesByHost(data.siteTimes || {});
 
         let dark = true;
         if (data.preferences?.theme === "light" || data.preferences?.theme === "dark") {
@@ -106,13 +164,39 @@ function App() {
         if (!isStaleDate && data.activeTab && data.startTime) {
           const start = data.lastSaveTime || data.startTime;
           const elapsed = (Date.now() - start) / 1000;
-          times = { ...times, [data.activeTab]: (times[data.activeTab] || 0) + elapsed };
+          const facet =
+            typeof data.activeFacetKey === "string" && data.activeFacetKey
+              ? data.activeFacetKey
+              : data.activeTab;
+          const host = hostFromStoredFacet(facet);
+          if (host) {
+            times = { ...times, [host]: (times[host] || 0) + elapsed };
+          }
         }
         setSiteTimes(times);
         setActiveTab(isStaleDate ? null : data.activeTab);
 
         if (data.extensionPopupCache && typeof data.extensionPopupCache === "object") {
-          setPopupCache({ ...defaultCache, ...data.extensionPopupCache });
+          const cache = { ...defaultCache, ...data.extensionPopupCache };
+          const localCalKey = popupLocalCalendarDateKey();
+          const goalsWrongDay =
+            !isStaleDate &&
+            cache.goalsDateKey &&
+            typeof cache.goalsDateKey === "string" &&
+            cache.goalsDateKey !== localCalKey;
+          if (isStaleDate || goalsWrongDay) {
+            cache.goalsDisplay = [];
+            cache.goalsCount = 0;
+            cache.goalsAverageProgress = 0;
+          }
+          setPopupCache(cache);
+          if (goalsWrongDay) {
+            try {
+              chrome.runtime.sendMessage({ action: "refreshPopupCache" });
+            } catch {
+              /* ignore */
+            }
+          }
         }
       },
     );
@@ -222,16 +306,36 @@ function App() {
         />
         {goalsDisplay && goalsDisplay.length > 0 ? (
           <ul className="pl-goal-chips">
-            {goalsDisplay.slice(0, 4).map((g) => (
-              <li key={g.id} className="pl-goal-chip">
-                <span className="pl-goal-chip-name" title={g.label}>
-                  {g.label}
-                </span>
-                <span className="pl-goal-chip-meta">
-                  {g.type === "unproductive" ? "Limit" : "Target"} · {Math.min(100, Math.max(0, g.progress))}%
-                </span>
-              </li>
-            ))}
+            {goalsDisplay.slice(0, 4).map((g) => {
+              const p = Math.min(100, Math.max(0, Number(g.progress) || 0));
+              const barClass =
+                g.type === "unproductive" ? "pl-goal-chip-fill pl-goal-chip-fill--limit" : "pl-goal-chip-fill";
+              return (
+                <li key={g.id} className="pl-goal-chip">
+                  <div className="pl-goal-chip-top">
+                    <span className="pl-goal-chip-name" title={g.label}>
+                      {g.label}
+                    </span>
+                    <span className="pl-goal-chip-pct" aria-hidden>
+                      {p}%
+                    </span>
+                  </div>
+                  <div
+                    className="pl-goal-chip-track"
+                    role="progressbar"
+                    aria-valuenow={p}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label={`${g.label} progress`}
+                  >
+                    <div className={barClass} style={{ width: `${p}%` }} />
+                  </div>
+                  <span className="pl-goal-chip-meta">
+                    {g.type === "unproductive" ? "Limit" : "Target"} · {goalChipTimeRatio(g)}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         ) : null}
       </section>

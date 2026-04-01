@@ -185,11 +185,18 @@
 .pl-goal-chip {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 6px;
   padding: 8px 10px;
   border-radius: var(--pl-radius-sm);
   background: var(--pl-surface-2);
   border: 1px solid var(--pl-border);
+}
+
+.pl-goal-chip-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .pl-goal-chip-name {
@@ -198,13 +205,43 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.pl-goal-chip-pct {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--pl-text);
+}
+
+.pl-goal-chip-track {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--pl-bg);
+  overflow: hidden;
+  border: 1px solid var(--pl-border);
+}
+
+.pl-goal-chip-fill {
+  height: 100%;
+  border-radius: 999px;
+  min-width: 0;
+  transition: width 0.35s ease;
+  background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+.pl-goal-chip-fill--limit {
+  background: linear-gradient(90deg, #ec4899, #f472b6);
 }
 
 .pl-goal-chip-meta {
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--pl-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Site list */

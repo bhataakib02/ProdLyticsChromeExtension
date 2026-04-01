@@ -17,8 +17,10 @@ const GoalSchema = new mongoose.Schema(
             enum: ["daily_productive_hours", "daily_limit_site", "weekly_productive_hours", "reduce_site", "productive", "unproductive"],
             required: true,
         },
-        // For site-specific goals
+        // For site-specific goals (host only, lowercase)
         website: { type: String, required: true },
+        /** Path prefix for URL-scoped goals (e.g. /watch). Empty = all paths on host count toward the goal. */
+        pathPrefix: { type: String, default: "" },
 
         // Target value (e.g., 4 hours = 14400 seconds, daily_limit = 1800 seconds)
         targetSeconds: { type: Number, required: true },

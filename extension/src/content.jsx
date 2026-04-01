@@ -255,6 +255,7 @@ const observer = new MutationObserver(() => {
     safeRuntimeSendMessage({
         action: "titleChanged",
         title: document.title,
+        url: window.location.href,
     });
 });
 
