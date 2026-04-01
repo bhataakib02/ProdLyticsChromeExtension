@@ -18,6 +18,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { trackingService } from "@/services/tracking.service";
 import { requestExtensionWorkspaceToast } from "@/lib/extensionSync";
+import { TimerAlertsOnboarding } from "@/components/pwa/TimerAlertsOnboarding";
 import { motion, AnimatePresence } from "framer-motion";
 
 function formatHistoryType(type) {
@@ -597,6 +598,7 @@ export default function TimerView() {
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-12 relative">
+            <TimerAlertsOnboarding />
             <AnimatePresence>
                 {toast && (
                     <motion.div
