@@ -53,8 +53,7 @@ function userLocalCalendarDateKey() {
 }
 
 /**
- * Popup lists the same objectives as the dashboard "Today" block — not yesterday’s pinned row.
- * Drops archive payloads, wrong-day pins, and anything labeled with yesterday’s display key.
+ * Popup matches dashboard "Today": only objectives with dateKey === today (no rolling / legacy rows).
  */
 function filterGoalsForExtensionPopup(goals, apiTodayKey, apiYesterdayKey) {
     if (!Array.isArray(goals)) return [];
@@ -64,7 +63,7 @@ function filterGoalsForExtensionPopup(goals, apiTodayKey, apiYesterdayKey) {
     return goals.filter((g) => {
         if (g?.isArchive) return false;
         const dk = g.dateKey != null ? String(g.dateKey).trim() : "";
-        if (dk && dk !== todayK) return false;
+        if (dk !== todayK) return false;
         const disp = g.displayDateKey != null ? String(g.displayDateKey).trim() : "";
         if (yestK && disp === yestK) return false;
         return true;

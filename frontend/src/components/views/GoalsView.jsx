@@ -213,7 +213,9 @@ export default function GoalsView() {
                 <div>
                     <h1 className="text-4xl font-bold  tracking-tight">Goals & Targets</h1>
                     <p className="text-muted mt-2 max-w-xl">
-                        Add or edit goals with Set Objective. Pinned goals are for the day you create them.
+                        Under <strong className="text-foreground/90">Today</strong> you only see objectives you add for{" "}
+                        <em>this</em> calendar day — nothing carries over automatically. Repeat a target from{" "}
+                        <strong className="text-foreground/90">Yesterday</strong> with the copy control on that card.
                     </p>
                 </div>
                 <button type="button" onClick={() => setShowNewObjective(true)} className="btn-primary">

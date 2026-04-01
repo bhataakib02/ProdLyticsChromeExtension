@@ -247,7 +247,9 @@ export async function GET(req) {
 
         const all = await Goal.find({ userId, isActive: true });
 
-        const todayDocs = all.filter((g) => !goalHasPinnedDay(g) || String(g.dateKey) === todayKeyForStreak);
+        /* Today = only objectives explicitly created for this calendar day. No legacy “rolling” rows
+           and no auto-carry from yesterday — user adds again or uses Copy from Yesterday. */
+        const todayDocs = all.filter((g) => goalHasPinnedDay(g) && String(g.dateKey) === todayKeyForStreak);
         const yesterdayDocs = all.filter((g) => goalHasPinnedDay(g) && String(g.dateKey) === yesterdayKey);
 
         const ctxToday = {
