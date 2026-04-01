@@ -196,10 +196,8 @@ export default function GoalsView() {
             <header className="flex justify-between items-center">
                 <div>
                     <h1 className="text-4xl font-bold  tracking-tight">Goals & Targets</h1>
-                    <p className="text-muted mt-2 max-w-2xl">
-                        Use <strong className="text-foreground/90 font-semibold">Set Objective</strong> to add what you want to
-                        track <strong className="text-foreground/90 font-semibold">today</strong> only. Yesterday&apos;s list is
-                        saved as a snapshot; it does not roll forward—you add today&apos;s goals yourself.
+                    <p className="text-muted mt-2 max-w-xl">
+                        Add or edit goals with Set Objective. Pinned goals are for the day you create them.
                     </p>
                 </div>
                 <button type="button" onClick={() => setShowNewObjective(true)} className="btn-primary">
@@ -287,22 +285,23 @@ export default function GoalsView() {
                                             <div className="rounded-xl border border-foreground/10 bg-foreground/[0.04] p-4 space-y-2.5">
                                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                                     <span className="text-[10px] font-black uppercase tracking-widest text-muted">
-                                                        That day · {formatDayLabel(goal.displayDateKey)}
+                                                        {formatDayLabel(goal.displayDateKey)}
                                                     </span>
-                                                    {goal.metToday ? (
-                                                        <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-                                                            <CheckCircle2 size={15} className="shrink-0" aria-hidden />
-                                                            {goal.type === "productive" ? "Completed" : "Within limit"}
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        {goal.metToday ? (
+                                                            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                                                                <CheckCircle2 size={15} className="shrink-0" aria-hidden />
+                                                                {goal.type === "productive" ? "Done" : "OK"}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-[10px] font-black uppercase tracking-widest text-muted">
+                                                                Not met
+                                                            </span>
+                                                        )}
+                                                        <span className="text-xs font-bold text-muted">
+                                                            {Math.min(100, Math.max(0, Number(goal.progress) || 0))}%
                                                         </span>
-                                                    ) : (
-                                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted">
-                                                            Not met
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="flex justify-between text-[11px] font-bold text-muted">
-                                                    <span>Progress</span>
-                                                    <span>{Math.min(100, Math.max(0, Number(goal.progress) || 0))}%</span>
+                                                    </div>
                                                 </div>
                                                 <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/8">
                                                     <div
@@ -315,7 +314,7 @@ export default function GoalsView() {
                                                     />
                                                 </div>
                                                 <p className="text-[10px] font-medium text-muted">
-                                                    Goal time: {formatGoalTrackedVsTarget(goal, goal.currentSeconds)}
+                                                    {formatGoalTrackedVsTarget(goal, goal.currentSeconds)}
                                                 </p>
                                             </div>
                                         </div>
@@ -378,12 +377,6 @@ export default function GoalsView() {
                                             </div>
                                         </div>
                                         <h3 className="text-xl font-bold  mb-2">{goal.label || goal.website}</h3>
-                                        {!goalHasPinnedDay(goal) && (
-                                            <p className="text-[10px] text-amber-700/90 dark:text-amber-400/95 mb-3 leading-snug">
-                                                Older goal (not tied to a single day). Add new goals with Set Objective to use
-                                                daily lists.
-                                            </p>
-                                        )}
                                         <div className="flex items-center gap-2 text-[10px] text-muted font-black uppercase tracking-widest mb-4">
                                             <span
                                                 className={goal.type === "productive" ? "text-primary" : "text-secondary"}
@@ -420,30 +413,25 @@ export default function GoalsView() {
                                         )}
                                         {goal.yesterdayDateKey && !goalHasPinnedDay(goal) && (
                                             <div className="rounded-xl border border-foreground/10 bg-foreground/[0.04] p-4 mb-5 space-y-2.5">
-                                                <p className="text-[10px] font-medium text-muted leading-snug">
-                                                    Your completed work from yesterday (legacy goals are not stored per day; this
-                                                    is your real tracking for that date).
-                                                </p>
                                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                                     <span className="text-[10px] font-black uppercase tracking-widest text-muted">
                                                         Yesterday · {formatDayLabel(goal.yesterdayDateKey)}
                                                     </span>
-                                                    {goal.metYesterday ? (
-                                                        <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-                                                            <CheckCircle2 size={15} className="shrink-0" aria-hidden />
-                                                            {goal.type === "productive" ? "Completed" : "Within limit"}
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        {goal.metYesterday ? (
+                                                            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                                                                <CheckCircle2 size={15} className="shrink-0" aria-hidden />
+                                                                {goal.type === "productive" ? "Done" : "OK"}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-[10px] font-black uppercase tracking-widest text-muted">
+                                                                Not met
+                                                            </span>
+                                                        )}
+                                                        <span className="text-xs font-bold text-muted">
+                                                            {Math.min(100, Math.max(0, Number(goal.yesterdayProgress) || 0))}%
                                                         </span>
-                                                    ) : (
-                                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted">
-                                                            Not met
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="flex justify-between text-[11px] font-bold text-muted">
-                                                    <span>That day</span>
-                                                    <span>
-                                                        {Math.min(100, Math.max(0, Number(goal.yesterdayProgress) || 0))}%
-                                                    </span>
+                                                    </div>
                                                 </div>
                                                 <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/8">
                                                     <div
@@ -458,7 +446,6 @@ export default function GoalsView() {
                                                     />
                                                 </div>
                                                 <p className="text-[10px] font-medium text-muted">
-                                                    Goal time that day:{" "}
                                                     {formatGoalTrackedVsTarget(goal, goal.yesterdaySeconds)}
                                                 </p>
                                             </div>
@@ -480,17 +467,15 @@ export default function GoalsView() {
                                                     }}
                                                 />
                                             </div>
-                                            {(Number(goal.currentSeconds) > 0 || goal.metToday) && (
-                                                <p className="text-[10px] font-medium text-muted">
-                                                    {formatGoalTrackedVsTarget(goal, goal.currentSeconds)}
-                                                    {goal.metToday && goal.type === "productive" && (
-                                                        <span className="text-primary"> · Target met</span>
-                                                    )}
-                                                    {goal.metToday && goal.type === "unproductive" && (
-                                                        <span className="text-primary"> · Within limit</span>
-                                                    )}
-                                                </p>
-                                            )}
+                                            <p className="text-[10px] font-medium text-muted">
+                                                {formatGoalTrackedVsTarget(goal, goal.currentSeconds)}
+                                                {goal.metToday && goal.type === "productive" && (
+                                                    <span className="text-primary"> · Met</span>
+                                                )}
+                                                {goal.metToday && goal.type === "unproductive" && (
+                                                    <span className="text-primary"> · Within limit</span>
+                                                )}
+                                            </p>
                                         </div>
                                     </div>
                                 ))}
@@ -524,9 +509,7 @@ export default function GoalsView() {
                                 {editingObjective ? "Edit Objective" : "Set Objective"}
                             </h2>
                             <p className="mb-8 text-sm text-muted">
-                                {editingObjective
-                                    ? "Update this goal. Its calendar day stays the same."
-                                    : `Adds to today only (${formatDayLabel(todayDateKeyClient()) || "your local date"}). Tomorrow, add again if you want.`}
+                                {editingObjective ? "Save changes to this goal." : "New goals apply to today only."}
                             </p>
                             <form onSubmit={handleSaveObjective} className="space-y-6">
                                 <div className="space-y-2">
