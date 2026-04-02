@@ -42,208 +42,141 @@ export default function PrivacyPolicyPage() {
                 </p>
 
                 <div className="mt-12 space-y-12">
-                    <Section title="1. Who we are">
+                    <Section title="1. Introduction & Scope">
                         <p>
-                            ProdLytics is a productivity tool that helps you understand how you spend
-                            time in the browser and manage focus goals. The extension works together
-                            with the ProdLytics dashboard website.
+                            This Privacy Policy Outlines how <strong>ProdLytics</strong> ("we," "our," or "the Service")
+                            collects, processes, and protects your information across the ProdLytics Chrome extension
+                            and the related web application. We are committed to maintaining the highest standards of
+                            transparency regarding your data and productivity insights.
                         </p>
                     </Section>
 
-                    <Section title="2. What we collect">
-                        <h3 className="text-base font-medium text-foreground">2.1 Browsing activity (extension)</h3>
-                        <p>When you use the extension, it may process:</p>
-                        <ul className="list-disc space-y-2 pl-5">
+                    <Section title="2. Information We Collect">
+                        <h3 className="text-base font-medium text-foreground">2.1 Extension-Specific Data</h3>
+                        <p>To provide accurate productivity analytics, the extension processes:</p>
+                        <ul className="list-disc space-y-2 pl-5 text-sm">
                             <li>
-                                <strong>Hostname</strong> (and related URL context) of the sites you
-                                visit while the extension is active
+                                <strong>Domain Activity:</strong> We monitor the active browser tab's hostname and page title
+                                to categorize your time (e.g., distinguishing between "Work/Productive" vs. "Social/Distracting").
                             </li>
                             <li>
-                                <strong>Time spent</strong> on those sites (aggregated into sessions)
+                                <strong>Usage Metrics:</strong> Duration of active sessions, scroll frequency, and intermittent
+                                engagement signals used exclusively to determine active vs. idle states.
                             </li>
                             <li>
-                                <strong>Page title</strong> (where available), used to help categorize
-                                sites (e.g. productive vs. distracting)
-                            </li>
-                            <li>
-                                <strong>Light engagement signals</strong> (such as scroll and click
-                                counts) used only to estimate engagement for insights—not to read page
-                                content for advertising
+                                <strong>Technical Data:</strong> Extension version, browser type, and operating system for
+                                compatibility and bug reporting.
                             </li>
                         </ul>
-                        <p>
-                            We do <strong>not</strong> sell your browsing history. We do{" "}
-                            <strong>not</strong> use it to show third-party ads inside the extension.
-                        </p>
 
                         <h3 className="pt-4 text-base font-medium text-foreground">
-                            2.2 Account and authentication (dashboard + extension)
+                            2.2 Account & Authentication Data
                         </h3>
-                        <ul className="list-disc space-y-2 pl-5">
+                        <ul className="list-disc space-y-2 pl-5 text-sm">
                             <li>
-                                If you use the <strong>dashboard</strong>, you may sign in (e.g. with
-                                Google) or receive an <strong>anonymous session</strong> tied to your
-                                browser.
+                                <strong>Identity Information:</strong> If you register for an account (e.g., via Google Auth),
+                                we store your email address and profile name to sync data across devices.
                             </li>
                             <li>
-                                The extension may store a <strong>session token</strong> locally so it
-                                can sync with your account on the ProdLytics backend.
+                                <strong>Session Tokens:</strong> Locally stored cryptographic tokens used to authenticate
+                                your extension with your private dashboard.
                             </li>
                         </ul>
+                    </Section>
 
-                        <h3 className="pt-4 text-base font-medium text-foreground">2.3 Optional notifications</h3>
-                        <p>
-                            If you enable related features, the extension may show{" "}
-                            <strong>Chrome notifications</strong> (for example, focus or break
-                            reminders, or goal completion alerts). You can turn off or limit
-                            notifications in Chrome’s extension settings.
+                    <Section title="3. How We Use Your Data">
+                        <p>Your data is processed strictly for the following purposes:</p>
+                        <ul className="list-disc space-y-2 pl-5 text-sm">
+                            <li><strong>Analytics:</strong> Generating personalized productivity heatmaps and trend reports.</li>
+                            <li><strong>AI Insights:</strong> Our local/backend AI models analyze habit patterns to suggest
+                                optimal focus times and suggest goal adjustments.</li>
+                            <li><strong>Functional Requirements:</strong> Enforcing custom "Focus Mode" site blocks and
+                                delivering goal-completion notifications.</li>
+                        </ul>
+                        <p className="mt-4 font-medium text-primary/90">
+                            We do NOT sell your browsing history to third-party data brokers or use your
+                            activity for targeted advertising.
                         </p>
                     </Section>
 
-                    <Section title="3. Where data is stored">
-                        <ul className="list-disc space-y-2 pl-5">
+                    <Section title="4. Data Storage & Retention">
+                        <ul className="list-disc space-y-2 pl-5 text-sm">
                             <li>
-                                Data you sync is stored on <strong>servers</strong> operated for
-                                ProdLytics (for example, your deployed backend / database).
+                                <strong>Local Cache:</strong> High-frequency tracking data is stored in your
+                                <code>chrome.storage.local</code> area and is cleared upon extension uninstallation.
                             </li>
                             <li>
-                                Some data is kept <strong>locally in your browser</strong> (Chrome{" "}
-                                <code className="rounded bg-foreground/10 px-1 py-0.5 text-xs">storage</code>)
-                                for the extension to work offline-first where possible (e.g. cached
-                                goals, blocklist, session token).
+                                <strong>Cloud Storage:</strong> Synchronized data is stored on secure servers. We retain
+                                summarized productivity data as long as your account is active.
                             </li>
                         </ul>
+                    </Section>
+
+                    <Section title="5. Security Measures">
                         <p>
-                            {dataRegion ? (
-                                <>
-                                    For this deployment, data is processed/stored in{" "}
-                                    <strong>{dataRegion}</strong> (as configured by the operator).
-                                </>
-                            ) : (
-                                <>
-                                    The exact hosting region depends on your deployment (e.g. cloud
-                                    provider and database region). Operators may document a specific
-                                    region in this policy by setting{" "}
-                                    <code className="rounded bg-foreground/10 px-1 py-0.5 text-xs">
-                                        NEXT_PUBLIC_DATA_REGION
-                                    </code>{" "}
-                                    for the dashboard build.
-                                </>
-                            )}
+                            We implement robust security protocols, including <strong>TLS/SSL encryption</strong> for
+                            all data in transit and <strong>at-rest encryption</strong> for cloud databases. Access to
+                            user data by our internal team is strictly logged and restricted to essential service
+                            maintenance and bug resolution.
                         </p>
                     </Section>
 
-                    <Section title="4. Who can see your data">
-                        <ul className="list-disc space-y-2 pl-5">
-                            <li>
-                                <strong>You</strong> can see your own data in the ProdLytics dashboard
-                                when signed in (or in your anonymous session).
-                            </li>
-                            <li>
-                                <strong>Operators</strong> of the ProdLytics service may access data
-                                only as needed to run, secure, and improve the service (e.g. debugging,
-                                abuse prevention), and should follow reasonable security practices.
-                            </li>
-                            <li>
-                                We do <strong>not</strong> intentionally share your personal browsing
-                                history with unrelated third parties for their marketing.
-                            </li>
-                        </ul>
+                    <Section title="6. Third-Party Services">
                         <p>
-                            If you use <strong>Google Sign-In</strong>, Google’s privacy policy also
-                            applies to the sign-in flow.
+                            ProdLytics may utilize trusted third-party providers for infrastructure (e.g., Vercel, MongoDB)
+                            and authentication (e.g., Google OAuth). These providers are restricted from using your
+                            data for any purpose other than providing these essential services to us.
                         </p>
                     </Section>
 
-                    <Section title="5. How we use data">
-                        <p>We use the information above to:</p>
-                        <ul className="list-disc space-y-2 pl-5">
-                            <li>Show time and focus statistics in the dashboard</li>
-                            <li>Support goals, blocklists / focus mode, and insights you configure</li>
-                            <li>Sync settings between the extension and the web app for the same account</li>
+                    <Section title="7. Global User Rights (GDPR/CCPA)">
+                        <p>Regardless of your location, we aim to provide global standards of data autonomy:</p>
+                        <ul className="list-disc space-y-2 pl-5 text-sm">
+                            <li><strong>Right of Access:</strong> You can view all tracked activity directly via your dashboard.</li>
+                            <li><strong>Right to Erasure:</strong> You may request full account and tracking data deletion
+                                by contacting us at the address below.</li>
+                            <li><strong>Data Portability:</strong> Users may request a copy of their productivity history
+                                in a machine-readable format.</li>
                         </ul>
                     </Section>
 
-                    <Section title="6. Security">
+                    <Section title="8. Children's Privacy">
                         <p>
-                            We use industry-common measures such as <strong>HTTPS</strong> for API
-                            traffic and <strong>authentication tokens</strong> for API access. No
-                            method of transmission or storage is 100% secure; you should protect your
-                            device and Google account.
+                            ProdLytics is not intended for use by individuals under the age of 13. We do not knowingly
+                            collect personal information from children. If we become aware of accidental collection,
+                            we will take immediate steps to delete the data.
                         </p>
                     </Section>
 
-                    <Section title="7. Your choices">
-                        <ul className="list-disc space-y-2 pl-5">
-                            <li>You can uninstall the extension at any time.</li>
-                            <li>
-                                You can clear extension data from Chrome (Extension details → Storage
-                                / Site access as applicable).
-                            </li>
-                            <li>
-                                You can disconnect or stop using the dashboard; use the support
-                                contact below for account or data deletion requests where applicable.
-                            </li>
-                        </ul>
+                    <Section title="9. Contact & Support">
                         <p>
-                            <strong>Support / data requests:</strong>{" "}
+                            For privacy inquiries, data deletion requests, or technical support, please contact
+                            our development and privacy team at:
+                        </p>
+                        <div className="mt-4 rounded-lg bg-foreground/5 p-4 border border-foreground/10">
+                            <p className="font-semibold text-primary">Primary Contact:</p>
                             {supportEmail ? (
                                 <a
-                                    className="font-medium text-primary underline underline-offset-2"
+                                    className="text-sm font-medium hover:text-primary transition-colors underline decoration-primary/30 underline-offset-4"
                                     href={`mailto:${supportEmail}`}
                                 >
                                     {supportEmail}
                                 </a>
                             ) : (
-                                <span className="text-foreground/80">
-                                    The publisher should set{" "}
-                                    <code className="rounded bg-foreground/10 px-1 py-0.5 text-xs">
-                                        NEXT_PUBLIC_SUPPORT_EMAIL
-                                    </code>{" "}
-                                    on the dashboard deployment so a contact email appears here. Until
-                                    then, use the{" "}
-                                    <strong>Support</strong> tab on the Chrome Web Store listing for
-                                    this extension.
+                                <span className="text-sm text-foreground/60 italic">
+                                    [Support email to follow via Chrome Web Store listing]
                                 </span>
                             )}
-                        </p>
-                    </Section>
-
-                    <Section title="8. Children">
-                        <p>
-                            The Services are not directed at children under 13 (or the minimum age in
-                            your jurisdiction). Do not use the Services if you are not old enough to
-                            consent in your region.
-                        </p>
-                    </Section>
-
-                    <Section title="9. Changes">
-                        <p>
-                            We may update this policy. The “Last updated” date will change when we do.
-                            Continued use after changes means you accept the updated policy.
-                        </p>
-                    </Section>
-
-                    <Section title="10. Contact">
-                        <p>
-                            <strong>ProdLytics</strong>
-                        </p>
-                        {supportEmail ? (
-                            <p>
-                                <a
-                                    className="font-medium text-primary underline underline-offset-2"
-                                    href={`mailto:${supportEmail}`}
-                                >
-                                    {supportEmail}
-                                </a>
-                            </p>
-                        ) : null}
-                        <p>
+                        </div>
+                        <p className="mt-6">
                             <Link
-                                className="font-medium text-primary underline underline-offset-2"
+                                className="inline-flex items-center text-sm font-medium text-primary hover:opacity-80 transition-opacity"
                                 href="/"
                             >
-                                Open ProdLytics dashboard
+                                <span>Return to ProdLytics Dashboard</span>
+                                <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                                </svg>
                             </Link>
                         </p>
                     </Section>
