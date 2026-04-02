@@ -273,7 +273,7 @@ function App() {
   const goalsSublabel =
     goalsCount > 0
       ? `${goalsCount} for today`
-      : "Open dashboard + Sync Extension — goals are today only";
+      : "";
 
   return (
     <div className={`pl-popup ${isDarkMode ? "pl-popup--dark" : "pl-popup--light"}`}>
