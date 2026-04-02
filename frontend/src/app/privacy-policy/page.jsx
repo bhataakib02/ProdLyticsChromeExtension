@@ -17,7 +17,7 @@ function Section({ title, children }) {
     );
 }
 
-const DEFAULT_SUPPORT_EMAIL = "aakibbhat01@gmail.com";
+const DEFAULT_SUPPORT_EMAIL = "thefreelancer2076@gmail.com, crystalcclera@gmail.com";
 
 export default function PrivacyPolicyPage() {
     const supportEmail = (process.env.NEXT_PUBLIC_SUPPORT_EMAIL || DEFAULT_SUPPORT_EMAIL).trim();

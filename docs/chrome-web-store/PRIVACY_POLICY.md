@@ -83,7 +83,7 @@ We use industry-common measures such as **HTTPS** for API traffic and **authenti
 - You can **clear** extension data from Chrome (Extension details → Storage / Site access as applicable).  
 - You can **disconnect** or stop using the dashboard; contact the publisher if you need **account or data deletion**.  
 
-**Support / data requests:** **aakibbhat01@gmail.com** (also shown on the live page `https://prodlytics.vercel.app/privacy-policy`). You may override the displayed email with **`NEXT_PUBLIC_SUPPORT_EMAIL`** on Vercel if it changes.
+**Support / data requests:** **thefreelancer2076@gmail.com, crystalcclera@gmail.com** (also shown on the live page `https://prodlytics.vercel.app/privacy-policy`). You may override the displayed email with **`NEXT_PUBLIC_SUPPORT_EMAIL`** on Vercel if it changes.
 
 ---
 
@@ -102,7 +102,7 @@ We may update this policy. The “Last updated” date will change when we do. C
 ## 10. Contact
 
 **ProdLytics**  
-**aakibbhat01@gmail.com**  
+**thefreelancer2076@gmail.com, crystalcclera@gmail.com**  
 Policy: **https://prodlytics.vercel.app/privacy-policy**  
 Dashboard: **https://prodlytics.vercel.app**
 
