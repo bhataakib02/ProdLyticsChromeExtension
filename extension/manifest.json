@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "ProdLytics — Time Tracker & AI Productivity Analytics",
     "short_name": "ProdLytics",
-    "version": "1.2.2",
+    "version": "1.2.3",
     "description": "This AI-powered chrome extension monitors time spent on different websites and applications to provide productivity analytics, allows setting custom daily goals, and generates AI-powered insights. It pairs with a comprehensive ProdLytics web app to synchronize performance data for seamless team, project, and task management.",
     "minimum_chrome_version": "120",
     "permissions": [
