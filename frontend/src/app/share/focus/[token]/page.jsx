@@ -60,14 +60,14 @@ export default function SharedFocusTrendPage() {
                 <p className="mt-2 text-xs font-medium text-muted leading-relaxed">
                     Weekly focus score only. No websites or browsing history are shared.
                 </p>
-                <div className="mt-8 space-y-4 rounded-2xl border border-white/10 bg-foreground/[0.03] p-4">
+                <div className="mt-8 space-y-4 rounded-2xl border border-ui-muted bg-foreground/[0.03] p-4">
                     {weeks.map((w) => (
                         <div key={w.label}>
                             <div className="flex justify-between text-xs font-bold text-foreground/85 mb-1">
                                 <span>{w.label}</span>
                                 <span>{w.score}%</span>
                             </div>
-                            <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
+                            <div className="h-2 w-full rounded-full bg-foreground/10 overflow-hidden">
                                 <div className="h-full bg-primary transition-all" style={{ width: `${(Number(w.score) / max) * 100}%` }} />
                             </div>
                         </div>

@@ -101,7 +101,7 @@ export default function FocusView() {
             >
                 <div className="space-y-4">
                     <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-secondary/20 flex items-center justify-center shadow-lg shadow-secondary/10 border border-secondary/20">
+                        <div className="w-14 h-14 rounded-2xl bg-secondary/20 flex items-center justify-center shadow-sm border border-secondary/20">
                             <ShieldAlert className="text-secondary" size={32} />
                         </div>
                         <h1 className="text-6xl font-black tracking-tighter bg-gradient-to-r from-foreground via-foreground to-foreground/45 bg-clip-text text-transparent">
@@ -290,7 +290,7 @@ export default function FocusView() {
 
             <style jsx global>{`
                 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--color-border-disabled); border-radius: 10px; }
             `}</style>
         </div>
     );
@@ -319,7 +319,7 @@ function ToggleSetting({
             className={`group/toggle relative flex items-center justify-between gap-4 rounded-[22px] border-2 border-ui bg-gradient-to-br from-foreground/[0.04] to-transparent p-5 transition-colors hover:border-ui-strong ${premiumLocked ? "opacity-95" : ""}`}
         >
             {premiumLocked ? (
-                <span className="pointer-events-none absolute inset-0 rounded-[20px] ring-1 ring-inset ring-amber-400/15" />
+                <span className="pointer-events-none absolute inset-0 rounded-[20px] ring-1 ring-inset ring-amber-400/25" />
             ) : null}
             <div className="flex min-w-0 flex-1 items-center gap-5 pr-2">
                 <div className="shrink-0 rounded-xl border-2 border-ui bg-foreground/5 p-3 shadow-inner">{icon}</div>

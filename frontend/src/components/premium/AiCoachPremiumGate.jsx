@@ -22,9 +22,10 @@ export function AiCoachPremiumGate({ user, children }) {
                 aria-hidden
                 className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(139,92,246,0.18),transparent),radial-gradient(ellipse_60%_40%_at_100%_100%,rgba(251,191,36,0.12),transparent)]"
             />
-            <div className="relative w-full max-w-xl rounded-[28px] border border-white/10 bg-foreground/[0.045] p-8 shadow-[0_24px_64px_rgba(0,0,0,0.45)] backdrop-blur-md md:p-10">
-                <div className="mx-auto mb-6 flex h-[72px] w-[72px] items-center justify-center rounded-[22px] border border-amber-400/35 bg-gradient-to-br from-amber-400/25 via-amber-500/10 to-primary/15 shadow-[0_12px_40px_rgba(251,191,36,0.15)]">
-                    <Crown className="text-amber-200" size={36} aria-hidden strokeWidth={1.35} />
+            <div className="relative w-full max-w-xl rounded-[28px] border-ui-muted bg-foreground/[0.045] p-8 shadow-[0_24px_64px_rgba(0,0,0,0.45)] backdrop-blur-md md:p-10">
+                <div className="mx-auto mb-6 flex h-[72px] w-[72px] items-center justify-center rounded-[22px] border px-2 py-2 shadow-[0_12px_40px_rgba(251,191,36,0.15)]"
+                     style={{ backgroundColor: 'var(--premium-bg)', borderColor: 'var(--premium-border)' }}>
+                    <Crown style={{ color: 'var(--premium-icon)' }} size={36} aria-hidden strokeWidth={1.35} />
                 </div>
                 <div className="mb-3 flex justify-center">
                     <span className="inline-flex items-center gap-2 rounded-full border border-primary/35 bg-primary/12 px-3.5 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-primary">
@@ -42,7 +43,7 @@ export function AiCoachPremiumGate({ user, children }) {
                 <div className="mt-9 grid gap-3 sm:grid-cols-2">
                     <Link
                         href="/"
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/14 bg-transparent px-5 py-3.5 text-sm font-bold text-foreground/90 transition hover:bg-white/[0.06] sm:col-span-2"
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-ui-muted bg-transparent px-5 py-3.5 text-sm font-bold text-foreground/90 transition hover:bg-foreground/5 sm:col-span-2"
                     >
                         <LayoutDashboard size={18} aria-hidden />
                         Back to dashboard

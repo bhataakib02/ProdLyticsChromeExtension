@@ -410,7 +410,7 @@ export default function AdminPage() {
                                                     setExpandedUserId((id) => (id === u.id ? null : u.id));
                                                 }
                                             }}
-                                            className="cursor-pointer border-t border-white/5 hover:bg-white/[0.04]"
+                                            className="cursor-pointer border-t border-ui-muted hover:bg-foreground/[0.04]"
                                         >
                                             <td className="py-2 font-medium text-foreground max-w-[150px] truncate" title={u.name}>{u.name}</td>
                                             <td className="max-w-[200px] truncate" title={u.email}>{u.email || "-"}</td>
@@ -422,7 +422,7 @@ export default function AdminPage() {
                                             </td>
                                         </tr>
                                         {expandedUserId === u.id ? (
-                                            <tr className="border-t border-white/5 bg-foreground/[0.035]">
+                                            <tr className="border-t border-ui-muted bg-foreground/[0.035]">
                                                 <td colSpan={6} className="px-3 py-3">
                                                     <div
                                                         className="flex min-w-[240px] flex-col gap-2"
@@ -436,7 +436,12 @@ export default function AdminPage() {
                                                             type="button"
                                                             disabled={userExportBusy === u.id}
                                                             onClick={() => downloadUserDataExport(u.id, "csv")}
-                                                            className="rounded-lg border border-emerald-400/35 bg-emerald-400/10 px-3 py-2 text-left text-xs font-semibold text-emerald-100 hover:bg-emerald-400/20 disabled:opacity-50"
+                                                            className="rounded-lg border px-3 py-2 text-left text-xs font-semibold transition-colors disabled:opacity-50"
+                                                            style={{ 
+                                                                backgroundColor: 'var(--success-badge-bg)', 
+                                                                color: 'var(--success-badge-text)',
+                                                                borderColor: 'var(--success-badge-border)'
+                                                            }}
                                                             title="ZIP of CSV files (Excel/Sheets) — full export."
                                                         >
                                                             {userExportBusy === u.id ? "Preparing…" : "Their data · CSV (ZIP)"}
@@ -445,7 +450,12 @@ export default function AdminPage() {
                                                             type="button"
                                                             disabled={userExportBusy === u.id}
                                                             onClick={() => downloadUserDataExport(u.id, "pdf")}
-                                                            className="rounded-lg border border-rose-400/35 bg-rose-400/10 px-3 py-2 text-left text-xs font-semibold text-rose-100 hover:bg-rose-400/20 disabled:opacity-50"
+                                                            className="rounded-lg border px-3 py-2 text-left text-xs font-semibold transition-colors disabled:opacity-50"
+                                                            style={{ 
+                                                                backgroundColor: 'var(--danger-badge-bg)', 
+                                                                color: 'var(--danger-badge-text)',
+                                                                borderColor: 'var(--danger-badge-border)'
+                                                            }}
                                                         >
                                                             Their data · PDF summary
                                                         </button>
@@ -537,7 +547,7 @@ export default function AdminPage() {
                                                     setExpandedPaymentId((id) => (id === p.id ? null : p.id));
                                                 }
                                             }}
-                                            className="cursor-pointer border-t border-white/5 hover:bg-white/[0.04]"
+                                            className="cursor-pointer border-t border-ui-muted hover:bg-foreground/[0.04]"
                                         >
                                             <td className="py-2 font-medium text-foreground">{p.email || "-"}</td>
                                             <td>{inrFromMinor(p.amount)}</td>
@@ -549,7 +559,7 @@ export default function AdminPage() {
                                             </td>
                                         </tr>
                                         {expandedPaymentId === p.id ? (
-                                            <tr className="border-t border-white/5 bg-foreground/[0.035]">
+                                            <tr className="border-t border-ui-muted bg-foreground/[0.035]">
                                                 <td colSpan={6} className="px-3 py-3">
                                                     <div
                                                         className="flex min-w-[188px] flex-col gap-2"

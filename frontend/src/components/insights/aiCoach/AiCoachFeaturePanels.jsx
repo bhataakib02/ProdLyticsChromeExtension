@@ -70,7 +70,7 @@ export function AiCoachFeaturePanels({ feature, data }) {
 
     const panels = {
         "smart-productivity-score": (
-            <article className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-white/[0.015] p-4 md:p-5 shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
+            <article className="rounded-2xl border border-ui-muted bg-foreground/[0.03] p-4 md:p-5 shadow-sm">
                 <div className="flex items-center justify-between gap-4">
                     <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/65 flex items-center gap-2">
                         <Sparkles size={14} className="text-primary" />
@@ -87,7 +87,7 @@ export function AiCoachFeaturePanels({ feature, data }) {
                                 <RadialBar dataKey="value" cornerRadius={12} background clockWise />
                             </RadialBarChart>
                             <div className="absolute inset-0 grid place-items-center">
-                                <div className="h-16 w-16 rounded-full bg-[#2f3444] grid place-items-center text-sm font-black text-foreground border border-white/10">
+                                <div className="h-16 w-16 rounded-full bg-background grid place-items-center text-sm font-black text-foreground border border-ui-muted">
                                     {scoreGaugeValue}%
                                 </div>
                             </div>
@@ -99,7 +99,7 @@ export function AiCoachFeaturePanels({ feature, data }) {
             </article>
         ),
         "behavioral-patterns": (
-            <article className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.01] p-4 md:p-5 shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
+            <article className="rounded-2xl border border-ui-muted bg-foreground/[0.025] p-4 md:p-5 shadow-sm">
                 <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/65 flex items-center gap-2">
                     <Activity size={14} className="text-secondary" />
                     2. Behavioral pattern detection
@@ -108,9 +108,9 @@ export function AiCoachFeaturePanels({ feature, data }) {
                     {mounted && hourlyBehaviorData.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={hourlyBehaviorData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
-                                <XAxis dataKey="label" tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 10 }} />
-                                <YAxis tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 10 }} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-disabled)" />
+                                <XAxis dataKey="label" tick={{ fill: "var(--color-muted)", fontSize: 10 }} />
+                                <YAxis tick={{ fill: "var(--color-muted)", fontSize: 10 }} />
                                 <Tooltip
                                     formatter={(value, name) => [formatTrackedShort(Number(value) * 60), name]}
                                     labelFormatter={(label) => `Hour: ${label}`}
@@ -128,13 +128,13 @@ export function AiCoachFeaturePanels({ feature, data }) {
                     <InsightCoachCard
                         insight={coachBehavioral?.insight}
                         recommendations={coachBehavioral?.recommendations}
-                        className="mt-5 border-t border-white/10 pt-5"
+                        className="mt-5 border-t border-ui-muted pt-5"
                     />
                 ) : null}
             </article>
         ),
         "distraction-alerts": (
-            <article className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.01] p-4 md:p-5 shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
+            <article className="rounded-2xl border border-ui-muted bg-foreground/[0.025] p-4 md:p-5 shadow-sm">
                 <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/65 flex items-center gap-2">
                     <Zap size={14} className="text-danger" />
                     3. Distraction alerts
@@ -154,7 +154,7 @@ export function AiCoachFeaturePanels({ feature, data }) {
                                     </span>
                                     <span>{row.pretty}</span>
                                 </div>
-                                <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
+                                <div className="h-2 w-full rounded-full bg-foreground/10 overflow-hidden">
                                     <div className="h-full bg-danger" style={{ width: `${row.pct}%` }} />
                                 </div>
                             </div>
@@ -168,13 +168,13 @@ export function AiCoachFeaturePanels({ feature, data }) {
                     <InsightCoachCard
                         insight={coachDistraction?.insight}
                         recommendations={coachDistraction?.recommendations}
-                        className="mt-5 border-t border-white/10 pt-5"
+                        className="mt-5 border-t border-ui-muted pt-5"
                     />
                 ) : null}
             </article>
         ),
         "personalized-suggestions": (
-            <article className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 to-white/[0.01] p-4 md:p-5 shadow-[0_10px_30px_rgba(37,99,235,0.15)]">
+            <article className="rounded-2xl border border-primary/25 bg-background p-4 md:p-5 shadow-sm">
                 <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/80 flex items-center gap-2">
                     <Lightbulb size={14} className="text-primary" />
                     4. Personalized suggestions
@@ -215,7 +215,7 @@ export function AiCoachFeaturePanels({ feature, data }) {
             </article>
         ),
         "weekly-report": (
-            <article className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.01] p-4 md:p-5 shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
+            <article className="rounded-2xl border border-ui-muted bg-foreground/[0.025] p-4 md:p-5 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/65 flex items-center gap-2">
                         <Calendar size={14} className="text-primary" />
@@ -225,7 +225,7 @@ export function AiCoachFeaturePanels({ feature, data }) {
                         <button
                             type="button"
                             onClick={() => goTab("analytics")}
-                            className="rounded-lg border border-white/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-foreground/80 hover:bg-white/10 inline-flex items-center gap-1.5"
+                            className="rounded-lg border border-ui-muted px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-foreground/80 hover:bg-foreground/5 inline-flex items-center gap-1.5"
                         >
                             <FileText size={12} />
                             View report
@@ -233,7 +233,7 @@ export function AiCoachFeaturePanels({ feature, data }) {
                         <button
                             type="button"
                             onClick={downloadWeeklyReport}
-                            className="rounded-lg border border-white/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-foreground/80 hover:bg-white/10 inline-flex items-center gap-1.5"
+                            className="rounded-lg border border-ui-muted px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-foreground/80 hover:bg-foreground/5 inline-flex items-center gap-1.5"
                         >
                             <FileDown size={12} />
                             Download report
@@ -244,9 +244,9 @@ export function AiCoachFeaturePanels({ feature, data }) {
                     {mounted && weeklyChartData.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={weeklyChartData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
-                                <XAxis dataKey="name" tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 10 }} />
-                                <YAxis domain={[0, 100]} tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 10 }} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-disabled)" />
+                                <XAxis dataKey="name" tick={{ fill: "var(--color-muted)", fontSize: 10 }} />
+                                <YAxis domain={[0, 100]} tick={{ fill: "var(--color-muted)", fontSize: 10 }} />
                                 <Tooltip formatter={(v) => [`${v}%`, "Focus score"]} />
                                 <Bar dataKey="score" fill="var(--color-primary)" radius={[6, 6, 0, 0]} />
                             </BarChart>
@@ -273,13 +273,13 @@ export function AiCoachFeaturePanels({ feature, data }) {
                     <InsightCoachCard
                         insight={coachWeekly?.insight}
                         recommendations={coachWeekly?.recommendations}
-                        className="mt-5 border-t border-white/10 pt-5"
+                        className="mt-5 border-t border-ui-muted pt-5"
                     />
                 ) : null}
             </article>
         ),
         "predictive-analytics": (
-            <article className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.01] p-4 md:p-5 shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
+            <article className="rounded-2xl border border-ui-muted bg-foreground/[0.025] p-4 md:p-5 shadow-sm">
                 <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/65 flex items-center gap-2">
                     <TrendingUp size={14} className="text-secondary" />
                     6. Predictive analytics
@@ -288,22 +288,22 @@ export function AiCoachFeaturePanels({ feature, data }) {
                     {mounted && predictiveChartData.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={predictiveChartData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
-                                <XAxis dataKey="point" tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 10 }} />
-                                <YAxis domain={[0, 100]} tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 10 }} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-disabled)" />
+                                <XAxis dataKey="point" tick={{ fill: "var(--color-muted)", fontSize: 10 }} />
+                                <YAxis domain={[0, 100]} tick={{ fill: "var(--color-muted)", fontSize: 10 }} />
                                 <Tooltip
                                     formatter={(v, name) => {
                                         if (v == null || Number.isNaN(Number(v))) return null;
                                         return [`${Math.round(Number(v))}%`, name === "scoreActual" ? "Actual" : "Forecast"];
                                     }}
                                     contentStyle={{
-                                        backgroundColor: "rgba(16, 20, 30, 0.95)",
-                                        border: "1px solid rgba(255,255,255,0.15)",
+                                        backgroundColor: "var(--color-background)",
+                                        border: "1px solid var(--glass-border)",
                                         borderRadius: "10px",
-                                        color: "#e5e7eb",
+                                        color: "var(--color-foreground)",
                                     }}
-                                    labelStyle={{ color: "#cbd5e1", fontWeight: 700 }}
-                                    itemStyle={{ color: "#e5e7eb" }}
+                                    labelStyle={{ color: "var(--color-foreground)", fontWeight: 700 }}
+                                    itemStyle={{ color: "var(--color-foreground)" }}
                                 />
                                 <Line type="monotone" dataKey="scoreActual" stroke="var(--color-success)" strokeWidth={3} dot={{ r: 4 }} connectNulls={false} />
                                 <Line type="monotone" dataKey="scoreForecast" stroke="var(--color-secondary)" strokeDasharray="6 6" strokeWidth={3} dot={{ r: 4 }} />
@@ -349,13 +349,13 @@ export function AiCoachFeaturePanels({ feature, data }) {
                     <InsightCoachCard
                         insight={coachPredictive?.insight}
                         recommendations={coachPredictive?.recommendations}
-                        className="mt-5 border-t border-white/10 pt-5"
+                        className="mt-5 border-t border-ui-muted pt-5"
                     />
                 ) : null}
             </article>
         ),
         "goal-insights": (
-            <article className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.01] p-4 md:p-5 shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
+            <article className="rounded-2xl border border-ui-muted bg-foreground/[0.025] p-4 md:p-5 shadow-sm">
                 <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/65 flex items-center gap-2">
                     <Target size={14} className="text-secondary" />
                     7. Goal-based insights
@@ -366,7 +366,7 @@ export function AiCoachFeaturePanels({ feature, data }) {
                             <span className="truncate">{primaryGoalProgress.label}</span>
                             <span>{primaryGoalProgress.pct}%</span>
                         </div>
-                        <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
+                        <div className="h-2 w-full rounded-full bg-foreground/10 overflow-hidden">
                             <div className="h-full bg-secondary" style={{ width: `${primaryGoalProgress.pct}%` }} />
                         </div>
                         <div className="mt-2 text-xs text-muted font-medium">
@@ -394,7 +394,7 @@ export function AiCoachFeaturePanels({ feature, data }) {
                     <InsightCoachCard
                         insight={coachGoal?.insight}
                         recommendations={coachGoal?.recommendations}
-                        className="mt-5 border-t border-white/10 pt-5"
+                        className="mt-5 border-t border-ui-muted pt-5"
                     />
                 ) : null}
             </article>
@@ -413,7 +413,7 @@ export function AiCoachHubLinks() {
                 <li key={f.slug}>
                     <Link
                         href={`/insights/ai-coach/${f.slug}`}
-                        className="flex min-h-[4.25rem] items-center justify-between gap-4 rounded-[28px] border border-white/10 bg-foreground/[0.02] px-5 py-4 text-left shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition-colors hover:border-primary/35 hover:bg-primary/[0.06]"
+                        className="flex min-h-[4.25rem] items-center justify-between gap-4 rounded-[28px] border border-ui-muted bg-foreground/[0.02] px-5 py-4 text-left shadow-sm transition-colors hover:border-primary/35 hover:bg-primary/[0.06]"
                     >
                         <span className="text-sm font-bold leading-snug text-foreground/95">{f.title}</span>
                         <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.2em] text-muted">Open</span>

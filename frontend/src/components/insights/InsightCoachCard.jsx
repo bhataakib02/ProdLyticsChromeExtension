@@ -18,7 +18,7 @@ export default function InsightCoachCard({
             {insight ? <InsightText>{insight}</InsightText> : null}
             <RecommendationsList items={recommendations} highlightFirst={highlightFirstAction && recommendations?.length > 1} />
             {footnote ? (
-                <p className="text-[10px] font-medium leading-relaxed text-muted/75 border-t border-white/5 pt-3">{footnote}</p>
+                <p className="text-[10px] font-medium leading-relaxed text-muted/75 border-t-ui-muted pt-3">{footnote}</p>
             ) : null}
         </div>
     );

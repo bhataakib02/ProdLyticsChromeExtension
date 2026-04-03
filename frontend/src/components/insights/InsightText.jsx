@@ -3,7 +3,7 @@ import { Brain } from "lucide-react";
 export default function InsightText({ children, className = "" }) {
     return (
         <div
-            className={`rounded-2xl border border-white/10 bg-foreground/[0.04] p-4 ${className}`}
+            className={`rounded-2xl border-ui-muted bg-foreground/[0.04] p-4 ${className}`}
             role="region"
             aria-label="AI insight"
         >

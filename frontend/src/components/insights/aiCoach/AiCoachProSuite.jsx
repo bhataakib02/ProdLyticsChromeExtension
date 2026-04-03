@@ -34,7 +34,7 @@ function ProToggle({ checked, onChange, variant }) {
                     ? on
                         ? "border-amber-400/55 bg-amber-500/30"
                         : "border-violet-400/55 bg-violet-600/35"
-                    : "border-white/15 bg-black/25"
+                    : "border-ui-muted bg-foreground/10"
             )}
         >
             <span
@@ -60,13 +60,13 @@ function ProFeatureCard({
     onPremiumBlocked,
 }) {
     return (
-        <div className="relative flex items-center gap-4 overflow-hidden rounded-[22px] border border-white/14 bg-gradient-to-br from-[#252830] to-[#1b1e26] px-4 py-4 shadow-[0_12px_40px_rgba(0,0,0,0.42)]">
+        <div className="relative flex items-center gap-4 overflow-hidden rounded-[22px] border border-ui-muted bg-foreground/[0.03] px-4 py-4 shadow-sm">
             {premiumLocked ? (
                 <span className="pointer-events-none absolute inset-0 rounded-[20px] ring-1 ring-inset ring-amber-400/12" />
             ) : null}
             <div
                 className={cn(
-                    "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/12 bg-black/35 shadow-inner",
+                    "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-ui-muted bg-foreground/5 shadow-inner",
                     iconClass
                 )}
             >
@@ -74,7 +74,7 @@ function ProFeatureCard({
             </div>
             <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2 gap-y-1">
-                    <h3 className={cn(titleSerif, "text-[15px] font-semibold leading-snug tracking-tight text-white")}>
+                    <h3 className={cn(titleSerif, "text-[15px] font-semibold leading-snug tracking-tight text-foreground")}>
                         {title}
                     </h3>
                     {showPremiumBadge ? <PremiumBadge /> : null}
@@ -269,10 +269,10 @@ export function AiCoachProSuite({ data }) {
                 user={user}
             />
             <div>
-                <h2 className={cn(titleSerif, "text-lg font-semibold text-white md:text-xl tracking-tight")}>
+                <h2 className={cn(titleSerif, "text-lg font-semibold text-foreground md:text-xl tracking-tight")}>
                     Pro automation &amp; delivery
                 </h2>
-                <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-sky-100/45">
+                <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-muted">
                     Premium tools from your screenshots — synced with Focus mode preferences
                 </p>
             </div>
@@ -321,12 +321,12 @@ export function AiCoachProSuite({ data }) {
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
-                <div className="rounded-2xl border border-white/10 bg-foreground/[0.04] p-4">
-                    <div className="flex items-center gap-2 text-white">
+                <div className="rounded-2xl border border-ui-muted bg-foreground/[0.04] p-4">
+                    <div className="flex items-center gap-2 text-foreground">
                         <Mail size={16} className="text-primary shrink-0" aria-hidden />
                         <span className={cn(titleSerif, "text-sm font-semibold")}>Weekly digest · email</span>
                     </div>
-                    <p className="mt-2 text-[10px] font-bold uppercase leading-relaxed tracking-wide text-sky-100/50">
+                    <p className="mt-2 text-[10px] font-bold uppercase leading-relaxed tracking-wide text-muted">
                         Same charts as your weekly report, delivered by email (pipeline hooks in when you enable SMTP).
                     </p>
                     <div className="mt-3 flex justify-end">
@@ -337,12 +337,12 @@ export function AiCoachProSuite({ data }) {
                         />
                     </div>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-foreground/[0.04] p-4">
-                    <div className="flex items-center gap-2 text-white">
+                <div className="rounded-2xl border border-ui-muted bg-foreground/[0.04] p-4">
+                    <div className="flex items-center gap-2 text-foreground">
                         <Bell size={16} className="text-secondary shrink-0" aria-hidden />
                         <span className={cn(titleSerif, "text-sm font-semibold")}>Weekly digest · push</span>
                     </div>
-                    <p className="mt-2 text-[10px] font-bold uppercase leading-relaxed tracking-wide text-sky-100/50">
+                    <p className="mt-2 text-[10px] font-bold uppercase leading-relaxed tracking-wide text-muted">
                         Web push when a new weekly rollup is ready — opt in here; we&apos;ll prompt for permission later.
                     </p>
                     <div className="mt-3 flex justify-end">
@@ -355,12 +355,12 @@ export function AiCoachProSuite({ data }) {
                 </div>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-foreground/[0.04] p-4">
-                <div className="flex items-center gap-2 text-white">
+            <div className="rounded-2xl border border-ui-muted bg-foreground/[0.04] p-4">
+                <div className="flex items-center gap-2 text-foreground">
                     <Sparkles size={16} style={{ color: 'var(--premium-icon)' }} className="shrink-0" aria-hidden />
                     <span className={cn(titleSerif, "text-sm font-semibold")}>Softer phrasing (optional LLM)</span>
                 </div>
-                <p className="mt-2 text-[10px] font-bold uppercase leading-relaxed tracking-wide text-sky-100/50">
+                <p className="mt-2 text-[10px] font-bold uppercase leading-relaxed tracking-wide text-muted">
                     Off = structured coach only (privacy-first). On = room for friendlier wording using the same facts—no raw URLs sent to models when we wire it.
                 </p>
                 <div className="mt-3 flex justify-end">
@@ -373,28 +373,28 @@ export function AiCoachProSuite({ data }) {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-amber-400/20 bg-gradient-to-br from-amber-400/10 to-transparent p-4">
+                <div className="rounded-2xl border border-ui-muted bg-foreground/[0.04] p-4">
                     <div className="flex items-center gap-2" style={{ color: 'var(--premium-text)' }}>
                         <Flame size={18} className="shrink-0" aria-hidden />
                         <span className="text-[10px] font-black uppercase tracking-widest opacity-90">Streak</span>
                     </div>
-                    <p className={cn(titleSerif, "mt-2 text-3xl font-bold text-white tabular-nums")}>{streak}</p>
+                    <p className={cn(titleSerif, "mt-2 text-3xl font-bold text-foreground tabular-nums")}>{streak}</p>
                     <p className="mt-1 text-xs font-medium text-amber-100/70">productive days in a row</p>
                 </div>
-                <div className="rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/10 to-transparent p-4">
+                <div className="rounded-2xl border border-ui-muted bg-foreground/[0.04] p-4">
                     <div className="flex items-center gap-2 text-primary">
                         <Clock size={18} className="shrink-0" aria-hidden />
                         <span className="text-[10px] font-black uppercase tracking-widest text-primary/90">Hours reclaimed (est.)</span>
                     </div>
-                    <p className={cn(titleSerif, "mt-2 text-2xl font-bold text-white tabular-nums")}>
+                    <p className={cn(titleSerif, "mt-2 text-2xl font-bold text-foreground tabular-nums")}>
                         {reclaimed.minutes != null ? `${reclaimed.minutes} min` : "—"}
                     </p>
                     <p className="mt-1 text-xs font-medium text-muted leading-relaxed">{reclaimed.label}</p>
                 </div>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-foreground/[0.03] p-4">
-                <div className="flex items-center gap-2 text-white">
+            <div className="rounded-2xl border border-ui-muted bg-foreground/[0.03] p-4">
+                <div className="flex items-center gap-2 text-foreground">
                     <TrendingUp size={16} className="text-success shrink-0" aria-hidden />
                     <span className={cn(titleSerif, "text-sm font-semibold")}>Compare to your past self</span>
                 </div>
@@ -432,7 +432,7 @@ export function AiCoachProSuite({ data }) {
                     disabled={pdfBusy}
                     className={cn(
                         titleSerif,
-                        "inline-flex items-center justify-center gap-2 rounded-full border border-white/35 bg-transparent px-6 py-3 text-[12px] font-bold uppercase tracking-[0.18em] text-white shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition hover:border-white/55 disabled:opacity-50"
+                        "inline-flex items-center justify-center gap-2 rounded-full border border-ui-muted bg-foreground/5 px-6 py-3 text-[12px] font-bold uppercase tracking-[0.18em] text-foreground transition hover:bg-foreground/10 disabled:opacity-50"
                     )}
                 >
                     <span className="relative inline-flex h-5 w-5 items-center justify-center" aria-hidden>
@@ -443,12 +443,12 @@ export function AiCoachProSuite({ data }) {
                 </button>
             </div>
 
-            <div className="rounded-2xl border border-secondary/30 bg-foreground/[0.03] p-4">
-                <div className="flex items-center gap-2 text-white">
+            <div className="rounded-2xl border border-ui-muted bg-foreground/[0.03] p-4">
+                <div className="flex items-center gap-2 text-foreground">
                     <Link2 size={16} className="text-secondary shrink-0" aria-hidden />
                     <span className={cn(titleSerif, "text-sm font-semibold")}>Accountability partner link</span>
                 </div>
-                <p className="mt-2 text-[10px] font-bold uppercase leading-relaxed tracking-wide text-sky-100/50">
+                <p className="mt-2 text-[10px] font-bold uppercase leading-relaxed tracking-wide text-muted">
                     Read-only weekly focus trend — no sites, no history. Turn off anytime.
                 </p>
                 <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

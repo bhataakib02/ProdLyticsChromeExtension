@@ -281,20 +281,20 @@ export default function OverviewView({ onTabChange }) {
                             </p>
                         ) : null}
                         {topDomains.filter((d) => d.category === "productive" && domainMatches(d)).slice(0, 5).map((domain) => (
-                            <div
-                                key={domain._id}
-                                className="flex items-center justify-between rounded-2xl border-2 border-transparent p-3 transition-colors hover:border-ui hover:bg-foreground/[0.04]"
-                            >
-                                <div className="flex items-center gap-4">
-                                    <FaviconImage
-                                        domain={domain._id}
-                                        size={32}
-                                        className="w-8 h-8"
-                                    />
-                                    <span className="text-sm font-bold text-foreground/80">{domain._id}</span>
-                                </div>
-                                <span className="font-mono text-sm font-black text-green-500">{formatTime(domain.totalTime)}</span>
-                            </div>
+                             <div
+                                 key={domain._id}
+                                 className="flex items-center justify-between gap-4 rounded-2xl border-2 border-transparent p-3 transition-colors hover:border-ui hover:bg-foreground/[0.04]"
+                             >
+                                 <div className="flex items-center gap-4 min-w-0 flex-1">
+                                     <FaviconImage
+                                         domain={domain._id}
+                                         size={32}
+                                         className="w-8 h-8 shrink-0"
+                                     />
+                                     <span className="text-sm font-bold text-foreground/80 truncate" title={domain._id}>{domain._id}</span>
+                                 </div>
+                                 <span className="font-mono text-sm font-black text-green-500 shrink-0">{formatTime(domain.totalTime)}</span>
+                             </div>
                         ))}
                     </div>
                 </div>
@@ -313,20 +313,20 @@ export default function OverviewView({ onTabChange }) {
                             </p>
                         ) : null}
                         {topDomains.filter((d) => d.category === "unproductive" && domainMatches(d)).slice(0, 5).map((domain) => (
-                            <div
-                                key={domain._id}
-                                className="flex items-center justify-between rounded-2xl border-2 border-transparent p-3 transition-colors hover:border-ui hover:bg-foreground/[0.04]"
-                            >
-                                <div className="flex items-center gap-4">
-                                    <FaviconImage
-                                        domain={domain._id}
-                                        size={32}
-                                        className="w-8 h-8"
-                                    />
-                                    <span className="text-sm font-bold text-foreground/80">{domain._id}</span>
-                                </div>
-                                <span className="font-mono text-sm font-black text-red-500">{formatTime(domain.totalTime)}</span>
-                            </div>
+                             <div
+                                 key={domain._id}
+                                 className="flex items-center justify-between gap-4 rounded-2xl border-2 border-transparent p-3 transition-colors hover:border-ui hover:bg-foreground/[0.04]"
+                             >
+                                 <div className="flex items-center gap-4 min-w-0 flex-1">
+                                     <FaviconImage
+                                         domain={domain._id}
+                                         size={32}
+                                         className="w-8 h-8 shrink-0"
+                                     />
+                                     <span className="text-sm font-bold text-foreground/80 truncate" title={domain._id}>{domain._id}</span>
+                                 </div>
+                                 <span className="font-mono text-sm font-black text-red-500 shrink-0">{formatTime(domain.totalTime)}</span>
+                             </div>
                         ))}
                     </div>
                 </div>

@@ -132,9 +132,10 @@ export default function UpgradePage() {
                     Back
                 </Link>
 
-                <div className="glass-card mt-6 rounded-[30px] border-2 border-ui p-8 text-center shadow-lg shadow-black/25 sm:p-10">
-                    <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-400/35 bg-amber-400/10">
-                        <Crown className="text-amber-300" size={30} aria-hidden />
+                <div className="glass-card mt-6 rounded-[30px] border-2 border-ui p-8 text-center shadow-lg sm:p-10">
+                    <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border px-2 py-2"
+                         style={{ borderColor: 'var(--premium-border)', backgroundColor: 'var(--premium-bg)'}}>
+                        <Crown style={{ color: 'var(--premium-icon)' }} size={30} aria-hidden />
                     </div>
                     <p className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-primary">
                         <Sparkles size={12} aria-hidden />
@@ -159,7 +160,7 @@ export default function UpgradePage() {
                         </button>
                         <Link
                             href={nextPath || "/"}
-                            className="w-full rounded-xl border border-white/15 px-6 py-3.5 text-sm font-semibold text-foreground/90 hover:bg-foreground/5 sm:w-auto"
+                            className="w-full rounded-xl border border-ui-muted px-6 py-3.5 text-sm font-semibold text-foreground/90 hover:bg-foreground/5 sm:w-auto"
                         >
                             Not now
                         </Link>
