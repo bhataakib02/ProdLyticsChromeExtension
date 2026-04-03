@@ -15,8 +15,7 @@ function AiCoachHubBody() {
     const searchParams = useSearchParams();
     const data = useAiCoachInsightsData();
     const featureFromQuery = searchParams.get("feature");
-    const defaultFeature = AI_COACH_FEATURES[0]?.slug;
-    const activeFeature = featureFromQuery && AI_COACH_SLUGS.has(featureFromQuery) ? featureFromQuery : defaultFeature;
+    const activeFeature = featureFromQuery && AI_COACH_SLUGS.has(featureFromQuery) ? featureFromQuery : "all";
 
     return (
         <div className="mx-auto max-w-6xl px-4 py-6 md:py-10">
@@ -29,14 +28,16 @@ function AiCoachHubBody() {
             </Link>
 
             <div className="mb-5">
-                <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="flex items-center gap-2 text-2xl font-black tracking-tight text-foreground">
-                        <Sparkles className="text-primary" size={26} aria-hidden />
-                        AI Coach
-                    </h1>
-                    <span className="rounded-md border border-amber-400/35 bg-amber-400/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-amber-200/95">
-                        Premium
-                    </span>
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <h1 className="flex items-center gap-2 text-2xl font-black tracking-tight text-foreground">
+                            <Sparkles className="text-primary" size={26} aria-hidden />
+                            AI Coach
+                        </h1>
+                        <span className="rounded-md border border-amber-400/35 bg-amber-400/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-amber-200/95">
+                            Premium
+                        </span>
+                    </div>
                 </div>
             </div>
 
@@ -45,13 +46,20 @@ function AiCoachHubBody() {
                     className="border-0"
                     activeSlug={activeFeature}
                     getHref={(slug) => `/insights/ai-coach?feature=${slug}`}
+                    showAllLink
                 />
             </div>
 
             <div className="rounded-[28px] border border-white/10 bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-4 md:p-6">
-                <AiCoachProSuite data={data} />
                 <AiCoachFeaturePanels feature={activeFeature} data={data} />
-                <p className="mt-4 text-center text-[10px] font-medium leading-relaxed text-muted/80 px-2">
+                
+                {activeFeature === "all" ? (
+                    <div className="mt-12 border-t border-white/10 pt-10">
+                        <AiCoachProSuite data={data} />
+                    </div>
+                ) : null}
+
+                <p className="mt-8 text-center text-[10px] font-medium leading-relaxed text-muted/85 px-4 max-w-2xl mx-auto">
                     Pro coaching layers your live extension data (score, hourly splits, goals, week-over-week trends) into
                     actionable steps—sync often for the freshest read.
                 </p>

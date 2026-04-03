@@ -10,6 +10,7 @@ import {
     Calendar,
     TrendingUp,
     Target,
+    LayoutGrid,
 } from "lucide-react";
 import { AI_COACH_FEATURES } from "@/lib/aiCoachRoutes";
 import { cn } from "@/lib/utils";
@@ -25,18 +26,26 @@ const ICON_BY_SLUG = {
 };
 
 /**
- * Single row: all 7 categories visible (no horizontal scroll). Icon above label; active state uses underline bar.
+ * Single row: all 7/8 categories visible. Icon above label; active state uses underline bar.
  */
-export function AiCoachCategoryNav({ className = "", activeSlug = null, getHref = null }) {
+export function AiCoachCategoryNav({ className = "", activeSlug = null, getHref = null, showAllLink = false }) {
     const pathname = usePathname() || "";
+
+    const allLink = { slug: "all", title: "Show All Insights", short: "All", icon: LayoutGrid };
+    const items = showAllLink ? [allLink, ...AI_COACH_FEATURES] : AI_COACH_FEATURES;
 
     return (
         <nav className={cn("border-b border-white/10", className)} aria-label="AI Coach categories">
-            <div className="grid w-full grid-cols-7 gap-1 py-1 sm:gap-2">
-                {AI_COACH_FEATURES.map((f) => {
-                    const href = getHref ? getHref(f.slug) : `/insights/ai-coach/${f.slug}`;
+            <div className={cn(
+                "grid w-full gap-1 py-1 sm:gap-2",
+                items.length === 8 ? "grid-cols-8" : "grid-cols-7"
+            )}>
+                {items.map((f) => {
+                    const href = f.slug === "all" 
+                        ? (getHref ? getHref("all") : "/insights/ai-coach") 
+                        : (getHref ? getHref(f.slug) : `/insights/ai-coach/${f.slug}`);
                     const isActive = activeSlug ? activeSlug === f.slug : pathname === href;
-                    const Icon = ICON_BY_SLUG[f.slug] || Sparkles;
+                    const Icon = f.icon || ICON_BY_SLUG[f.slug] || Sparkles;
                     return (
                         <Link
                             key={f.slug}
