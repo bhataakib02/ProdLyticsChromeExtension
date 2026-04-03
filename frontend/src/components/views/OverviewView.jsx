@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, API_URL } from "@/context/AuthContext";
 import { useDashboard } from "@/context/DashboardContext";
 import { matchesActivitySearch } from "@/lib/activitySearch";
 import { trackingService } from "@/services/tracking.service";
@@ -20,6 +20,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { PieChart as RePieChart, Pie, ResponsiveContainer, Cell, Tooltip } from "recharts";
 import Image from "next/image";
+import { FaviconImage } from "@/components/common/FaviconImage";
 import { isProdlyticsPremiumUser } from "@/lib/premiumAccess";
 import { PremiumUpsellDialog, PremiumBadge } from "@/components/premium/PremiumUpsellDialog";
 
@@ -40,8 +41,10 @@ export default function OverviewView({ onTabChange }) {
     const [pdfExporting, setPdfExporting] = useState(false);
     const [csvExporting, setCsvExporting] = useState(false);
     const [premiumOpen, setPremiumOpen] = useState(false);
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        setMounted(true);
         if (user) {
             synchronizeOverview();
         }
@@ -217,14 +220,13 @@ export default function OverviewView({ onTabChange }) {
                     </div>
                     <div className="flex min-w-0 flex-col items-center justify-center rounded-[40px] border-2 border-ui bg-foreground/[0.04] p-6 lg:col-span-5">
                         <div className="relative mb-4 h-40 min-h-40 w-full min-w-0">
-                            {distribution.length > 0 ? (
+                            {mounted && distribution.length > 0 ? (
                                 <ResponsiveContainer
                                     width="100%"
                                     height="100%"
                                     minWidth={0}
                                     minHeight={160}
                                     debounce={50}
-                                    initialDimension={{ width: 400, height: 160 }}
                                 >
                                     <RePieChart>
                                         <Pie
@@ -284,13 +286,10 @@ export default function OverviewView({ onTabChange }) {
                                 className="flex items-center justify-between rounded-2xl border-2 border-transparent p-3 transition-colors hover:border-ui hover:bg-foreground/[0.04]"
                             >
                                 <div className="flex items-center gap-4">
-                                    <Image
-                                        src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(faviconHostFromTrackingId(domain._id))}&sz=64`}
-                                        width={32}
-                                        height={32}
-                                        className="w-8 h-8 rounded-lg"
-                                        alt=""
-                                        unoptimized
+                                    <FaviconImage
+                                        domain={domain._id}
+                                        size={32}
+                                        className="w-8 h-8"
                                     />
                                     <span className="text-sm font-bold text-foreground/80">{domain._id}</span>
                                 </div>
@@ -319,13 +318,10 @@ export default function OverviewView({ onTabChange }) {
                                 className="flex items-center justify-between rounded-2xl border-2 border-transparent p-3 transition-colors hover:border-ui hover:bg-foreground/[0.04]"
                             >
                                 <div className="flex items-center gap-4">
-                                    <Image
-                                        src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(faviconHostFromTrackingId(domain._id))}&sz=64`}
-                                        width={32}
-                                        height={32}
-                                        className="w-8 h-8 rounded-lg"
-                                        alt=""
-                                        unoptimized
+                                    <FaviconImage
+                                        domain={domain._id}
+                                        size={32}
+                                        className="w-8 h-8"
                                     />
                                     <span className="text-sm font-bold text-foreground/80">{domain._id}</span>
                                 </div>
@@ -348,15 +344,12 @@ export default function OverviewView({ onTabChange }) {
                             className="glass-card group p-5 transition-all hover:bg-foreground/[0.06]"
                         >
                             <div className="flex items-center gap-3 mb-3">
-                                <Image
-                                src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(faviconHostFromTrackingId(domain._id))}&sz=64`}
-                                width={24}
-                                height={24}
-                                className="w-6 h-6 rounded"
-                                alt=""
-                                unoptimized
-                            />
-                                <h4 className="text-xs font-black truncate text-foreground/90">{domain._id}</h4>
+                                <FaviconImage
+                                    domain={domain._id}
+                                    size={24}
+                                    className="w-6 h-6"
+                                />
+                                <h4 className="text-[11px] font-bold truncate text-foreground/90 flex-1 min-w-0">{domain._id}</h4>
                             </div>
                             <span className="text-sm font-black font-mono text-primary">{formatTime(domain.totalTime)}</span>
                         </div>

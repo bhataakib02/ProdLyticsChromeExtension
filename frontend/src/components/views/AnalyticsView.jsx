@@ -33,6 +33,7 @@ import {
     PieChart as RePieChart,
     Pie
 } from "recharts";
+import { FaviconImage } from "@/components/common/FaviconImage";
 
 export default function AnalyticsView() {
     const { user } = useAuth();
@@ -44,8 +45,10 @@ export default function AnalyticsView() {
     const [loading, setLoading] = useState(true);
     const [categoryFilter, setCategoryFilter] = useState("all");
     const [metrics, setMetrics] = useState({ score: 0, productive: 0, unproductive: 0, neutral: 0, total: 0 });
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        setMounted(true);
         if (!user) return;
         const ac = new AbortController();
         const req = { signal: ac.signal };
@@ -218,14 +221,13 @@ export default function AnalyticsView() {
                             <div className="absolute inset-0 flex items-center justify-center text-muted/40 animate-pulse font-black uppercase tracking-widest text-xs">Analyzing Data...</div>
                         ) : !hourly.some((h) => h.total > 0) ? (
                             <div className="absolute inset-0 flex items-center justify-center text-muted/50 text-sm">No activity recorded for this period</div>
-                        ) : (
+                        ) : mounted && (
                             <ResponsiveContainer
                                 width="100%"
                                 height="100%"
                                 minWidth={0}
                                 minHeight={288}
                                 debounce={50}
-                                initialDimension={{ width: 640, height: 288 }}
                             >
                                 <BarChart data={hourly} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
                                     <defs>
@@ -302,14 +304,14 @@ export default function AnalyticsView() {
                     <div className="relative mb-8 flex h-56 min-h-56 w-full min-w-0 items-center justify-center">
                         {distribution.length > 0 ? (
                             <>
-                                <ResponsiveContainer
-                                    width="100%"
-                                    height="100%"
-                                    minWidth={0}
-                                    minHeight={224}
-                                    debounce={50}
-                                    initialDimension={{ width: 360, height: 224 }}
-                                >
+                                {mounted && (
+                                    <ResponsiveContainer
+                                        width="100%"
+                                        height="100%"
+                                        minWidth={0}
+                                        minHeight={224}
+                                        debounce={50}
+                                    >
                                     <RePieChart>
                                         <Pie
                                             data={distribution}
@@ -410,17 +412,14 @@ export default function AnalyticsView() {
                                         {String(index + 1).padStart(2, "0")}
                                     </div>
                                     <div className="flex items-center gap-4 min-w-[220px] w-[300px]">
-                                        <Image
-                                            src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(favHost)}&sz=64`}
-                                            alt=""
-                                            width={24}
-                                            height={24}
-                                            className="w-6 h-6 rounded-md"
-                                            unoptimized
+                                        <FaviconImage
+                                            domain={domain._id}
+                                            size={24}
+                                            className="w-6 h-6"
                                         />
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-bold text-foreground/90">{domain._id}</span>
-                                            <span className="mt-1 w-fit rounded-md border-2 border-ui-muted px-2 py-0.5 text-[8px] font-black uppercase">
+                                        <div className="flex flex-col min-w-0 flex-1">
+                                            <span className="text-sm font-bold text-foreground/90 truncate block w-full">{domain._id}</span>
+                                            <span className="mt-1 w-fit rounded-md border-2 border-ui-muted px-2 py-0.5 text-[8px] font-black uppercase truncate max-w-full">
                                                 {domain.category}
                                             </span>
                                         </div>

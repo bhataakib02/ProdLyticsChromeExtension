@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/layout/Providers";
+import { PremiumBadge } from "@/components/premium/PremiumUpsellDialog";
 
 const menuItems = [
     { icon: LayoutDashboard, label: "Overview", id: "overview" },
@@ -114,9 +115,7 @@ export default function Sidebar() {
                             />
                             <span className="hidden min-w-0 flex-1 text-left font-medium md:inline">AI Coach</span>
                             {user.subscription !== "pro" && !user.isPremium ? (
-                                <span className="hidden shrink-0 rounded-md border border-amber-400/35 bg-amber-400/10 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-amber-200/95 md:inline">
-                                    Premium
-                                </span>
+                                <PremiumBadge className="hidden md:inline-flex" />
                             ) : null}
                         </button>
                     </div>

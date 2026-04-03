@@ -1,6 +1,8 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Image from "next/image";
+import { FaviconImage } from "@/components/common/FaviconImage";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -61,6 +63,11 @@ export function AiCoachFeaturePanels({ feature, data }) {
         coachGoal,
     } = data;
 
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const panels = {
         "smart-productivity-score": (
             <article className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-white/[0.015] p-4 md:p-5 shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
@@ -73,8 +80,9 @@ export function AiCoachFeaturePanels({ feature, data }) {
                 </div>
                 <div className="mt-4 flex items-center gap-5">
                     <div className="relative h-28 w-28 shrink-0">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <RadialBarChart data={scoreGaugeData} innerRadius="68%" outerRadius="100%" startAngle={90} endAngle={-270}>
+                        {mounted && (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <RadialBarChart data={scoreGaugeData} innerRadius="68%" outerRadius="100%" startAngle={90} endAngle={-270}>
                                 <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
                                 <RadialBar dataKey="value" cornerRadius={12} background clockWise />
                             </RadialBarChart>
@@ -96,7 +104,7 @@ export function AiCoachFeaturePanels({ feature, data }) {
                     2. Behavioral pattern detection
                 </h4>
                 <div className="mt-3 h-52">
-                    {hourlyBehaviorData.length > 0 ? (
+                    {mounted && hourlyBehaviorData.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={hourlyBehaviorData}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
@@ -136,13 +144,10 @@ export function AiCoachFeaturePanels({ feature, data }) {
                             <div key={row.site}>
                                 <div className="flex items-center justify-between text-sm font-bold text-foreground/85 mb-1">
                                     <span className="truncate inline-flex items-center gap-2">
-                                        <Image
-                                            src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(row.host || row.site)}&sz=64`}
-                                            width={16}
-                                            height={16}
-                                            alt=""
-                                            unoptimized
-                                            className="rounded-sm"
+                                        <FaviconImage
+                                            domain={row.host || row.site}
+                                            size={16}
+                                            className="w-4 h-4"
                                         />
                                         {row.site}
                                     </span>
@@ -235,7 +240,7 @@ export function AiCoachFeaturePanels({ feature, data }) {
                     </div>
                 </div>
                 <div className="mt-3 h-44">
-                    {weeklyChartData.length > 0 ? (
+                    {mounted && weeklyChartData.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={weeklyChartData}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
@@ -279,7 +284,7 @@ export function AiCoachFeaturePanels({ feature, data }) {
                     6. Predictive analytics
                 </h4>
                 <div className="mt-3 h-44">
-                    {predictiveChartData.length > 0 ? (
+                    {mounted && predictiveChartData.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={predictiveChartData}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />

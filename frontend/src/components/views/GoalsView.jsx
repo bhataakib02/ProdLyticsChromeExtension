@@ -280,7 +280,7 @@ export default function GoalsView() {
                                                     </button>
                                                 </div>
                                             </div>
-                                            <h3 className="text-xl font-bold  mb-2">
+                                            <h3 className="text-xl font-bold mb-2 truncate" title={goal.label || displayGoalWebsiteField(goal)}>
                                                 {goal.label || displayGoalWebsiteField(goal)}
                                             </h3>
                                             <div className="flex items-center gap-2 text-[10px] text-muted font-black uppercase tracking-widest mb-4">
@@ -391,7 +391,7 @@ export default function GoalsView() {
                                                 </button>
                                             </div>
                                         </div>
-                                        <h3 className="text-xl font-bold  mb-2">
+                                        <h3 className="text-xl font-bold mb-2 truncate" title={goal.label || displayGoalWebsiteField(goal)}>
                                             {goal.label || displayGoalWebsiteField(goal)}
                                         </h3>
                                         <div className="flex items-center gap-2 text-[10px] text-muted font-black uppercase tracking-widest mb-4">

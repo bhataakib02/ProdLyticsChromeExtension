@@ -357,7 +357,7 @@ export function AiCoachProSuite({ data }) {
 
             <div className="rounded-2xl border border-white/10 bg-foreground/[0.04] p-4">
                 <div className="flex items-center gap-2 text-white">
-                    <Sparkles size={16} className="text-amber-200 shrink-0" aria-hidden />
+                    <Sparkles size={16} style={{ color: 'var(--premium-icon)' }} className="shrink-0" aria-hidden />
                     <span className={cn(titleSerif, "text-sm font-semibold")}>Softer phrasing (optional LLM)</span>
                 </div>
                 <p className="mt-2 text-[10px] font-bold uppercase leading-relaxed tracking-wide text-sky-100/50">
@@ -374,9 +374,9 @@ export function AiCoachProSuite({ data }) {
 
             <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl border border-amber-400/20 bg-gradient-to-br from-amber-400/10 to-transparent p-4">
-                    <div className="flex items-center gap-2 text-amber-100">
+                    <div className="flex items-center gap-2" style={{ color: 'var(--premium-text)' }}>
                         <Flame size={18} className="shrink-0" aria-hidden />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-amber-200/90">Streak</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest opacity-90">Streak</span>
                     </div>
                     <p className={cn(titleSerif, "mt-2 text-3xl font-bold text-white tabular-nums")}>{streak}</p>
                     <p className="mt-1 text-xs font-medium text-amber-100/70">productive days in a row</p>

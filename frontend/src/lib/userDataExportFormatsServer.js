@@ -79,7 +79,8 @@ function summaryToCsv(payload) {
  * @returns {Promise<Buffer>}
  */
 export async function buildUserDataCsvZipBuffer(userId, exportSource) {
-    const JSZip = (await import("jszip")).default;
+    const JSZipModule = await import("jszip");
+    const JSZip = JSZipModule.default || JSZipModule;
     const payload = await buildUserDataExportPayload(userId, { includeRaw: true, exportSource });
     const zip = new JSZip();
     const id = String(userId);
@@ -127,7 +128,9 @@ function tableFromDocs(docs, pick) {
  */
 export async function buildUserDataPdfBuffer(userId, exportSource) {
     const payload = await buildUserDataExportPayload(userId, { includeRaw: true, exportSource });
-    const [{ jsPDF }, { default: autoTable }] = await Promise.all([import("jspdf"), import("jspdf-autotable")]);
+    const [jspdfMod, autotableMod] = await Promise.all([import("jspdf"), import("jspdf-autotable")]);
+    const jsPDF = jspdfMod.jsPDF || jspdfMod.default || jspdfMod;
+    const autoTable = autotableMod.default || autotableMod;
 
     const doc = new jsPDF({ unit: "mm", format: "a4" });
     const margin = 14;

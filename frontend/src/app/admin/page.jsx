@@ -403,8 +403,8 @@ export default function AdminPage() {
                                             }}
                                             className="cursor-pointer border-t border-white/5 hover:bg-white/[0.04]"
                                         >
-                                            <td className="py-2 font-medium text-foreground">{u.name}</td>
-                                            <td>{u.email || "-"}</td>
+                                            <td className="py-2 font-medium text-foreground max-w-[150px] truncate" title={u.name}>{u.name}</td>
+                                            <td className="max-w-[200px] truncate" title={u.email}>{u.email || "-"}</td>
                                             <td>{u.isAnonymous ? "Anonymous" : "Registered"}</td>
                                             <td className="uppercase">{u.subscription}</td>
                                             <td>{u.role}</td>

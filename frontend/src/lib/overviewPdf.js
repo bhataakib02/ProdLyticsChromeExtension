@@ -19,10 +19,12 @@ function peakLabel(hour) {
  * Dynamic-imports jsPDF so it never loads on the server (Next/Turbopack).
  */
 export async function downloadOverviewPdf({ userName, metrics, objectives, topDomains, formatTime }) {
-  const [{ jsPDF }, { default: autoTable }] = await Promise.all([
+  const [jspdfMod, autotableMod] = await Promise.all([
     import("jspdf"),
     import("jspdf-autotable"),
   ]);
+  const jsPDF = jspdfMod.jsPDF || jspdfMod.default || jspdfMod;
+  const autoTable = autotableMod.default || autotableMod;
 
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();

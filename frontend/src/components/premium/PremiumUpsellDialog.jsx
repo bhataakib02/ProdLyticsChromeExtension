@@ -66,8 +66,8 @@ export function PremiumUpsellDialog({
                 >
                     <X size={18} />
                 </button>
-                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-400/35 bg-gradient-to-br from-amber-400/20 to-primary/15 shadow-lg shadow-amber-500/10">
-                    <Crown className="text-amber-200" size={28} aria-hidden />
+                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border-[1.5px] border-amber-400/35 bg-gradient-to-br from-amber-400/20 to-primary/15 shadow-lg shadow-amber-500/10" style={{ borderColor: 'var(--premium-border)' }}>
+                    <Crown size={28} aria-hidden style={{ color: 'var(--premium-icon)' }} />
                 </div>
                 <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/12 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-primary">
                     <Sparkles size={12} aria-hidden />
@@ -127,7 +127,12 @@ export function PremiumUpsellDialog({
 export function PremiumBadge({ className = "" }) {
     return (
         <span
-            className={`inline-flex shrink-0 items-center rounded-md border border-amber-400/40 bg-amber-400/12 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-amber-100/95 ${className}`}
+            className={`inline-flex shrink-0 items-center rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest ${className}`}
+            style={{ 
+                color: 'var(--premium-text)', 
+                backgroundColor: 'var(--premium-bg)', 
+                borderColor: 'var(--premium-border)' 
+            }}
         >
             Premium
         </span>

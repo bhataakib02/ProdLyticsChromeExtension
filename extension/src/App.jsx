@@ -609,13 +609,22 @@ function App() {
           {activeTab ? <span className="pl-list-badge">Live</span> : null}
         </div>
         <ul className="pl-site-list">
-          {sortedSites.length === 0 ? (
+            {sortedSites.length === 0 ? (
             <li className="pl-site-empty">No time logged yet — browse to start tracking.</li>
           ) : (
             sortedSites.map(([domain, seconds]) => (
               <li key={domain} className="pl-site-item">
                 <span className="pl-site-accent" aria-hidden />
-                <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} alt="" width={18} height={18} />
+                <img 
+                  src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`} 
+                  alt="" 
+                  width={18} 
+                  height={18} 
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = "/icons/icon.png"; // Use extension icon as fallback
+                  }}
+                />
                 <span className="pl-site-domain" title={domain}>
                   {domain}
                 </span>

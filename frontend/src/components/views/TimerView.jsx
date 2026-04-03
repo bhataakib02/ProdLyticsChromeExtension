@@ -903,9 +903,10 @@ export default function TimerView() {
                                                 {task.completed && <Check size={12} />}
                                             </button>
                                             <span
-                                                className={`flex-1 text-sm ${
+                                                className={`flex-1 text-sm truncate ${
                                                     task.completed ? "line-through text-muted" : "text-foreground"
                                                 }`}
+                                                title={task.text}
                                             >
                                                 {task.text}
                                             </span>
