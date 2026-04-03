@@ -194,6 +194,10 @@ export default function SettingsPage() {
 
     async function downloadMyDataZip() {
         if (!registered) return;
+        if (!user.isPremium && user.subscription !== "pro") {
+            setBanner("Data export (CSV) is a Premium feature. Upgrade to unlock.");
+            return;
+        }
         setSaving(true);
         try {
             const res = await fetch(`${API_URL}/auth/my-data/export?format=csv`, { headers: authHeaders() });
@@ -218,6 +222,10 @@ export default function SettingsPage() {
 
     async function downloadMyDataPdf() {
         if (!registered) return;
+        if (!user.isPremium && user.subscription !== "pro") {
+            setBanner("Data export (PDF) is a Premium feature. Upgrade to unlock.");
+            return;
+        }
         setSaving(true);
         try {
             const res = await fetch(`${API_URL}/auth/my-data/export?format=pdf`, { headers: authHeaders() });
@@ -621,26 +629,54 @@ export default function SettingsPage() {
                                             Clear browsing data
                                         </button>
                                         {registered ? (
-                                            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-                                                <button
-                                                    type="button"
-                                                    disabled={saving}
-                                                    onClick={downloadMyDataZip}
-                                                    className="inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-secondary/40 bg-secondary/10 px-5 py-2.5 text-xs font-black uppercase tracking-widest text-foreground disabled:opacity-50"
-                                                >
-                                                    <Table2 size={16} aria-hidden />
-                                                    Download CSV (ZIP)
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    disabled={saving}
-                                                    onClick={downloadMyDataPdf}
-                                                    className="inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-secondary/40 bg-secondary/10 px-5 py-2.5 text-xs font-black uppercase tracking-widest text-foreground disabled:opacity-50"
-                                                >
-                                                    <FileDown size={16} aria-hidden />
-                                                    Download data PDF
-                                                </button>
-                                            </div>
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                                            <button
+                                                type="button"
+                                                disabled={saving}
+                                                onClick={downloadMyDataZip}
+                                                className={cn(
+                                                    "inline-flex items-center justify-center gap-2 rounded-2xl border-2 px-5 py-2.5 text-xs font-black uppercase tracking-widest transition-all",
+                                                    user.isPremium || user.subscription === "pro"
+                                                        ? "border-secondary/40 bg-secondary/10 text-foreground hover:bg-secondary/20"
+                                                        : "border-ui-muted bg-foreground/[0.03] text-muted opacity-80"
+                                                )}
+                                            >
+                                                {user.isPremium || user.subscription === "pro" ? (
+                                                    <Table2 size={16} />
+                                                ) : (
+                                                    <Shield size={14} className="text-primary" />
+                                                )}
+                                                Download CSV (ZIP)
+                                                {!(user.isPremium || user.subscription === "pro") && (
+                                                    <span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-[8px] text-primary">
+                                                        PRO
+                                                    </span>
+                                                )}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={saving}
+                                                onClick={downloadMyDataPdf}
+                                                className={cn(
+                                                    "inline-flex items-center justify-center gap-2 rounded-2xl border-2 px-5 py-2.5 text-xs font-black uppercase tracking-widest transition-all",
+                                                    user.isPremium || user.subscription === "pro"
+                                                        ? "border-secondary/40 bg-secondary/10 text-foreground hover:bg-secondary/20"
+                                                        : "border-ui-muted bg-foreground/[0.03] text-muted opacity-80"
+                                                )}
+                                            >
+                                                {user.isPremium || user.subscription === "pro" ? (
+                                                    <FileDown size={16} />
+                                                ) : (
+                                                    <Shield size={14} className="text-primary" />
+                                                )}
+                                                Download data PDF
+                                                {!(user.isPremium || user.subscription === "pro") && (
+                                                    <span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-[8px] text-primary">
+                                                        PRO
+                                                    </span>
+                                                )}
+                                            </button>
+                                        </div>
                                         ) : null}
                                     </div>
                                     {registered ? (

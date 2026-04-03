@@ -7,6 +7,15 @@ import {
     BarChart,
     Bar,
     CartesianGrid,
+"use client";
+
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import {
+    BarChart,
+    Bar,
+    CartesianGrid,
     Legend,
     Line,
     LineChart,
@@ -15,6 +24,17 @@ import {
     XAxis,
     YAxis,
 } from "recharts";
+import {
+    Users,
+    UserPlus,
+    Crown,
+    CreditCard,
+    Calendar,
+    Search,
+    Download,
+    RefreshCw,
+    Shield,
+} from "lucide-react";
 
 function inrFromMinor(amount) {
     return `Rs ${(Number(amount || 0) / 100).toFixed(2)}`;
@@ -290,20 +310,32 @@ export default function AdminPage() {
     return (
         <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                    <h1 className="text-2xl font-black text-foreground">Admin Dashboard</h1>
-                    <p className="text-sm text-muted">Users, subscriptions, payments, and growth analytics.</p>
+                <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/30 bg-primary/15 text-primary">
+                        <Shield size={24} />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-black tracking-tight text-foreground">Admin Dashboard</h1>
+                        <p className="text-sm font-medium text-muted">Manage users, transactions, and system health.</p>
+                    </div>
                 </div>
                 <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
-                    <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-full rounded-lg border border-white/15 bg-transparent px-3 py-2 text-sm sm:w-auto" />
-                    <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full rounded-lg border border-white/15 bg-transparent px-3 py-2 text-sm sm:w-auto" />
+                    <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={14} />
+                        <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-full rounded-xl border border-ui bg-background px-9 py-2 text-sm sm:w-auto outline-none focus:ring-2 focus:ring-primary/20 transition-shadow" />
+                    </div>
+                    <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={14} />
+                        <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full rounded-xl border border-ui bg-background px-9 py-2 text-sm sm:w-auto outline-none focus:ring-2 focus:ring-primary/20 transition-shadow" />
+                    </div>
                     <button
                         type="button"
                         onClick={() => fetchAdminData()}
                         disabled={pending}
-                        className="rounded-lg border border-white/15 bg-primary/15 px-4 py-2 text-sm font-semibold text-foreground hover:bg-primary/25 disabled:opacity-50"
+                        className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white shadow-lg shadow-primary/25 hover:opacity-90 transition-opacity disabled:opacity-50"
                     >
-                        {pending ? "Refreshing…" : "Refresh data"}
+                        <RefreshCw size={14} className={pending ? "animate-spin" : ""} />
+                        <span>{pending ? "Refreshing…" : "Refresh"}</span>
                     </button>
                 </div>
             </div>
@@ -316,11 +348,31 @@ export default function AdminPage() {
                 Charts and revenue use the <strong className="text-foreground/90">date range</strong> above. Widen “To” to include recent payments if revenue looks empty.
             </p>
 
-            <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <KpiCard title="Total users" value={k.totalUsers ?? 0} />
-                <KpiCard title="Registered users" value={k.registeredUsers ?? 0} />
-                <KpiCard title="Premium (PRO)" value={k.proUsers ?? 0} />
-                <KpiCard title="Revenue" value={inrFromMinor(k.totalRevenue)} />
+            <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCard
+                    label="Total Users"
+                    value={k.totalUsers ?? 0}
+                    icon={<Users className="text-primary" size={22} />}
+                    color="primary"
+                />
+                <StatCard
+                    label="Registered Users"
+                    value={k.registeredUsers ?? 0}
+                    icon={<UserPlus className="text-secondary" size={22} />}
+                    color="secondary"
+                />
+                <StatCard
+                    label="Premium (Pro)"
+                    value={k.proUsers ?? 0}
+                    icon={<Crown className="text-amber-400" size={22} />}
+                    color="warning"
+                />
+                <StatCard
+                    label="Revenue"
+                    value={inrFromMinor(k.totalRevenue)}
+                    icon={<CreditCard className="text-success" size={22} />}
+                    color="success"
+                />
             </section>
 
             <section className="grid gap-4 lg:grid-cols-2">
@@ -330,12 +382,30 @@ export default function AdminPage() {
                         {mounted && (
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={chartData}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                                    <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-                                    <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                                    <Tooltip />
-                                    <Legend />
-                                    <Line type="monotone" dataKey="users" stroke="#6366f1" strokeWidth={2} name="New users" />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-ui-muted)" vertical={false} />
+                                    <XAxis 
+                                        dataKey="day" 
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fontSize: 11, fill: "var(--color-muted)" }} 
+                                        dy={10}
+                                    />
+                                    <YAxis 
+                                        allowDecimals={false} 
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fontSize: 11, fill: "var(--color-muted)" }} 
+                                    />
+                                    <Tooltip content={<CustomTooltip />} />
+                                    <Line 
+                                        type="monotone" 
+                                        dataKey="users" 
+                                        stroke="var(--color-primary)" 
+                                        strokeWidth={3} 
+                                        dot={{ r: 4, fill: "var(--color-primary)", strokeWidth: 2, stroke: "var(--color-background)" }}
+                                        activeDot={{ r: 6, strokeWidth: 0 }}
+                                        name="New users" 
+                                    />
                                 </LineChart>
                             </ResponsiveContainer>
                         )}
@@ -348,12 +418,26 @@ export default function AdminPage() {
                         {mounted && (
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={chartData}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                                    <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-                                    <YAxis tick={{ fontSize: 12 }} />
-                                    <Tooltip />
-                                    <Legend />
-                                    <Bar dataKey="revenueINR" fill="#10b981" name="Revenue (INR)" />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-ui-muted)" vertical={false} />
+                                    <XAxis 
+                                        dataKey="day" 
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fontSize: 11, fill: "var(--color-muted)" }} 
+                                        dy={10}
+                                    />
+                                    <YAxis 
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fontSize: 11, fill: "var(--color-muted)" }} 
+                                    />
+                                    <Tooltip content={<CustomTooltip />} />
+                                    <Bar 
+                                        dataKey="revenueINR" 
+                                        fill="var(--color-success)" 
+                                        radius={[4, 4, 0, 0]}
+                                        name="Revenue (INR)" 
+                                    />
                                 </BarChart>
                             </ResponsiveContainer>
                         )}
@@ -363,25 +447,29 @@ export default function AdminPage() {
 
             <section className="grid gap-4 lg:grid-cols-2">
                 <div className="rounded-2xl border border-white/10 bg-background p-4">
-                    <div className="mb-3 flex flex-wrap gap-2">
-                        <input
-                            value={userQuery}
-                            onChange={(e) => setUserQuery(e.target.value)}
-                            placeholder="Search users by name/email"
-                            className="min-w-0 flex-1 rounded-lg border border-white/15 bg-transparent px-3 py-2 text-sm sm:min-w-52"
-                        />
-                        <select value={userKind} onChange={(e) => setUserKind(e.target.value)} className="rounded-lg border border-white/15 bg-transparent px-3 py-2 text-sm">
-                            <option value="all">All users</option>
+                    <div className="mb-4 flex flex-wrap items-center gap-3">
+                        <div className="relative min-w-0 flex-1 sm:min-w-[280px]">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
+                            <input
+                                value={userQuery}
+                                onChange={(e) => setUserQuery(e.target.value)}
+                                placeholder="Search by name or email..."
+                                className="w-full rounded-xl border border-ui bg-background/50 pl-10 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-shadow"
+                            />
+                        </div>
+                        <select value={userKind} onChange={(e) => setUserKind(e.target.value)} className="rounded-xl border border-ui bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20">
+                            <option value="all">All Users</option>
                             <option value="anonymous">Anonymous</option>
                             <option value="registered">Registered</option>
                         </select>
-                        <select value={userSub} onChange={(e) => setUserSub(e.target.value)} className="rounded-lg border border-white/15 bg-transparent px-3 py-2 text-sm">
-                            <option value="all">All plans</option>
+                        <select value={userSub} onChange={(e) => setUserSub(e.target.value)} className="rounded-xl border border-ui bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20">
+                            <option value="all">All Plans</option>
                             <option value="free">Free</option>
                             <option value="pro">Pro</option>
                         </select>
-                        <button type="button" onClick={exportUsersCsv} className="rounded-lg border border-white/15 px-3 py-2 text-sm">
-                            Export CSV
+                        <button type="button" onClick={exportUsersCsv} className="flex items-center gap-2 rounded-xl border border-ui bg-background px-4 py-2 text-sm font-bold text-foreground hover:bg-foreground/5">
+                            <Download size={14} />
+                            <span>Export</span>
                         </button>
                     </div>
                     <h2 className="mb-2 text-sm font-bold text-foreground">Users ({usersData.total || 0})</h2>
@@ -410,7 +498,7 @@ export default function AdminPage() {
                                                     setExpandedUserId((id) => (id === u.id ? null : u.id));
                                                 }
                                             }}
-                                            className="cursor-pointer border-t border-ui-muted hover:bg-foreground/[0.04]"
+                                            className="group cursor-pointer border-t border-ui-muted transition-colors hover:bg-foreground/[0.02]"
                                         >
                                             <td className="py-2 font-medium text-foreground max-w-[150px] truncate" title={u.name}>{u.name}</td>
                                             <td className="max-w-[200px] truncate" title={u.email}>{u.email || "-"}</td>
@@ -495,27 +583,31 @@ export default function AdminPage() {
                 </div>
 
                 <div className="rounded-2xl border border-white/10 bg-background p-4">
-                    <div className="mb-3 flex flex-wrap gap-2">
-                        <input
-                            value={paymentQuery}
-                            onChange={(e) => setPaymentQuery(e.target.value)}
-                            placeholder="Search payments by email"
-                            className="min-w-0 flex-1 rounded-lg border border-white/15 bg-transparent px-3 py-2 text-sm sm:min-w-52"
-                        />
+                    <div className="mb-4 flex flex-wrap items-center gap-3">
+                        <div className="relative min-w-0 flex-1 sm:min-w-[280px]">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
+                            <input
+                                value={paymentQuery}
+                                onChange={(e) => setPaymentQuery(e.target.value)}
+                                placeholder="Search by email..."
+                                className="w-full rounded-xl border border-ui bg-background/50 pl-10 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-shadow"
+                            />
+                        </div>
                         <select
                             value={paymentStatus}
                             onChange={(e) => setPaymentStatus(e.target.value)}
-                            className="rounded-lg border border-white/15 bg-transparent px-3 py-2 text-sm"
+                            className="rounded-xl border border-ui bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
                         >
-                            <option value="all">All statuses</option>
+                            <option value="all">All Statuses</option>
                             <option value="paid">Paid</option>
                             <option value="pending">Pending</option>
                             <option value="failed">Failed</option>
                             <option value="canceled">Canceled</option>
                             <option value="refunded">Refunded</option>
                         </select>
-                        <button type="button" onClick={exportPaymentsCsv} className="rounded-lg border border-white/15 px-3 py-2 text-sm">
-                            Export CSV
+                        <button type="button" onClick={exportPaymentsCsv} className="flex items-center gap-2 rounded-xl border border-ui bg-background px-4 py-2 text-sm font-bold text-foreground hover:bg-foreground/5">
+                            <Download size={14} />
+                            <span>Export</span>
                         </button>
                     </div>
                     <h2 className="mb-2 text-sm font-bold text-foreground">
@@ -620,11 +712,40 @@ export default function AdminPage() {
     );
 }
 
-function KpiCard({ title, value }) {
+function CustomTooltip({ active, payload, label }) {
+    if (active && payload && payload.length) {
+        return (
+            <div className="glass-card rounded-xl border border-ui p-3 shadow-xl">
+                <p className="mb-1 text-[10px] font-black uppercase tracking-wider text-muted">{label}</p>
+                {payload.map((entry, idx) => (
+                    <p key={idx} className="text-sm font-bold text-foreground">
+                        <span className="mr-2 inline-block h-2 w-2 rounded-full" style={{ backgroundColor: entry.color || entry.fill }} />
+                        {entry.name}: {typeof entry.value === 'number' && entry.name.includes('Revenue') ? `Rs ${entry.value.toFixed(2)}` : entry.value}
+                    </p>
+                ))}
+            </div>
+        );
+    }
+    return null;
+}
+
+function StatCard({ label, value, icon, color }) {
+    const colorMap = {
+        primary: "bg-primary/10",
+        secondary: "bg-secondary/10",
+        warning: "bg-amber-400/10",
+        success: "bg-success/10",
+    };
+
     return (
-        <div className="rounded-2xl border border-white/10 bg-background p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">{title}</p>
-            <p className="mt-2 text-2xl font-black text-foreground">{value}</p>
+        <div className="glass-card group flex items-center gap-4 rounded-2xl border border-ui p-6 transition-all hover:border-primary/20 hover:shadow-lg">
+            <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${colorMap[color] || "bg-foreground/5"}`}>
+                {icon}
+            </div>
+            <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">{label}</p>
+                <p className="text-2xl font-black tracking-tight text-foreground">{value}</p>
+            </div>
         </div>
     );
 }

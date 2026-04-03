@@ -43,11 +43,14 @@ export default function Sidebar() {
 
     return (
         <aside className="sticky top-0 flex h-screen min-h-0 w-16 shrink-0 flex-col overflow-hidden border-r-ui bg-background p-3 md:w-64 md:p-6">
-            <div className="mb-6 flex shrink-0 items-center gap-3 md:mb-8">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/40">
-                    <Chrome className="text-white" size={18} />
+            <div className="mb-6 flex shrink-0 items-center gap-3 md:mb-10">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-dark shadow-xl shadow-primary/30 ring-1 ring-white/20">
+                    <Chrome className="text-white" size={20} />
                 </div>
-                <span className="hidden text-xl font-bold tracking-tighter gradient-text md:inline">ProdLytics</span>
+                <div className="hidden flex-col md:flex">
+                    <span className="text-xl font-black tracking-tighter text-foreground leading-tight">ProdLytics</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Hacker OS</span>
+                </div>
             </div>
 
             <nav className="min-h-0 flex-1 space-y-2 overflow-y-auto overflow-x-hidden pr-0.5 [scrollbar-width:thin]">
@@ -122,8 +125,8 @@ export default function Sidebar() {
                 </div>
 
                 {user.role === "admin" ? (
-                    <div className="pt-4">
-                        <p className="mb-2 hidden px-1 text-[10px] font-black uppercase tracking-[0.28em] text-muted/90 md:block">Admin</p>
+                    <div className="pt-6">
+                        <p className="mb-2.5 hidden px-1 text-[10px] font-black uppercase tracking-[0.3em] text-muted/70 md:block">System Root</p>
                         <button
                             type="button"
                             title="Admin Dashboard"
@@ -132,11 +135,11 @@ export default function Sidebar() {
                             className={cn(
                                 "sidebar-nav-btn group w-full border-ui-muted bg-foreground/[0.02] text-muted hover:border-ui hover:bg-foreground/5 hover:text-foreground",
                                 pathname === "/admin" &&
-                                    "border-primary/35 bg-primary/10 text-primary hover:border-primary/40 hover:bg-primary/[0.14]"
+                                    "border-primary/40 bg-primary/10 text-primary shadow-lg shadow-primary/5 hover:border-primary/50"
                             )}
                         >
-                            <Shield size={20} className={cn("transition-transform group-hover:scale-110", pathname === "/admin" && "text-primary")} />
-                            <span className="hidden font-medium md:inline">Admin Dashboard</span>
+                            <Shield size={20} className={cn("transition-transform group-hover:rotate-12 group-hover:scale-110", pathname === "/admin" && "text-primary")} />
+                            <span className="hidden font-bold md:inline">Admin Panel</span>
                         </button>
                     </div>
                 ) : null}
@@ -151,28 +154,11 @@ export default function Sidebar() {
                     className={cn(
                         "sidebar-nav-btn group border-ui-muted bg-foreground/[0.02] text-muted hover:border-ui hover:bg-foreground/5 hover:text-foreground",
                         pathname === "/settings" &&
-                            "border-primary/35 bg-primary/10 text-primary hover:border-primary/40 hover:bg-primary/[0.14]"
+                            "border-primary/40 bg-primary/10 text-primary shadow-lg shadow-primary/5 hover:border-primary/50"
                     )}
                 >
                     <Settings size={20} className={cn("transition-transform group-hover:scale-110", pathname === "/settings" && "text-primary")} />
                     <span className="hidden font-medium md:inline">Settings</span>
-                </button>
-                <button
-                    type="button"
-                    title="Extension Setup"
-                    aria-label="Extension Setup"
-                    onClick={() => {
-                        router.push("/");
-                        setActiveTab("setup");
-                    }}
-                    className={cn(
-                        "sidebar-nav-btn group border-ui-muted bg-foreground/[0.02] text-muted hover:border-ui hover:bg-foreground/5 hover:text-foreground",
-                        activeTab === "setup" &&
-                            "border-primary/35 bg-primary/10 text-primary hover:border-primary/40 hover:bg-primary/[0.14]"
-                    )}
-                >
-                    <ExternalLink size={20} className={cn("transition-transform group-hover:scale-110", activeTab === "setup" && "text-primary")} />
-                    <span className="hidden font-medium md:inline">Extension Setup</span>
                 </button>
                 <button
                     type="button"

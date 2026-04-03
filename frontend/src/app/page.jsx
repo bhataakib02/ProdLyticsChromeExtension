@@ -9,7 +9,6 @@ import GoalsView from "@/components/views/GoalsView";
 import FocusView from "@/components/views/FocusView";
 import TimerView from "@/components/views/TimerView";
 import InsightsView from "@/components/views/InsightsView";
-import SetupView from "@/components/views/SetupView";
 function DashboardSPA() {
   const { activeTab, setActiveTab } = useDashboard();
 
@@ -21,7 +20,6 @@ function DashboardSPA() {
       case "focus": return <FocusView />;
       case "timer": return <TimerView />;
       case "insights": return <InsightsView />;
-      case "setup": return <SetupView />;
       default: return <OverviewView onTabChange={setActiveTab} />;
     }
   };

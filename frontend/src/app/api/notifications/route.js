@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect, { isDbUnavailableError } from '../../../../../backend/db/mongodb.js';
 import Notification from '../../../../../backend/models/Notification.js';
 import { getUserIdFromRequest } from '@/lib/apiUser';
+import { checkAndSendGoalReminders } from '@/lib/goalReminders';
 
 export async function GET(req) {
     try {
@@ -10,6 +11,9 @@ export async function GET(req) {
         if (!userObjectId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
+
+        // Run goal reminder check
+        await checkAndSendGoalReminders(userObjectId);
 
         const notifications = await Notification.find({ userId: userObjectId })
             .sort({ createdAt: -1 })

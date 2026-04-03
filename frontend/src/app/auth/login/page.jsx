@@ -99,7 +99,7 @@ function LoginPageInner() {
     }
 
     const inputClass =
-        "w-full rounded-xl border border-ui bg-background/80 px-4 py-3 text-sm text-foreground placeholder:text-muted/70 outline-none transition-shadow focus:border-primary/50 focus:ring-2 focus:ring-primary/20";
+        "w-full rounded-2xl border border-ui bg-background/50 px-4 py-3.5 text-sm text-foreground placeholder:text-muted/50 outline-none transition-all focus:border-primary/50 focus:ring-4 focus:ring-primary/10";
 
     return (
         <div className="relative min-h-[calc(100vh-4rem)] overflow-hidden bg-background px-4 py-10 sm:px-6 sm:py-14">
@@ -108,30 +108,26 @@ function LoginPageInner() {
                 <div className="absolute -bottom-24 -left-32 h-72 w-72 rounded-full bg-secondary/20 blur-[90px]" />
             </div>
 
-            <div className="relative mx-auto w-full max-w-[420px]">
-                <Link
-                    href="/"
-                    className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted transition-colors hover:text-primary"
-                >
-                    <ArrowLeft size={14} aria-hidden />
-                    Back to dashboard
-                </Link>
+            <div className="relative mx-auto w-full max-w-[460px]">
+                {/* Branding Header */}
+                <div className="mb-10 flex flex-col items-center">
+                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-[24px] border-2 border-primary/40 bg-primary/10 shadow-lg shadow-primary/20 backdrop-blur-xl">
+                        <Shield className="text-primary" size={32} aria-hidden />
+                    </div>
+                    <h2 className="text-3xl font-black tracking-tight text-foreground">ProdLytics</h2>
+                    <p className="mt-1 text-sm font-bold uppercase tracking-[0.3em] text-muted/60">Hacker OS Analytics</p>
+                </div>
 
-                <div className="glass-card mt-6 rounded-[28px] border-2 border-ui p-8 shadow-lg shadow-black/25 sm:p-10">
-                    <div className="mb-6 flex items-start gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary/30 bg-primary/15">
-                            <Shield className="text-primary" size={22} aria-hidden />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-black tracking-tight text-foreground">
-                                {isRegistering ? "Create your account" : "Welcome back"}
-                            </h1>
-                            <p className="mt-1 text-sm font-medium leading-relaxed text-muted">
-                                {isRegistering
-                                    ? "Sign up with email and password to save your progress and unlock Premium when you’re ready."
-                                    : "Sign in with the email and password for your ProdLytics account."}
-                            </p>
-                        </div>
+                <div className="glass-card mt-2 rounded-[32px] border border-ui p-10 shadow-2xl shadow-black/30 backdrop-blur-3xl sm:p-12">
+                    <div className="mb-8 text-center">
+                        <h1 className="text-2xl font-black tracking-tight text-foreground">
+                            {isRegistering ? "Unleash your potential" : "Welcome back, Operator"}
+                        </h1>
+                        <p className="mt-2 text-sm font-medium leading-relaxed text-muted">
+                            {isRegistering
+                                ? "Register to save your metrics and sync across your devices."
+                                : "Authenticate your session to access your private data stream."}
+                        </p>
                     </div>
 
                     <GoogleSignInSection
@@ -220,19 +216,20 @@ function LoginPageInner() {
                         <button
                             disabled={loading}
                             type="submit"
-                            className="w-full rounded-xl bg-primary px-4 py-3.5 text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-primary/25 transition-opacity hover:opacity-95 disabled:opacity-50"
+                            className="group relative flex w-full items-center justify-center overflow-hidden rounded-2xl bg-primary px-4 py-4 text-xs font-black uppercase tracking-[0.2em] text-white shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
                         >
-                            {loading ? "Please wait…" : isRegistering ? "Create account & continue" : "Sign in"}
+                            <span className="relative z-10">{loading ? "Synchronizing…" : isRegistering ? "Deploy Account" : "Initiate Login"}</span>
+                            <div className="absolute inset-0 z-0 bg-gradient-to-r from-primary via-primary-dark to-primary opacity-0 transition-opacity group-hover:opacity-100" />
                         </button>
                     </form>
 
-                    <div className="mt-6 border-t border-ui pt-6 text-center">
+                    <div className="mt-8 border-t border-ui pt-8 text-center">
                         <button
                             type="button"
                             onClick={() => setIsRegistering((s) => !s)}
-                            className="text-sm font-semibold text-primary underline-offset-4 hover:underline"
+                            className="text-xs font-black uppercase tracking-widest text-primary underline-offset-8 hover:underline"
                         >
-                            {isRegistering ? "Already have an account? Sign in" : "New here? Create an account"}
+                            {isRegistering ? "Already tracked? Sign in" : "New Operator? Deploy Account"}
                         </button>
                     </div>
                 </div>

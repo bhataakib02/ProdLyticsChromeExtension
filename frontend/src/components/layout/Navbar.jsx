@@ -46,7 +46,7 @@ export default function Navbar() {
                     placeholder="Search sites, goals, blocklist…"
                     autoComplete="off"
                     aria-label="Search activity and sites"
-                    className="w-full rounded-xl border-2 border-ui bg-foreground/5 py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted transition-all focus:border-primary/50 focus:bg-foreground/[0.08] focus:outline-none"
+                    className="w-full rounded-2xl border border-ui bg-foreground/[0.03] py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted/60 transition-all focus:border-primary/40 focus:bg-background focus:ring-4 focus:ring-primary/10 focus:outline-none"
                 />
             </div>
 
@@ -79,20 +79,39 @@ export default function Navbar() {
                                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                className="glass-card absolute right-0 z-50 mt-3 w-56 p-3 shadow-2xl"
+                                className="absolute right-0 z-50 mt-3 w-64 overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br from-primary via-primary-dark to-secondary/80 p-5 shadow-2xl shadow-primary/20 backdrop-blur-xl"
                             >
-                                <p className="truncate px-1 text-sm font-medium text-foreground">{user.name}</p>
-                                <p className="mb-2 truncate px-1 text-[10px] text-muted">
-                                    {user.email || "Private session — this browser only"}
-                                </p>
-                                <DropdownAction
-                                    icon={<LogOut size={14} />}
-                                    label={user.isAnonymous ? "New session" : "Sign out"}
-                                    onClick={() => {
-                                        setShowProfile(false);
-                                        logout();
-                                    }}
-                                />
+                                <div className="mb-4 flex items-center gap-3 border-b border-white/10 pb-4">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/20">
+                                        <UserCircle size={24} className="text-white" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate text-sm font-black tracking-tight text-white">{user.name}</p>
+                                        <p className="truncate text-[10px] font-medium text-white/70">
+                                            {user.email || "Private session"}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowProfile(false);
+                                            logout();
+                                        }}
+                                        className="flex w-full items-center gap-3 rounded-xl bg-white/10 px-4 py-3 text-xs font-bold text-white transition-all hover:bg-white/20 active:scale-[0.98]"
+                                    >
+                                        <LogOut size={14} />
+                                        <span>{user.isAnonymous ? "Initialize New Session" : "Sign Out Account"}</span>
+                                    </button>
+                                </div>
+
+                                {user.subscription !== "pro" && !user.isPremium && (
+                                    <div className="mt-4 rounded-xl bg-black/20 p-3 text-center">
+                                        <p className="text-[10px] font-bold text-white/90">Upgrade to Pro for full insights</p>
+                                    </div>
+                                )}
                             </motion.div>
                         )}
                     </AnimatePresence>
