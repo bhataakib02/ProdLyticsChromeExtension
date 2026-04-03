@@ -8,9 +8,16 @@ import * as esbuild from "esbuild";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const isDevTarget = process.env.PRODLYTICS_EXTENSION_TARGET === "development";
+const PRODUCTION_ORIGIN = "https://prodlytics.vercel.app";
+/** One store build may talk to Vercel or local dev — permissions cover every known dashboard origin. */
+const ALL_DASHBOARD_ORIGINS = [
+    PRODUCTION_ORIGIN,
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+];
 const dashboardOrigin = (
     process.env.PRODLYTICS_DASHBOARD_ORIGIN ||
-    (isDevTarget ? "http://localhost:3000" : "https://prodlytics.vercel.app")
+    (isDevTarget ? "http://localhost:3000" : PRODUCTION_ORIGIN)
 ).replace(/\/+$/, "");
 const apiBase = `${dashboardOrigin}/api`;
 
@@ -54,18 +61,10 @@ async function bundleExtensionScripts() {
 function writeManifest() {
     const manifestPath = resolve(__dirname, "manifest.json");
     const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-    const apiHost = `${dashboardOrigin}/*`;
-    const hostPermissions = [apiHost];
-    if (isDevTarget) {
-        hostPermissions.push("http://localhost:3000/*", "http://127.0.0.1:3000/*");
-    }
-    hostPermissions.push("<all_urls>");
-    manifest.host_permissions = hostPermissions;
+    const originPatterns = ALL_DASHBOARD_ORIGINS.map((o) => `${o.replace(/\/+$/, "")}/*`);
+    manifest.host_permissions = [...originPatterns, "<all_urls>"];
     manifest.externally_connectable = {
-        matches: [
-            apiHost,
-            ...(isDevTarget ? ["http://localhost:3000/*", "http://127.0.0.1:3000/*"] : []),
-        ],
+        matches: [...originPatterns],
     };
 
     const extensionOAuthClientId =

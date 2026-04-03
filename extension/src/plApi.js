@@ -1,14 +1,16 @@
 /**
  * Authenticated fetch for ProdLytics API. Shares JWT with the dashboard (same Chrome profile).
  */
-import { API_BASE, DASHBOARD_ORIGIN } from "./buildEnv.js";
+import { API_BASE, DASHBOARD_ORIGIN, DASHBOARD_ORIGINS } from "./buildEnv.js";
 import { getOrCreateAnonymousDeviceKey } from "./anonymousDeviceKey.js";
 
-/** Same host + port as the built-in dashboard URL (ignores www, treats localhost/127.0.0.1 as same). */
-function tabMatchesDashboard(tabUrl) {
+const LAST_DASHBOARD_ORIGIN_KEY = "lastResolvedDashboardOrigin";
+
+/** Same host + port as a known dashboard origin (ignores www; localhost ↔ 127.0.0.1). */
+function tabMatchesDashboardOrigin(tabUrl, originStr) {
     if (!tabUrl || typeof tabUrl !== "string" || !tabUrl.startsWith("http")) return false;
     try {
-        const base = new URL(DASHBOARD_ORIGIN.replace(/\/+$/, "") + "/");
+        const base = new URL(String(originStr).replace(/\/+$/, "") + "/");
         const t = new URL(tabUrl);
         const bh = base.hostname.replace(/^www\./i, "").toLowerCase();
         const th = t.hostname.replace(/^www\./i, "").toLowerCase();
@@ -21,6 +23,60 @@ function tabMatchesDashboard(tabUrl) {
         return bp === tp;
     } catch {
         return false;
+    }
+}
+
+/** @returns {string|null} Normalized dashboard origin (no trailing slash) for this tab, or null. */
+export function dashboardOriginForTabUrl(tabUrl) {
+    for (const o of DASHBOARD_ORIGINS) {
+        if (tabMatchesDashboardOrigin(tabUrl, o)) return o.replace(/\/+$/, "");
+    }
+    return null;
+}
+
+function tabMatchesAnyDashboard(tabUrl) {
+    return dashboardOriginForTabUrl(tabUrl) !== null;
+}
+
+/**
+ * API base (…/api) to use: open dashboard tab → that origin; else last successful sync; else build default.
+ */
+export async function resolveApiBase() {
+    try {
+        const tabs = await chrome.tabs.query({});
+        for (const tab of tabs) {
+            if (!tab.url) continue;
+            const origin = dashboardOriginForTabUrl(tab.url);
+            if (origin) {
+                const api = `${origin}/api`;
+                await chrome.storage.local.set({ [LAST_DASHBOARD_ORIGIN_KEY]: origin });
+                return api;
+            }
+        }
+    } catch {
+        /* ignore */
+    }
+    try {
+        const { [LAST_DASHBOARD_ORIGIN_KEY]: last } = await chrome.storage.local.get(LAST_DASHBOARD_ORIGIN_KEY);
+        if (last && typeof last === "string") {
+            const norm = last.replace(/\/+$/, "");
+            if (DASHBOARD_ORIGINS.some((o) => o.replace(/\/+$/, "") === norm)) {
+                return `${norm}/api`;
+            }
+        }
+    } catch {
+        /* ignore */
+    }
+    return API_BASE;
+}
+
+/** Origin for auth / open-dashboard links in the popup (matches {@link resolveApiBase} priority). */
+export async function resolveDashboardOriginForUi() {
+    const api = await resolveApiBase();
+    try {
+        return new URL(api).origin;
+    } catch {
+        return String(DASHBOARD_ORIGIN || "").replace(/\/+$/, "") || "https://prodlytics.vercel.app";
     }
 }
 
@@ -59,7 +115,11 @@ async function tryPullTokenFromDashboardTab() {
         const tabs = await chrome.tabs.query({});
         for (const tab of tabs) {
             if (!tab.id || !tab.url) continue;
-            if (!tabMatchesDashboard(tab.url)) continue;
+            if (!tabMatchesAnyDashboard(tab.url)) continue;
+            const origin = dashboardOriginForTabUrl(tab.url);
+            if (origin) {
+                await chrome.storage.local.set({ [LAST_DASHBOARD_ORIGIN_KEY]: origin });
+            }
             const token = await readAccessTokenFromTab(tab.id);
             if (token) return token;
         }
@@ -72,7 +132,8 @@ async function tryPullTokenFromDashboardTab() {
 /** Creates anonymous (guest) dashboard user; stores JWT and optional guest user id for support. */
 export async function obtainNewJwt() {
     const deviceKey = await getOrCreateAnonymousDeviceKey();
-    const res = await fetch(`${API_BASE}/auth/anonymous`, {
+    const apiBase = await resolveApiBase();
+    const res = await fetch(`${apiBase}/auth/anonymous`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(deviceKey ? { deviceKey } : {}),

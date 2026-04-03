@@ -6,8 +6,7 @@
  * =====================================================
  */
 
-import { API_BASE } from "./buildEnv.js";
-import { plFetch, syncAccessTokenFromDashboardTab } from "./plApi.js";
+import { plFetch, syncAccessTokenFromDashboardTab, resolveApiBase } from "./plApi.js";
 import { privacyNormalizeUrl } from "./privacyNormalizeUrl.js";
 
 /** Facet key: bare host (all paths rolled up for that bucket) or host + unit separator + pathNorm. */
@@ -214,13 +213,14 @@ async function addHostToNeuralBlocklist(host) {
     if (!norm) return;
     if (matchesManualBlocklist(norm)) return;
     try {
-        const res = await plFetch(`${API_BASE}/focus`, {
+        const apiBase = await resolveApiBase();
+        const res = await plFetch(`${apiBase}/focus`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ website: norm, source: "smart_daily_cap" }),
         });
         if (!res.ok) return;
-        const blockRes = await plFetch(`${API_BASE}/focus/`);
+        const blockRes = await plFetch(`${apiBase}/focus/`);
         if (blockRes.ok) {
             const data = await blockRes.json();
             blocklist = [...new Set(data.map((site) => normalizeBlockedHost(site.website)).filter(Boolean))];
@@ -266,9 +266,10 @@ async function refreshGoalsAndPopupCache(opts = {}) {
     lastGoalPollMs = now;
     try {
         await syncAccessTokenFromDashboardTab();
+        const apiBase = await resolveApiBase();
         const dayQs = userLocalDayQueryString();
-        const goalsUrl = `${API_BASE}/goals/progress${dayQs ? `?${dayQs}` : ""}`;
-        const statsUrl = `${API_BASE}/tracking/stats?range=today${dayQs ? `&${dayQs}` : ""}`;
+        const goalsUrl = `${apiBase}/goals/progress${dayQs ? `?${dayQs}` : ""}`;
+        const statsUrl = `${apiBase}/tracking/stats?range=today${dayQs ? `&${dayQs}` : ""}`;
         const [goalsRes, statsRes] = await Promise.all([plFetch(goalsUrl), plFetch(statsUrl)]);
 
         let goals = [];
@@ -639,7 +640,8 @@ async function saveSession(facetKey, timeSeconds, pageTitle = "", scrolls = 0, c
     try {
         const pageUrl =
             pathNorm !== "" ? `https://${website}${pathNorm}` : `https://${website}/`;
-        const response = await plFetch(`${API_BASE}/tracking`, {
+        const apiBase = await resolveApiBase();
+        const response = await plFetch(`${apiBase}/tracking`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -743,8 +745,9 @@ async function updateSyncData() {
     console.log("🔄 Fetching latest focus data from API...");
     try {
         await syncAccessTokenFromDashboardTab();
+        const apiBase = await resolveApiBase();
         // 1. Fetch Blocklist
-        const blockRes = await plFetch(`${API_BASE}/focus/`);
+        const blockRes = await plFetch(`${apiBase}/focus/`);
         if (blockRes.ok) {
             const data = await blockRes.json();
             blocklist = [...new Set(data.map((site) => normalizeBlockedHost(site.website)).filter(Boolean))];
@@ -753,7 +756,7 @@ async function updateSyncData() {
         }
 
         // 2. Fetch Preferences
-        const prefRes = await plFetch(`${API_BASE}/auth/preferences`);
+        const prefRes = await plFetch(`${apiBase}/auth/preferences`);
         if (prefRes.ok) {
             preferences = mergePreferenceDefaults(await prefRes.json());
             await chrome.storage.local.set({ preferences });

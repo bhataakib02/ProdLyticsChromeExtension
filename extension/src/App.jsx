@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import "./App.css";
 import { DASHBOARD_ORIGIN } from "./buildEnv.js";
-import { obtainNewJwt, syncAccessTokenFromDashboardTab } from "./plApi.js";
+import { obtainNewJwt, syncAccessTokenFromDashboardTab, resolveDashboardOriginForUi } from "./plApi.js";
 
 const defaultCache = {
   productiveToday: 0,
@@ -128,8 +128,16 @@ function App() {
   const [activeTab, setActiveTab] = useState(null);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [popupCache, setPopupCache] = useState(defaultCache);
+  /** Vercel or localhost — matches an open dashboard tab when possible. */
+  const [linkOrigin, setLinkOrigin] = useState(DASHBOARD_ORIGIN);
   const uiModeRef = useRef(uiMode);
   uiModeRef.current = uiMode;
+
+  useEffect(() => {
+    resolveDashboardOriginForUi()
+      .then(setLinkOrigin)
+      .catch(() => {});
+  }, []);
 
   const refreshAuthMode = useCallback(() => {
     if (typeof chrome === "undefined" || !chrome.storage?.local) {
@@ -310,7 +318,7 @@ function App() {
   };
 
   const handleDashboard = () => {
-    const dashboardUrl = DASHBOARD_ORIGIN;
+    const dashboardUrl = linkOrigin;
     if (typeof chrome !== "undefined" && chrome.tabs?.create) {
       chrome.tabs.create({ url: dashboardUrl });
       return;
@@ -338,7 +346,7 @@ function App() {
 
   const openLoginTab = () => {
     const q = `?callbackUrl=${encodeURIComponent("/")}`;
-    const url = `${DASHBOARD_ORIGIN}/auth/login${q}`;
+    const url = `${linkOrigin}/auth/login${q}`;
     if (typeof chrome !== "undefined" && chrome.tabs?.create) {
       chrome.tabs.create({ url });
     } else {
@@ -347,7 +355,7 @@ function App() {
   };
 
   const openRegisterTab = () => {
-    const url = `${DASHBOARD_ORIGIN}/auth/register?callbackUrl=${encodeURIComponent("/")}`;
+    const url = `${linkOrigin}/auth/register?callbackUrl=${encodeURIComponent("/")}`;
     if (typeof chrome !== "undefined" && chrome.tabs?.create) {
       chrome.tabs.create({ url });
     } else {

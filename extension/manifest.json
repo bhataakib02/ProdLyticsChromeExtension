@@ -17,6 +17,8 @@
     ],
     "host_permissions": [
         "https://prodlytics.vercel.app/*",
+        "http://localhost:3000/*",
+        "http://127.0.0.1:3000/*",
         "<all_urls>"
     ],
     "action": {
@@ -44,7 +46,9 @@
     },
     "externally_connectable": {
         "matches": [
-            "https://prodlytics.vercel.app/*"
+            "https://prodlytics.vercel.app/*",
+            "http://localhost:3000/*",
+            "http://127.0.0.1:3000/*"
         ]
     }
 }

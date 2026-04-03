@@ -4,29 +4,32 @@
  * Tracks scroll and interaction activity for engagement proxy
  */
 
-import { DASHBOARD_ORIGIN } from "./buildEnv.js";
+import { DASHBOARD_ORIGINS } from "./buildEnv.js";
 import { PRODLYTICS_ANONYMOUS_DEVICE_KEY } from "./anonymousDeviceKey.js";
 
-/** Match built dashboard URL: same host+port, ignore www; localhost ↔ 127.0.0.1. */
+/** Match any known ProdLytics dashboard origin (Vercel or local). */
 function pageMatchesDashboardBuild() {
-    try {
-        const expected = DASHBOARD_ORIGIN.replace(/\/+$/, "");
-        const pageOrigin = window.location.origin;
-        if (pageOrigin === expected) return true;
-        const base = new URL(expected + "/");
-        const page = new URL(pageOrigin + "/");
-        const bh = base.hostname.replace(/^www\./i, "").toLowerCase();
-        const ph = page.hostname.replace(/^www\./i, "").toLowerCase();
-        if (bh !== ph) {
-            const loc = (h) => h === "localhost" || h === "127.0.0.1";
-            if (!(loc(bh) && loc(ph))) return false;
+    const pageOrigin = window.location.origin;
+    for (const expected of DASHBOARD_ORIGINS) {
+        try {
+            const e = expected.replace(/\/+$/, "");
+            if (pageOrigin === e) return true;
+            const base = new URL(e + "/");
+            const page = new URL(pageOrigin + "/");
+            const bh = base.hostname.replace(/^www\./i, "").toLowerCase();
+            const ph = page.hostname.replace(/^www\./i, "").toLowerCase();
+            if (bh !== ph) {
+                const loc = (h) => h === "localhost" || h === "127.0.0.1";
+                if (!(loc(bh) && loc(ph))) continue;
+            }
+            const bp = base.port || (base.protocol === "https:" ? "443" : "80");
+            const pp = page.port || (page.protocol === "https:" ? "443" : "80");
+            if (bp === pp) return true;
+        } catch {
+            /* next */
         }
-        const bp = base.port || (base.protocol === "https:" ? "443" : "80");
-        const pp = page.port || (page.protocol === "https:" ? "443" : "80");
-        return bp === pp;
-    } catch {
-        return false;
     }
+    return false;
 }
 
 /** After extension reload, old content scripts throw "Extension context invalidated" on sendMessage — swallow so Errors page stays clean. */
