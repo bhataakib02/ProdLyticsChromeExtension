@@ -74,7 +74,20 @@ export async function resolveApiBase() {
 export async function resolveDashboardOriginForUi() {
     const api = await resolveApiBase();
     try {
-        return new URL(api).origin;
+        const origin = new URL(api).origin;
+        // If it's localhost, quickly check if it's alive. If not, fallback to production.
+        if (origin.includes("localhost") || origin.includes("127.0.0.1")) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 800);
+                await fetch(origin, { method: "HEAD", signal: controller.signal });
+                clearTimeout(timeoutId);
+                return origin;
+            } catch {
+                return "https://prodlytics.vercel.app";
+            }
+        }
+        return origin;
     } catch {
         return String(DASHBOARD_ORIGIN || "").replace(/\/+$/, "") || "https://prodlytics.vercel.app";
     }
@@ -129,11 +142,27 @@ async function tryPullTokenFromDashboardTab() {
     return null;
 }
 
+async function fetchWithFallback(path, init = {}) {
+    const primaryApi = await resolveApiBase();
+    try {
+        const res = await fetch(`${primaryApi}${path}`, init);
+        if (res.ok || res.status < 500) return res;
+        throw new Error(`Server error ${res.status}`);
+    } catch (e) {
+        // If primary failed and it was localhost, try production fallback
+        if (primaryApi.includes("localhost") || primaryApi.includes("127.0.0.1")) {
+            const fallbackApi = "https://prodlytics.vercel.app/api";
+            console.warn(`Primary API (${primaryApi}) failed, trying fallback (${fallbackApi})...`, e);
+            return fetch(`${fallbackApi}${path}`, init);
+        }
+        throw e;
+    }
+}
+
 /** Creates anonymous (guest) dashboard user; stores JWT and optional guest user id for support. */
 export async function obtainNewJwt() {
     const deviceKey = await getOrCreateAnonymousDeviceKey();
-    const apiBase = await resolveApiBase();
-    const res = await fetch(`${apiBase}/auth/anonymous`, {
+    const res = await fetchWithFallback("/auth/anonymous", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(deviceKey ? { deviceKey } : {}),
@@ -195,7 +224,8 @@ export async function plFetch(url, init = {}) {
     if (!accessToken) {
         try {
             await ensureAccessToken();
-            accessToken = (await chrome.storage.local.get("accessToken")).accessToken;
+            const { accessToken: t } = await chrome.storage.local.get("accessToken");
+            accessToken = t;
         } catch {
             /* request may 401 below */
         }
@@ -205,7 +235,10 @@ export async function plFetch(url, init = {}) {
         ...(init.headers || {}),
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     };
-    let res = await fetch(url, { ...init, headers });
+
+    // Extract endpoint from absolute URL if needed
+    const path = url.includes("/api") ? url.substring(url.indexOf("/api") + 4) : url;
+    let res = await fetchWithFallback(path, { ...init, headers });
     if (res.status !== 401) return res;
 
     try {
@@ -225,5 +258,6 @@ export async function plFetch(url, init = {}) {
         ...(init.headers || {}),
         ...(t2 ? { Authorization: `Bearer ${t2}` } : {}),
     };
-    return fetch(url, { ...init, headers: headers2 });
+
+    return fetchWithFallback(path, { ...init, headers: headers2 });
 }
