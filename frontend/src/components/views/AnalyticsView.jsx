@@ -339,11 +339,12 @@ export default function AnalyticsView() {
                                             formatter={(v) => [`${formatTime(v)}`, "Time"]}
                                         />
                                     </RePieChart>
-                                </ResponsiveContainer>
-                                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none">
-                                    <span className="text-4xl font-black text-foreground">{metrics.score}%</span>
-                                    <span className="text-[10px] text-muted uppercase font-black tracking-widest mt-1">Focus</span>
-                                </div>
+                                        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none">
+                                            <span className="text-4xl font-black text-foreground">{metrics.score}%</span>
+                                            <span className="text-[10px] text-muted uppercase font-black tracking-widest mt-1">Focus</span>
+                                        </div>
+                                    </ResponsiveContainer>
+                                )}
                             </>
                         ) : (
                             <div className="text-muted/40 font-bold uppercase tracking-widest text-xs italic">Awaiting Activity</div>

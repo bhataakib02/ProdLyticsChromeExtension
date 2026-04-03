@@ -41,6 +41,11 @@ async function readApiError(res) {
 export default function AdminPage() {
     const router = useRouter();
     const { user, loading } = useAuth();
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const [overview, setOverview] = useState(null);
     const [usersData, setUsersData] = useState({ users: [], total: 0, page: 1, pages: 1 });
     const [paymentsData, setPaymentsData] = useState({ payments: [], total: 0, page: 1, pages: 1, totalRevenue: 0 });
@@ -322,32 +327,36 @@ export default function AdminPage() {
                 <div className="rounded-2xl border border-white/10 bg-background p-4">
                     <h2 className="mb-3 text-sm font-bold text-foreground">User growth (30 days)</h2>
                     <div className="h-72">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={chartData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                                <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-                                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                                <Tooltip />
-                                <Legend />
-                                <Line type="monotone" dataKey="users" stroke="#6366f1" strokeWidth={2} name="New users" />
-                            </LineChart>
-                        </ResponsiveContainer>
+                        {mounted && (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={chartData}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                                    <XAxis dataKey="day" tick={{ fontSize: 12 }} />
+                                    <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                                    <Tooltip />
+                                    <Legend />
+                                    <Line type="monotone" dataKey="users" stroke="#6366f1" strokeWidth={2} name="New users" />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
 
                 <div className="rounded-2xl border border-white/10 bg-background p-4">
                     <h2 className="mb-3 text-sm font-bold text-foreground">Revenue (30 days)</h2>
                     <div className="h-72">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={chartData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                                <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-                                <YAxis tick={{ fontSize: 12 }} />
-                                <Tooltip />
-                                <Legend />
-                                <Bar dataKey="revenueINR" fill="#10b981" name="Revenue (INR)" />
-                            </BarChart>
-                        </ResponsiveContainer>
+                        {mounted && (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={chartData}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                                    <XAxis dataKey="day" tick={{ fontSize: 12 }} />
+                                    <YAxis tick={{ fontSize: 12 }} />
+                                    <Tooltip />
+                                    <Legend />
+                                    <Bar dataKey="revenueINR" fill="#10b981" name="Revenue (INR)" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
             </section>

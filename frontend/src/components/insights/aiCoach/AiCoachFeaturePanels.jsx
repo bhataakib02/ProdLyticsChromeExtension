@@ -86,12 +86,13 @@ export function AiCoachFeaturePanels({ feature, data }) {
                                 <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
                                 <RadialBar dataKey="value" cornerRadius={12} background clockWise />
                             </RadialBarChart>
-                        </ResponsiveContainer>
-                        <div className="absolute inset-0 grid place-items-center">
-                            <div className="h-16 w-16 rounded-full bg-[#2f3444] grid place-items-center text-sm font-black text-foreground border border-white/10">
-                                {scoreGaugeValue}%
+                            <div className="absolute inset-0 grid place-items-center">
+                                <div className="h-16 w-16 rounded-full bg-[#2f3444] grid place-items-center text-sm font-black text-foreground border border-white/10">
+                                    {scoreGaugeValue}%
+                                </div>
                             </div>
-                        </div>
+                        </ResponsiveContainer>
+                        )}
                     </div>
                     <p className="text-[15px] text-foreground/80 font-medium leading-relaxed">{aiReport?.productivityExplanation || ""}</p>
                 </div>
