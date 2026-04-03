@@ -404,6 +404,12 @@
   border-radius: 999px;
 }
 
+/* First-run auth gate — don’t force tall empty space (base .pl-popup has min-height: 420px) */
+.pl-popup.pl-auth-gate {
+  min-height: 0;
+  flex: 0 0 auto;
+}
+
 /* First-run auth gate */
 .pl-auth-gate {
   justify-content: flex-start;
