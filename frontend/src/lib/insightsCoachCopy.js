@@ -162,7 +162,7 @@ export function coachDistractionAlerts({ metrics, todaySites, aiReport }) {
             ? ` Reclaiming even half of that ${fmtHours(topReportSec)} on your #1 site is a realistic win this week.`
             : "";
 
-    const insight =
+    let insight =
         bad.length > 0
             ? `Distraction time is roughly ${fmtHours(unprod)} today (~${lostMin} min)—“${String(topLabel).slice(0, 80)}” is pulling notable minutes.${reclaimBit}`
             : unprod > 120
