@@ -14,7 +14,8 @@ import {
     Zap,
     FileDown,
     PieChart,
-    MousePointer2
+    MousePointer2,
+    Table2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PieChart as RePieChart, Pie, ResponsiveContainer, Cell, Tooltip } from "recharts";
@@ -37,6 +38,7 @@ export default function OverviewView({ onTabChange }) {
     const [loading, setLoading] = useState(true);
     const [topDomains, setTopDomains] = useState([]);
     const [pdfExporting, setPdfExporting] = useState(false);
+    const [csvExporting, setCsvExporting] = useState(false);
     const [premiumOpen, setPremiumOpen] = useState(false);
 
     useEffect(() => {
@@ -105,6 +107,36 @@ export default function OverviewView({ onTabChange }) {
         }
     }
 
+    async function handleExportCsvZip() {
+        if (!isProdlyticsPremiumUser(user)) {
+            setPremiumOpen(true);
+            return;
+        }
+        if (csvExporting || loading) return;
+        setCsvExporting(true);
+        try {
+            const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+            const res = await fetch(`${API_URL}/auth/my-data/export?format=csv`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.error || res.statusText || "Export failed");
+            }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "prodlytics-my-data-csv.zip";
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            console.error("CSV export failed:", e);
+        } finally {
+            window.setTimeout(() => setCsvExporting(false), 500);
+        }
+    }
+
     if (!user) return null;
 
     const domainMatches = (d) => matchesActivitySearch(activitySearchQuery, d._id);
@@ -120,8 +152,8 @@ export default function OverviewView({ onTabChange }) {
             <PremiumUpsellDialog
                 open={premiumOpen}
                 onOpenChange={setPremiumOpen}
-                title="Export PDF is a Premium feature"
-                description="Download a polished summary of your dashboard — focus score, objectives, and top sites. Upgrade to export and share your progress."
+                title="Data exports are Premium"
+                description="Overview PDF and full-account CSV (ZIP) downloads are included with ProdLytics Pro."
                 user={user}
             />
             <header className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -134,6 +166,16 @@ export default function OverviewView({ onTabChange }) {
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
+                    <button
+                        type="button"
+                        onClick={handleExportCsvZip}
+                        disabled={loading || csvExporting}
+                        className="btn-secondary inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-widest disabled:opacity-50"
+                    >
+                        <Table2 size={16} className="shrink-0" />
+                        {csvExporting ? "Preparing…" : "Export CSV"}
+                        <PremiumBadge />
+                    </button>
                     <button
                         type="button"
                         onClick={handleExportPdf}

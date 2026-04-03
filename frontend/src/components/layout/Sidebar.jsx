@@ -41,15 +41,15 @@ export default function Sidebar() {
     if (!user) return null;
 
     return (
-        <aside className="sticky top-0 flex h-screen w-16 flex-col border-r-ui bg-background p-3 md:w-64 md:p-6">
-            <div className="mb-8 flex items-center gap-3 md:mb-10">
+        <aside className="sticky top-0 flex h-screen min-h-0 w-16 shrink-0 flex-col overflow-hidden border-r-ui bg-background p-3 md:w-64 md:p-6">
+            <div className="mb-6 flex shrink-0 items-center gap-3 md:mb-8">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/40">
                     <Chrome className="text-white" size={18} />
                 </div>
                 <span className="hidden text-xl font-bold tracking-tighter gradient-text md:inline">ProdLytics</span>
             </div>
 
-            <nav className="flex-1 space-y-2">
+            <nav className="min-h-0 flex-1 space-y-2 overflow-y-auto overflow-x-hidden pr-0.5 [scrollbar-width:thin]">
                 {menuItems.map((item) => (
                     <button
                         key={item.id}
@@ -143,7 +143,7 @@ export default function Sidebar() {
                 ) : null}
             </nav>
 
-            <div className="space-y-2 border-t-ui-muted pt-6">
+            <div className="shrink-0 space-y-2 border-t-ui-muted pt-4 md:pt-6">
                 <button
                     type="button"
                     title="Settings"

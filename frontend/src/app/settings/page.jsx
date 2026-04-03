@@ -15,6 +15,8 @@ import {
     Loader2,
     ArrowLeft,
     LogOut,
+    Table2,
+    FileDown,
 } from "lucide-react";
 import { useAuth, API_URL } from "@/context/AuthContext";
 import { useTheme } from "@/components/layout/Providers";
@@ -190,21 +192,49 @@ export default function SettingsPage() {
         }
     }
 
-    async function exportData() {
+    async function downloadMyDataZip() {
         if (!registered) return;
         setSaving(true);
         try {
-            const res = await axios.get(`${API_URL}/auth/my-data?includeRaw=true`, { headers: authHeaders() });
-            const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: "application/json" });
+            const res = await fetch(`${API_URL}/auth/my-data/export?format=csv`, { headers: authHeaders() });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.error || res.statusText || "Export failed.");
+            }
+            const blob = await res.blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = `prodlytics-export-${Date.now()}.json`;
+            a.download = "prodlytics-my-data-csv.zip";
             a.click();
             URL.revokeObjectURL(url);
-            setBanner("Download started.");
+            setBanner("CSV (ZIP) download started.");
         } catch (e) {
-            setBanner(e.response?.data?.error || "Export failed.");
+            setBanner(e.message || "Export failed.");
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    async function downloadMyDataPdf() {
+        if (!registered) return;
+        setSaving(true);
+        try {
+            const res = await fetch(`${API_URL}/auth/my-data/export?format=pdf`, { headers: authHeaders() });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.error || res.statusText || "Export failed.");
+            }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "prodlytics-my-data-summary.pdf";
+            a.click();
+            URL.revokeObjectURL(url);
+            setBanner("PDF summary download started.");
+        } catch (e) {
+            setBanner(e.message || "Export failed.");
         } finally {
             setSaving(false);
         }
@@ -591,14 +621,26 @@ export default function SettingsPage() {
                                             Clear browsing data
                                         </button>
                                         {registered ? (
-                                            <button
-                                                type="button"
-                                                disabled={saving}
-                                                onClick={exportData}
-                                                className="ml-0 block rounded-2xl border-2 border-secondary/40 bg-secondary/10 px-5 py-2.5 text-xs font-black uppercase tracking-widest text-foreground md:ml-3 md:inline-block"
-                                            >
-                                                Export my data
-                                            </button>
+                                            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                                                <button
+                                                    type="button"
+                                                    disabled={saving}
+                                                    onClick={downloadMyDataZip}
+                                                    className="inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-secondary/40 bg-secondary/10 px-5 py-2.5 text-xs font-black uppercase tracking-widest text-foreground disabled:opacity-50"
+                                                >
+                                                    <Table2 size={16} aria-hidden />
+                                                    Download CSV (ZIP)
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={saving}
+                                                    onClick={downloadMyDataPdf}
+                                                    className="inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-secondary/40 bg-secondary/10 px-5 py-2.5 text-xs font-black uppercase tracking-widest text-foreground disabled:opacity-50"
+                                                >
+                                                    <FileDown size={16} aria-hidden />
+                                                    Download data PDF
+                                                </button>
+                                            </div>
                                         ) : null}
                                     </div>
                                     {registered ? (
