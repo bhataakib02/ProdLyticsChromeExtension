@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import User from "../../../../../../../../backend/models/User.js";
+import User from "@backend/models/User.js";
 import { requireAdminUser } from "@/lib/adminAuth";
 
 function csvEscape(s) {

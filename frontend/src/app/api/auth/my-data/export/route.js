@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import dbConnect, { isDbUnavailableError } from "../../../../../../../backend/db/mongodb.js";
+import dbConnect, { isDbUnavailableError } from "@backend/db/mongodb.js";
 import { getUserIdFromRequest } from "@/lib/apiUser";
 import { withCors, corsOptions } from "@/lib/cors";
 import { buildUserDataCsvZipBuffer, buildUserDataPdfBuffer } from "@/lib/userDataExportFormatsServer";

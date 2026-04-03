@@ -33,13 +33,16 @@ const nextConfig = {
     root: monorepoRoot,
     resolveAlias: {
       jspdf: jspdfBrowser,
+      "@backend": path.join(monorepoRoot, "backend"),
     },
   },
   webpack: (config) => {
+    const backendRoot = path.join(monorepoRoot, "backend");
     config.resolve.alias = {
       ...config.resolve.alias,
       jspdf: jspdfBrowser,
-      // Backend package lives in ../backend; hoisted deps are only under frontend/node_modules.
+      // Stable resolution on Vercel (avoids fragile ../../../../ chains in API routes).
+      "@backend": backendRoot,
       mongoose: nm("mongoose"),
       bcryptjs: nm("bcryptjs"),
       stripe: stripeDir,

@@ -40,13 +40,14 @@
 }
 
 .pl-popup--dark {
-  --pl-bg: #0c0e14;
+  --pl-bg: #0a0c12;
   --pl-surface: rgba(255, 255, 255, 0.055);
   --pl-surface-2: rgba(255, 255, 255, 0.08);
   --pl-text: #f3f4f6;
   --pl-muted: #9ca3af;
   --pl-border: rgba(255, 255, 255, 0.12);
-  --pl-accent-line: #818cf8;
+  --pl-accent-line: #a78bfa;
+  --pl-primary: #7c3aed;
   background: var(--pl-bg);
   color: var(--pl-text);
 }
@@ -406,13 +407,85 @@
 /* First-run auth gate */
 .pl-auth-gate {
   justify-content: flex-start;
+  padding: 16px 14px 18px;
+  background-image:
+    radial-gradient(ellipse 120% 80% at 50% -20%, color-mix(in srgb, var(--pl-primary) 28%, transparent), transparent),
+    radial-gradient(ellipse 80% 50% at 100% 50%, color-mix(in srgb, #6366f1 12%, transparent), transparent);
+}
+
+.pl-auth-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--pl-border);
+  background: linear-gradient(165deg, color-mix(in srgb, var(--pl-surface) 100%, transparent) 0%, var(--pl-bg) 100%);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+
+.pl-popup--light .pl-auth-card {
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+}
+
+.pl-auth-header {
+  align-items: flex-start;
+}
+
+.pl-auth-brand {
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+}
+
+.pl-auth-mark {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  margin-top: 2px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--pl-primary), #6366f1);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--pl-primary) 35%, transparent);
+}
+
+.pl-auth-kicker {
+  margin: 0 0 2px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--pl-muted) 92%, var(--pl-primary));
+}
+
+.pl-auth-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(90deg, var(--pl-text), color-mix(in srgb, var(--pl-text) 55%, var(--pl-primary)));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.pl-auth-lead {
+  max-width: 100% !important;
+  margin-top: 8px !important;
+  font-size: 0.74rem !important;
+  line-height: 1.5 !important;
 }
 
 .pl-auth-actions {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: 8px;
+  margin-top: 14px;
+}
+
+.pl-btn-guest {
+  padding: 12px 14px;
+  font-size: 0.84rem;
+  letter-spacing: 0.01em;
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--pl-primary) 40%, transparent);
 }
 
 .pl-auth-foot {

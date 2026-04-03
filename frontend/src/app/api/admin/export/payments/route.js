@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import Payment from "../../../../../../../../backend/models/Payment.js";
+import Payment from "@backend/models/Payment.js";
 import { requireAdminUser } from "@/lib/adminAuth";
 
 function csvEscape(s) {

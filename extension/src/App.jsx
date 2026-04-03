@@ -423,45 +423,51 @@ function App() {
   if (uiMode === "pick") {
     return (
       <div className={`pl-popup pl-popup--${isDarkMode ? "dark" : "light"} pl-auth-gate`}>
-        <header className="pl-header">
-          <div>
-            <h1 className="pl-title">ProdLytics</h1>
-            <p className="pl-popup-hint" style={{ maxWidth: "100%" }}>
-              Choose how to continue. Guest mode keeps tracking on this profile without email; signing in saves data to
-              your account and works with the dashboard.
+        <div className="pl-auth-card">
+          <header className="pl-header pl-auth-header">
+            <div className="pl-auth-brand">
+              <span className="pl-auth-mark" aria-hidden />
+              <div>
+                <p className="pl-auth-kicker">Welcome</p>
+                <h1 className="pl-title pl-auth-title">ProdLytics</h1>
+                <p className="pl-popup-hint pl-auth-lead">
+                  Track time in the browser. Choose guest for this device only, or sign in to sync with your dashboard and
+                  keep progress in your account.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="pl-theme-icon-btn"
+              onClick={toggleTheme}
+              aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {isDarkMode ? <SunIcon /> : <MoonIcon />}
+            </button>
+          </header>
+          <div className="pl-auth-actions">
+            <button
+              type="button"
+              className="pl-btn pl-btn-primary pl-btn-guest"
+              disabled={guestBusy}
+              onClick={() => void handleContinueGuest()}
+            >
+              {guestBusy ? "Starting…" : "Continue as guest"}
+            </button>
+            <button type="button" className="pl-btn pl-btn-secondary" onClick={() => void handleChooseAccount()}>
+              Sign up or log in
+            </button>
+            <p className="pl-auth-foot">
+              Sign-in opens ProdLytics with <strong>Google</strong> or <strong>email &amp; password</strong>. Your email is
+              remembered on this browser.
             </p>
           </div>
-          <button
-            type="button"
-            className="pl-theme-icon-btn"
-            onClick={toggleTheme}
-            aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            {isDarkMode ? <SunIcon /> : <MoonIcon />}
-          </button>
-        </header>
-        <div className="pl-auth-actions">
-          <button
-            type="button"
-            className="pl-btn pl-btn-primary"
-            disabled={guestBusy}
-            onClick={() => void handleContinueGuest()}
-          >
-            {guestBusy ? "Starting…" : "Use without login"}
-          </button>
-          <button type="button" className="pl-btn pl-btn-secondary" onClick={() => void handleChooseAccount()}>
-            Sign up / Log in
-          </button>
-          <p className="pl-auth-foot">
-            Sign in opens your ProdLytics site with <strong>Google</strong> or <strong>email &amp; password</strong>. Your
-            email is remembered for next time.
-          </p>
+          {guestError ? (
+            <p className="pl-auth-error" role="alert">
+              {guestError}
+            </p>
+          ) : null}
         </div>
-        {guestError ? (
-          <p className="pl-auth-error" role="alert">
-            {guestError}
-          </p>
-        ) : null}
       </div>
     );
   }
