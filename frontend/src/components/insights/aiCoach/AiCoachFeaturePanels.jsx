@@ -395,19 +395,9 @@ export function AiCoachFeaturePanels({ feature, data }) {
         ),
     };
 
-    if (feature === "all") {
-        return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {AI_COACH_FEATURES.map((f) => (
-                    <div key={f.slug}>{panels[f.slug]}</div>
-                ))}
-            </div>
-        );
-    }
-
     const node = panels[feature];
-    if (!node) return <p className="text-sm text-muted">Unknown feature.</p>;
-    return <div className="max-w-3xl">{loading ? <p className="text-sm text-muted animate-pulse">Loading…</p> : node}</div>;
+    if (!node) return <p className="text-sm text-muted text-center py-10 font-bold uppercase tracking-widest opacity-40">Unknown feature.</p>;
+    return <div className="max-w-3xl mx-auto">{loading ? <p className="text-sm text-muted animate-pulse">Loading…</p> : node}</div>;
 }
 
 export function AiCoachHubLinks() {

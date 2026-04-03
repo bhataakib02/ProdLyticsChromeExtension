@@ -51,13 +51,11 @@ function AiCoachHubBody() {
             </div>
 
             <div className="rounded-[28px] border border-white/10 bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-4 md:p-6">
-                <AiCoachFeaturePanels feature={activeFeature} data={data} />
-                
                 {activeFeature === "all" ? (
-                    <div className="mt-12 border-t border-white/10 pt-10">
-                        <AiCoachProSuite data={data} />
-                    </div>
-                ) : null}
+                    <AiCoachProSuite data={data} />
+                ) : (
+                    <AiCoachFeaturePanels feature={activeFeature} data={data} />
+                )}
 
                 <p className="mt-8 text-center text-[10px] font-medium leading-relaxed text-muted/85 px-4 max-w-2xl mx-auto">
                     Pro coaching layers your live extension data (score, hourly splits, goals, week-over-week trends) into
