@@ -268,7 +268,7 @@
   }
 
   .theme-toggle-btn {
-    @apply flex w-full items-center gap-3 rounded-xl border-2 bg-foreground/[0.04] px-4 py-3 text-left text-sm font-medium text-muted transition-all hover:bg-foreground/[0.08] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+    @apply flex w-full items-center justify-center gap-3 rounded-xl border-2 bg-foreground/[0.04] px-2 py-3 text-left text-sm font-medium text-muted transition-all hover:bg-foreground/[0.08] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background md:justify-start md:px-4;
     border-color: var(--ui-border);
   }
 
@@ -277,7 +277,7 @@
   }
 
   .sidebar-nav-btn {
-    @apply flex w-full items-center gap-3 rounded-xl border-2 px-4 py-3 font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+    @apply flex w-full items-center justify-center gap-3 rounded-xl border-2 px-2 py-3 font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background md:justify-start md:px-4;
   }
 
   .gradient-text {

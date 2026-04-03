@@ -33,10 +33,23 @@ const UserSchema = new mongoose.Schema(
 
         // Google OAuth
         googleId: { type: String, sparse: true },
+        image: { type: String, default: "" },
         avatar: { type: String, default: "" },
 
         /** Created via POST /api/auth/anonymous (no sign-in). One row per browser / extension install. */
         isAnonymous: { type: Boolean, default: false },
+
+        /**
+         * Stable UUID shared between ProdLytics extension + dashboard on the same Chrome profile.
+         * Lets "guest" use one MongoDB user for both surfaces.
+         */
+        anonymousDeviceKey: {
+            type: String,
+            sparse: true,
+            unique: true,
+            trim: true,
+            maxlength: 64,
+        },
 
         // User preferences
         preferences: {
@@ -53,6 +66,24 @@ const UserSchema = new mongoose.Schema(
             smartBlock: { type: Boolean, default: false },
             breakReminders: { type: Boolean, default: false },
         },
+
+        subscription: {
+            type: String,
+            enum: ["free", "pro"],
+            default: "free",
+        },
+        role: {
+            type: String,
+            enum: ["user", "admin"],
+            default: "user",
+        },
+        stripeCustomerId: {
+            type: String,
+            default: null,
+        },
+
+        /** Backward-compatible premium flag used by existing UI gates. */
+        isPremium: { type: Boolean, default: false },
 
         // Account status
         isActive: { type: Boolean, default: true },

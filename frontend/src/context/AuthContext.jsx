@@ -9,6 +9,7 @@ import {
     bridgeSetAccessToken,
     bridgeClearAccessToken,
 } from "@/lib/extensionSync";
+import { waitForSyncedAnonymousDeviceKey, getOrCreateAnonymousDeviceKey } from "@/lib/anonymousDeviceKey";
 
 const AuthContext = createContext();
 
@@ -24,6 +25,9 @@ const DEFAULT_PREFERENCES = {
     breakMinutes: 5,
     theme: "dark",
     productivityNudges: true,
+    weeklyDigestEmail: false,
+    weeklyDigestPush: false,
+    coachLlmPhrasing: false,
 };
 
 function mergePreferencesFromApi(data) {
@@ -54,6 +58,11 @@ async function loadSession(token) {
         name: me.name,
         avatar: me.avatar || "",
         isAnonymous: Boolean(me.isAnonymous),
+        isPremium: me.subscription ? me.subscription === "pro" : Boolean(me.isPremium),
+        subscription: me.subscription || (me.isPremium ? "pro" : "free"),
+        stripeCustomerId: me.stripeCustomerId || null,
+        hasPassword: Boolean(me.hasPassword),
+        role: me.role || "user",
         isActive: true,
         preferences,
     };
@@ -77,6 +86,13 @@ export function AuthProvider({ children }) {
         localStorage.setItem("accessToken", token);
         bridgeSetAccessToken(token);
         const sessionUser = await loadSession(token);
+        if (sessionUser?.email) {
+            try {
+                localStorage.setItem("prodlytics_last_email", String(sessionUser.email).toLowerCase());
+            } catch {
+                /* ignore */
+            }
+        }
         setUser(sessionUser);
     }, []);
 
@@ -124,7 +140,11 @@ export function AuthProvider({ children }) {
 
                 bridgeClearAccessToken();
 
-                const { data } = await axios.post(`${API_URL}/auth/anonymous`, {});
+                let deviceKey = await waitForSyncedAnonymousDeviceKey(450);
+                if (!deviceKey) deviceKey = getOrCreateAnonymousDeviceKey();
+                const anonBody = deviceKey ? { deviceKey } : {};
+
+                const { data } = await axios.post(`${API_URL}/auth/anonymous`, anonBody);
                 if (!data?.accessToken) {
                     throw new Error("No session token from server.");
                 }
@@ -154,16 +174,26 @@ export function AuthProvider({ children }) {
         async (idToken) => {
             setAuthError("");
             try {
-                const { data } = await axios.post(`${API_URL}/auth/google`, { idToken });
+                const bearer =
+                    typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+                const { data } = await axios.post(
+                    `${API_URL}/auth/google`,
+                    { idToken },
+                    {
+                        headers: bearer ? { Authorization: `Bearer ${bearer}` } : {},
+                    }
+                );
                 if (!data?.accessToken) {
                     setAuthError("Sign-in failed: no token returned.");
-                    return;
+                    return false;
                 }
                 await applyToken(data.accessToken);
                 router.refresh();
+                return true;
             } catch (err) {
                 const msg = err.response?.data?.error || err.message || "Sign-in failed.";
                 setAuthError(String(msg));
+                return false;
             }
         },
         [applyToken, router]
@@ -237,6 +267,8 @@ export function AuthProvider({ children }) {
                 authError,
                 clearAuthError,
                 completeGoogleLogin,
+                /** After email/password login: updates user from JWT without full page reload. */
+                applySessionToken: applyToken,
                 login,
                 register,
                 logout,

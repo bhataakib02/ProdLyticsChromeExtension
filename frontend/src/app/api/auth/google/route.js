@@ -8,6 +8,8 @@ import {
     getGoogleWebClientAudiences,
 } from "@/lib/googleVerify";
 import { withCors, corsOptions } from "@/lib/cors";
+import { getUserIdFromRequest } from "@/lib/apiUser";
+import { mergeAnonymousUserIntoTarget } from "../../../../../../backend/lib/mergeAnonymousUserData.js";
 
 export async function OPTIONS() {
     return corsOptions();
@@ -32,21 +34,61 @@ export async function POST(req) {
         }
 
         const email = String(profile.email).toLowerCase();
+        const bearerUserId = await getUserIdFromRequest(req);
+        let bearerAnonId = null;
+        if (bearerUserId) {
+            const bu = await User.findById(bearerUserId).select("isAnonymous").lean();
+            if (bu?.isAnonymous) bearerAnonId = bearerUserId;
+        }
+
         let user = await User.findOne({
             $or: [{ email }, { googleId: profile.sub }],
         });
+
+        if (!user && bearerAnonId) {
+            const anon = await User.findById(bearerAnonId);
+            if (anon?.isAnonymous) {
+                anon.name = profile.name || email.split("@")[0];
+                anon.email = email;
+                anon.googleId = profile.sub;
+                anon.image = profile.picture || "";
+                anon.avatar = profile.picture || "";
+                anon.isAnonymous = false;
+                anon.anonymousDeviceKey = undefined;
+                if (!anon.subscription) anon.subscription = "free";
+                anon.isPremium = anon.subscription === "pro";
+                anon.lastSeen = new Date();
+                await anon.save();
+                user = anon;
+            }
+        }
 
         if (!user) {
             user = await User.create({
                 name: profile.name || email.split("@")[0],
                 email,
                 googleId: profile.sub,
+                image: profile.picture || "",
                 avatar: profile.picture || "",
+                subscription: "free",
+                isPremium: false,
+                isAnonymous: false,
             });
         } else {
+            if (bearerAnonId && !user._id.equals(bearerAnonId)) {
+                await mergeAnonymousUserIntoTarget(bearerAnonId, user._id);
+                user = await User.findById(user._id);
+            }
             user.googleId = user.googleId || profile.sub;
-            if (profile.picture) user.avatar = profile.picture;
+            if (profile.picture) {
+                user.avatar = profile.picture;
+                user.image = profile.picture;
+            }
             if (profile.name) user.name = profile.name;
+            user.isAnonymous = false;
+            user.anonymousDeviceKey = undefined;
+            if (!user.subscription) user.subscription = user.isPremium ? "pro" : "free";
+            user.isPremium = user.subscription === "pro";
             user.lastSeen = new Date();
             await user.save();
         }
@@ -71,6 +113,7 @@ export async function POST(req) {
                     email: user.email,
                     name: user.name,
                     avatar: user.avatar || "",
+                    subscription: user.subscription || (user.isPremium ? "pro" : "free"),
                 },
             })
         );

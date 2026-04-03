@@ -23,18 +23,23 @@ function normalizeHistory(raw) {
 export default function BurnoutRiskChart({ data }) {
     const wrapRef = useRef(null);
     const svgRef = useRef(null);
-    const [width, setWidth] = useState(640);
+    const [size, setSize] = useState({ width: 640, height: 320 });
 
     const cleaned = useMemo(() => normalizeHistory(data), [data]);
 
     useEffect(() => {
         const el = wrapRef.current;
         if (!el) return;
-        const ro = new ResizeObserver(() => {
-            setWidth(Math.max(280, Math.floor(el.getBoundingClientRect().width)));
-        });
+        const update = () => {
+            const r = el.getBoundingClientRect();
+            setSize({
+                width: Math.max(200, Math.floor(r.width)),
+                height: Math.max(220, Math.floor(r.height)),
+            });
+        };
+        const ro = new ResizeObserver(() => update());
         ro.observe(el);
-        setWidth(Math.max(280, Math.floor(el.getBoundingClientRect().width)));
+        update();
         return () => ro.disconnect();
     }, []);
 
@@ -45,9 +50,12 @@ export default function BurnoutRiskChart({ data }) {
 
         if (cleaned.length === 0) return;
 
-        const margin = { top: 30, right: 24, bottom: 44, left: 44 };
-        const height = 300 - margin.top - margin.bottom;
-        const innerW = Math.max(200, width - margin.left - margin.right);
+        const hour12 = new Intl.DateTimeFormat(undefined, { hour: "numeric" }).resolvedOptions().hour12;
+
+        // Extra space so axis tick labels never get clipped when container height changes.
+        const margin = { top: 26, right: 20, bottom: 56, left: 58 };
+        const innerW = Math.max(160, size.width - margin.left - margin.right);
+        const height = Math.max(120, size.height - margin.top - margin.bottom);
 
         const svg = svgRoot
             .attr("viewBox", `0 0 ${innerW + margin.left + margin.right} ${height + margin.top + margin.bottom}`)
@@ -81,7 +89,7 @@ export default function BurnoutRiskChart({ data }) {
         const defs = svg.append("defs");
         const filter = defs
             .append("filter")
-            .attr("id", "glow")
+            .attr("id", "burnout-glow")
             .attr("x", "-50%")
             .attr("y", "-50%")
             .attr("width", "200%")
@@ -93,7 +101,7 @@ export default function BurnoutRiskChart({ data }) {
 
         const lineGradient = defs
             .append("linearGradient")
-            .attr("id", "line-gradient")
+            .attr("id", "burnout-line-gradient")
             .attr("x1", "0%")
             .attr("y1", "0%")
             .attr("x2", "100%")
@@ -101,7 +109,15 @@ export default function BurnoutRiskChart({ data }) {
         lineGradient.append("stop").attr("offset", "0%").attr("stop-color", COLOR_PRIMARY);
         lineGradient.append("stop").attr("offset", "100%").attr("stop-color", COLOR_SECONDARY);
 
-        const xAxis = d3.axisBottom(x).ticks(6).tickFormat(d3.timeFormat("%H:%M"));
+        const xAxisTimeFmt = hour12 ? d3.timeFormat("%I:%M %p") : d3.timeFormat("%H:%M");
+
+        const xAxis = d3
+            .axisBottom(x)
+            .ticks(6)
+            .tickFormat(xAxisTimeFmt)
+            .tickPadding(10)
+            .tickSizeOuter(0)
+            .tickSizeInner(0);
         svg.append("g")
             .attr("transform", `translate(0,${height})`)
             .call(xAxis)
@@ -112,7 +128,11 @@ export default function BurnoutRiskChart({ data }) {
             .style("font-size", "10px")
             .style("font-weight", "500");
 
-        const yAxis = d3.axisLeft(y).ticks(5);
+        // Consistent 0.5-step ticks for a clean cognitive-load scale.
+        const yStart = Math.ceil(yLow * 2) / 2;
+        const yEnd = Math.floor(yHigh * 2) / 2;
+        const yTicks = d3.range(yStart, yEnd + 0.001, 0.5);
+        const yAxis = d3.axisLeft(y).tickValues(yTicks).tickFormat((d) => Number(d).toFixed(1));
         svg.append("g")
             .call(yAxis)
             .attr("color", "rgba(255,255,255,0.1)")
@@ -139,7 +159,7 @@ export default function BurnoutRiskChart({ data }) {
 
         const areaGradient = defs
             .append("linearGradient")
-            .attr("id", "area-gradient")
+            .attr("id", "burnout-area-gradient")
             .attr("x1", "0%")
             .attr("y1", "0%")
             .attr("x2", "0%")
@@ -155,17 +175,17 @@ export default function BurnoutRiskChart({ data }) {
             .attr("stop-color", COLOR_SECONDARY)
             .attr("stop-opacity", 0);
 
-        svg.append("path").datum(cleaned).attr("fill", "url(#area-gradient)").attr("d", area);
+        svg.append("path").datum(cleaned).attr("fill", "url(#burnout-area-gradient)").attr("d", area);
 
         const path = svg
             .append("path")
             .datum(cleaned)
             .attr("fill", "none")
-            .attr("stroke", "url(#line-gradient)")
+            .attr("stroke", "url(#burnout-line-gradient)")
             .attr("stroke-width", 3.5)
             .attr("stroke-linecap", "round")
             .attr("stroke-linejoin", "round")
-            .attr("filter", "url(#glow)")
+            .attr("filter", "url(#burnout-glow)")
             .attr("d", line);
 
         const pulse = svg
@@ -176,11 +196,11 @@ export default function BurnoutRiskChart({ data }) {
             .attr("stroke-width", 2)
             .attr("stroke-linecap", "round")
             .attr("stroke-linejoin", "round")
-            .attr("filter", "url(#glow)")
+            .attr("filter", "url(#burnout-glow)")
             .attr("opacity", 0.55)
             .attr("d", line);
 
-        const timeFmt = d3.timeFormat("%H:%M");
+        const timeFmt = hour12 ? d3.timeFormat("%I:%M %p") : d3.timeFormat("%H:%M");
         svg.selectAll(".dot")
             .data(cleaned)
             .enter()
@@ -229,7 +249,7 @@ export default function BurnoutRiskChart({ data }) {
             }
             repeatPulse();
         }
-    }, [cleaned, width]);
+    }, [cleaned, size]);
 
     if (cleaned.length === 0) {
         return (
@@ -247,8 +267,8 @@ export default function BurnoutRiskChart({ data }) {
     }
 
     return (
-        <div ref={wrapRef} className="w-full h-full min-h-[300px] flex justify-center items-center">
-            <svg ref={svgRef} className="w-full h-auto max-w-full" preserveAspectRatio="xMidYMid meet" />
+        <div ref={wrapRef} className="h-full w-full min-h-[240px]">
+            <svg ref={svgRef} className="block h-full w-full" preserveAspectRatio="none" />
         </div>
     );
 }

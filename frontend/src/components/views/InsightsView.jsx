@@ -5,13 +5,10 @@ import { useAuth } from "@/context/AuthContext";
 import { useDashboard } from "@/context/DashboardContext";
 import { trackingService } from "@/services/tracking.service";
 import { goalsService, goalsProgressTodayList } from "@/services/goals.service";
-import { requestExtensionSync, requestExtensionWorkspaceToast } from "@/lib/extensionSync";
 import {
     BrainCircuit,
     Sparkles,
     Activity,
-    Zap,
-    TrendingUp,
     Clock,
     Target,
     RefreshCw,
@@ -19,6 +16,7 @@ import {
     ArrowRight,
     Timer,
     Focus,
+    FileDown,
     Layers,
     Info,
     Lightbulb,
@@ -26,13 +24,14 @@ import {
 import { motion } from "framer-motion";
 import BurnoutRiskChart from "@/components/D3Charts";
 import { buildTomorrowFocusIcs } from "@/lib/buildTomorrowFocusIcs";
+import { buildGoogleCalendarTemplateUrl } from "@/lib/calendarLinks";
 import { readSessionReflections, REFLECTIONS_UPDATED_EVENT } from "@/lib/sessionReflections";
+import { buildInsightsMilestone } from "@/lib/insightsCoachCopy";
 
 export default function InsightsView() {
     const { user } = useAuth();
     const { setActiveTab } = useDashboard();
     const [metrics, setMetrics] = useState(null);
-    const [yesterdayMetrics, setYesterdayMetrics] = useState(null);
     const [cognitiveMetrics, setCognitiveMetrics] = useState([]);
     const [insightsData, setInsightsData] = useState(null);
     const [goals, setGoals] = useState([]);
@@ -47,7 +46,6 @@ export default function InsightsView() {
         try {
             const settled = await Promise.allSettled([
                 trackingService.getSummary("today"),
-                trackingService.getSummary("yesterday"),
                 trackingService.getCognitiveLoad(),
                 goalsService.getObjectives(),
                 trackingService.getDeepWorkHistory(),
@@ -55,14 +53,12 @@ export default function InsightsView() {
             ]);
 
             const today = settled[0].status === "fulfilled" ? settled[0].value : null;
-            const yest = settled[1].status === "fulfilled" ? settled[1].value : null;
-            const cognitiveResponse = settled[2].status === "fulfilled" ? settled[2].value : { history: [], metrics: null };
-            const goalsData = settled[3].status === "fulfilled" ? settled[3].value : [];
-            const deep = settled[4].status === "fulfilled" ? settled[4].value : [];
-            const week = settled[5].status === "fulfilled" ? settled[5].value : null;
+            const cognitiveResponse = settled[1].status === "fulfilled" ? settled[1].value : { history: [], metrics: null };
+            const goalsData = settled[2].status === "fulfilled" ? settled[2].value : [];
+            const deep = settled[3].status === "fulfilled" ? settled[3].value : [];
+            const week = settled[4].status === "fulfilled" ? settled[4].value : null;
 
             setMetrics(today);
-            setYesterdayMetrics(yest);
             setCognitiveMetrics(cognitiveResponse?.history || []);
             setInsightsData(cognitiveResponse?.metrics || null);
             setGoals(goalsProgressTodayList(goalsData));
@@ -101,12 +97,6 @@ export default function InsightsView() {
     const firstName = user?.name?.trim()?.split(/\s+/)?.[0] ?? "there";
     const focusSessionMinutes = Math.min(180, Math.max(5, Number(user?.preferences?.focusSessionMinutes) || 25));
 
-    const latestLoad = (() => {
-        const last = cognitiveMetrics[cognitiveMetrics.length - 1];
-        const v = Number(last?.loadScore);
-        return Number.isFinite(v) ? v : 0;
-    })();
-
     const attentionFromLatestHour = useMemo(() => {
         const last = cognitiveMetrics[cognitiveMetrics.length - 1];
         if (!last?.time) {
@@ -127,7 +117,7 @@ export default function InsightsView() {
                 : "Comfortable";
         return {
             band,
-            sub: `Latest synced hour: ${tf.format(d)} (your local time). This is not a live second-by-second reading.`,
+            sub: `Synced at ${tf.format(d)} (your local time). This is not a live second-by-second reading.`,
         };
     }, [cognitiveMetrics]);
 
@@ -145,18 +135,6 @@ export default function InsightsView() {
         };
     }, [cognitiveMetrics]);
 
-    const peakWindowCopy = (() => {
-        if (peakMeta.validCount < 2) {
-            return "Use the ProdLytics extension for a few hours; we then show the part of the day when you were most active.";
-        }
-        if (!peakMeta.best) return "We need a bit more hourly data to name your usual peak work window.";
-        const h = peakMeta.best.date.getHours();
-        const label = (x) =>
-            new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(2000, 0, 1, x, 0));
-        const endH = Math.min(23, h + 2);
-        return `Today you looked most engaged around ${label(h)}–${label(endH)} (your local time)—a good window for hard tasks.`;
-    })();
-
     const tomorrowPlanCopy = (() => {
         if (peakMeta.validCount < 2 || !peakMeta.best) {
             return "After a few more hours of extension data, we will suggest a specific time tomorrow to block for deep work.";
@@ -170,21 +148,9 @@ export default function InsightsView() {
         return `For tomorrow, try putting ${focusSessionMinutes} minutes of uninterrupted work on your calendar from about ${tf.format(startAnchor)} to ${tf.format(endAnchor)}. That matches when you were strongest today.`;
     })();
 
-    const scoreDeltaVsYesterday = (() => {
-        const todayS = Number(metrics?.score);
-        const yS = Number(yesterdayMetrics?.score);
-        const yTotal =
-            (Number(yesterdayMetrics?.productiveTime) || 0) +
-            (Number(yesterdayMetrics?.unproductiveTime) || 0) +
-            (Number(yesterdayMetrics?.neutralTime) || 0);
-        if (!Number.isFinite(todayS) || yTotal < 120) return null;
-        if (!Number.isFinite(yS)) return null;
-        return todayS - yS;
-    })();
-
     const goTab = (tab) => setActiveTab(tab);
 
-    const downloadTomorrowFocusIcs = useCallback(() => {
+    const getTomorrowFocusEvent = useCallback(() => {
         if (!peakMeta.best) return;
         const d0 = peakMeta.best.date;
         const h = d0.getHours();
@@ -193,101 +159,67 @@ export default function InsightsView() {
         const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, h, mi, 0, 0);
         const end = new Date(start.getTime() + focusSessionMinutes * 60 * 1000);
         const dk = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`;
-        const ics = buildTomorrowFocusIcs({
-            title: `ProdLytics focus (${focusSessionMinutes} min)`,
-            start,
-            end,
-            uid: `prodlytics-focus-${dk}@prodlytics.app`,
-        });
-        const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `prodlytics-focus-${dk}.ics`;
-        a.click();
-        URL.revokeObjectURL(url);
+        const title = `ProdLytics focus (${focusSessionMinutes} min)`;
+        const details =
+            "Deep work block suggested by ProdLytics from your peak focus window. Open ProdLytics to track and refine your focus.";
+        return { start, end, dk, title, details };
     }, [peakMeta.best, focusSessionMinutes]);
 
-    const toastBreak = () =>
-        requestExtensionWorkspaceToast({
-            title: "Time for a screen break",
-            message: "Step away for a few minutes—your load signal was elevated.",
-            variant: "info",
-            systemNotify: true,
-        });
+    const openTomorrowInGoogleCalendar = useCallback(() => {
+        const event = getTomorrowFocusEvent();
+        if (!event) return;
+        const googleUrl = buildGoogleCalendarTemplateUrl(event);
+        window.open(googleUrl, "_blank", "noopener,noreferrer");
+    }, [getTomorrowFocusEvent]);
 
-    const toastFlow = () =>
-        requestExtensionWorkspaceToast({
-            title: "Stay in flow",
-            message: "Protect this window—minimize context switches until your next break.",
-            variant: "success",
+    const downloadTomorrowFocusIcs = useCallback(() => {
+        const event = getTomorrowFocusEvent();
+        if (!event) return;
+        const ics = buildTomorrowFocusIcs({
+            title: event.title,
+            start: event.start,
+            end: event.end,
+            uid: `prodlytics-focus-${event.dk}@prodlytics.app`,
         });
-
-    const getRecommendations = () => {
-        const recs = [];
-        const prod = Number(metrics?.productiveTime);
-        const unprod = Number(metrics?.unproductiveTime);
-
-        if (latestLoad > 7) {
-            recs.push({
-                key: "overload",
-                title: "Time for a break",
-                desc: "Your activity pattern looks intense—step away from the screen for 10–15 minutes.",
-                icon: <Zap className="text-red-400" />,
-                type: "warning",
-                actions: [
-                    { label: "Break timer", tab: "timer", icon: Timer },
-                    { label: "Nudge me", onClick: toastBreak },
-                ],
-            });
-        }
-        if (Number(metrics?.score) > 80) {
-            recs.push({
-                key: "flow",
-                title: "Strong focus today",
-                desc: "Most of your tracked time is on productive work. Good moment to protect this window.",
-                icon: <Sparkles className="text-primary" />,
-                type: "success",
-                actions: [
-                    { label: "Focus mode", tab: "focus", icon: Focus },
-                    { label: "Pin this", onClick: toastFlow },
-                ],
-            });
-        }
-        if (Number.isFinite(prod) && Number.isFinite(unprod) && unprod > prod) {
-            recs.push({
-                key: "distraction",
-                title: "More distraction than work",
-                desc: "So far today, distracting sites outweigh productive ones. A short focus block can reset the day.",
-                icon: <Activity className="text-orange-400" />,
-                type: "info",
-                actions: [
-                    { label: "Goals", tab: "goals", icon: Target },
-                    { label: "Focus mode", tab: "focus", icon: Focus },
-                ],
-            });
-        }
-        recs.push({
-            key: "peak",
-            title: "Your best time to work",
-            desc: peakWindowCopy,
-            icon: <Clock className="text-secondary" />,
-            type: "neutral",
-            actions: [
-                { label: "Sync extension", onClick: () => requestExtensionSync() },
-                { label: "Extension setup", tab: "setup" },
-            ],
-        });
-        return recs;
-    };
+        const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = `prodlytics-focus-${event.dk}.ics`;
+        a.rel = "noopener";
+        a.click();
+        URL.revokeObjectURL(blobUrl);
+    }, [getTomorrowFocusEvent]);
 
     const milestone = useMemo(
-        () => getMilestoneCard(metrics, cognitiveMetrics, insightsData?.deepWorkHours),
+        () => buildInsightsMilestone(metrics, cognitiveMetrics, insightsData?.deepWorkHours),
         [metrics, cognitiveMetrics, insightsData]
     );
 
     // eslint-disable-next-line react-hooks/exhaustive-deps -- lastUpdated + reflectionTick intentionally invalidate localStorage read
     const recentReflections = useMemo(() => readSessionReflections(5), [lastUpdated, reflectionTick]);
+
+    const dataWindowLabel = useMemo(() => {
+        const valid = (Array.isArray(cognitiveMetrics) ? cognitiveMetrics : [])
+            .map((p) => (p?.time ? new Date(p.time) : null))
+            .filter((d) => d && !Number.isNaN(d.getTime()))
+            .sort((a, b) => a.getTime() - b.getTime());
+
+        const tf = new Intl.DateTimeFormat(undefined, {
+            weekday: "short",
+            hour: "numeric",
+            minute: "2-digit",
+        });
+        if (valid.length > 0) {
+            return `${tf.format(valid[0])} to ${tf.format(valid[valid.length - 1])} (local time)`;
+        }
+        if (lastUpdated) {
+            const startOfDay = new Date(lastUpdated);
+            startOfDay.setHours(0, 0, 0, 0);
+            return `${tf.format(startOfDay)} to ${tf.format(lastUpdated)} (local time)`;
+        }
+        return "Waiting for enough synced data";
+    }, [cognitiveMetrics, lastUpdated]);
 
     if (!user) return null;
 
@@ -464,32 +396,23 @@ export default function InsightsView() {
                             <p className="text-lg md:text-xl text-muted font-medium leading-relaxed">
                                 <span className="text-foreground/80 font-bold">Focus score today:</span>{" "}
                                 <span className="font-bold text-foreground">{metrics?.score ?? 0}%</span>
-                                <span className="text-muted text-base font-normal">
-                                    {" "}
-                                    (how much tracked time went to productive sites)
+                                <span className="text-muted text-base font-normal"> (how much tracked time went to productive sites).</span>
+                                <span className="block mt-2">
+                                    <span className="text-foreground/80 font-bold">Estimated attention load (latest synced hour): </span>
+                                    <span className="text-secondary font-bold">{attentionFromLatestHour.band}</span>
+                                    <span className="text-muted text-base font-normal">. {attentionFromLatestHour.sub}</span>
                                 </span>
-                                {scoreDeltaVsYesterday != null && (
-                                    <span
-                                        className={
-                                            scoreDeltaVsYesterday >= 0 ? " text-success font-bold" : " text-orange-400 font-bold"
-                                        }
-                                    >
-                                        {" "}
-                                        — {scoreDeltaVsYesterday >= 0 ? "+" : ""}
-                                        {scoreDeltaVsYesterday} points vs yesterday
-                                    </span>
-                                )}
-                                .{" "}
-                                <span className="text-foreground/80 font-bold">Estimated attention load (latest synced hour):</span>{" "}
-                                <span className="text-secondary font-bold">{attentionFromLatestHour.band}</span>
-                                <span className="text-muted text-base font-normal block mt-2 sm:inline sm:mt-0 sm:before:content-[' ']">
-                                    {attentionFromLatestHour.sub}
+                                <span className="block mt-2 text-muted text-base font-normal">
+                                    <span className="text-foreground/80 font-bold">Data window:</span> {dataWindowLabel}.
+                                </span>
+                                <span className="block mt-2 text-muted text-base font-normal">
+                                    This is not a live second-by-second reading.
                                 </span>
                             </p>
                             {updatedLabel ? (
                                 <p className="mt-3 text-xs font-medium text-muted leading-relaxed max-w-2xl">
                                     <span className="text-foreground/80 font-bold">Data freshness:</span> dashboard refreshed at{" "}
-                                    {updatedLabel}. This page also refreshes when you return to the tab and about every 3 minutes.
+                                    {updatedLabel}. This page also refreshes when you return to the tab and about every 3 minutes.{" "}
                                     Use <strong className="text-foreground/90">Sync Extension</strong> in the header so new browsing
                                     shows up here.
                                 </p>
@@ -510,15 +433,6 @@ export default function InsightsView() {
                                 >
                                     <Focus size={16} />
                                     Focus mode
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={downloadTomorrowFocusIcs}
-                                    disabled={!peakMeta.best}
-                                    className="inline-flex items-center gap-2 rounded-2xl border-2 border-secondary/40 bg-secondary/10 px-5 py-3 text-[10px] font-black uppercase tracking-widest text-foreground/90 hover:bg-secondary/15 disabled:opacity-40 disabled:pointer-events-none"
-                                >
-                                    <Calendar size={16} />
-                                    Add tomorrow block (.ics)
                                 </button>
                             </div>
                             {Number(metrics?.streak) > 0 && (
@@ -568,11 +482,22 @@ export default function InsightsView() {
                         </button>
                         <button
                             type="button"
-                            onClick={downloadTomorrowFocusIcs}
+                            onClick={openTomorrowInGoogleCalendar}
                             disabled={!peakMeta.best}
                             className="inline-flex items-center gap-2 rounded-2xl border-2 border-secondary/40 bg-secondary/10 px-5 py-3 text-xs font-black uppercase tracking-widest hover:bg-secondary/15 disabled:opacity-40 disabled:pointer-events-none"
+                            title="Open event in Google Calendar"
                         >
                             <Calendar size={16} />
+                            Google Calendar
+                        </button>
+                        <button
+                            type="button"
+                            onClick={downloadTomorrowFocusIcs}
+                            disabled={!peakMeta.best}
+                            className="inline-flex items-center gap-2 rounded-2xl border-2 border-ui bg-foreground/[0.03] px-5 py-3 text-xs font-black uppercase tracking-widest hover:bg-foreground/[0.06] disabled:opacity-40 disabled:pointer-events-none"
+                            title="Download .ics file for Apple Calendar or Outlook"
+                        >
+                            <FileDown size={16} />
                             Download .ics
                         </button>
                     </div>
@@ -681,205 +606,95 @@ export default function InsightsView() {
                 </section>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                <div className="lg:col-span-2 space-y-10">
-                    <section>
-                        <h3 className="text-xs font-black text-muted uppercase tracking-[0.4em] mb-3 flex items-center gap-3">
-                            <TrendingUp size={16} /> Smart suggestions — not just text
+            <div className="space-y-10">
+                <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:items-stretch">
+                    <section className="glass-card flex h-full min-h-0 flex-col bg-gradient-to-b from-primary/5 to-transparent p-10">
+                        <h3 className="text-xs font-black text-muted uppercase tracking-[0.4em] mb-2 flex items-center gap-3">
+                            <Activity size={16} className="text-secondary" /> Estimated mental effort (by hour)
                         </h3>
-                        <p className="text-sm text-muted font-medium mb-8 max-w-2xl">
-                            Rules read your today&apos;s data and suggest the next step. Each card has{" "}
-                            <strong className="text-foreground/80">buttons</strong> (Focus, Timer, Goals, Sync) so this screen is{" "}
-                            <strong className="text-foreground/80">actionable</strong>, not only a passive chart wall.
+                        <p className="text-xs text-muted font-medium mb-8 leading-relaxed">
+                            Hourly estimate from extension activity. Higher means heavier attention load.
                         </p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {getRecommendations().map((rec, i) => (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: i * 0.08 }}
-                                    key={rec.key}
-                                    className="group relative overflow-hidden rounded-[40px] border-2 border-ui bg-foreground/[0.02] p-8 pb-6 transition-all hover:bg-foreground/[0.05] flex flex-col"
-                                >
-                                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-100 transition-opacity">
-                                        {rec.icon}
-                                    </div>
-                                    <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-ui-muted bg-foreground/5">
-                                        {rec.icon}
-                                    </div>
-                                    <h4 className="text-lg font-black mb-2">{rec.title}</h4>
-                                    <p className="text-sm text-muted leading-relaxed font-medium flex-1 mb-6">{rec.desc}</p>
-                                    <div className="flex flex-wrap gap-2 pt-2 border-t border-ui/80">
-                                        {rec.actions.map((a, j) => {
-                                            const Icon = a.icon;
-                                            return (
-                                                <button
-                                                    key={j}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        if (a.tab) goTab(a.tab);
-                                                        if (typeof a.onClick === "function") a.onClick();
-                                                    }}
-                                                    className="inline-flex items-center gap-1.5 rounded-xl border border-ui bg-background/60 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-foreground/90 hover:border-primary/50 hover:bg-primary/10 transition-colors"
-                                                >
-                                                    {Icon ? <Icon size={12} /> : null}
-                                                    {a.label}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </motion.div>
-                            ))}
-                        </div>
-                    </section>
-
-                    <section className="glass-card p-10">
-                        <h3 className="mb-2 flex items-center gap-3 text-xl font-black text-foreground/90">
-                            <Activity className="text-secondary" /> Your estimated mental effort through the day
-                        </h3>
-                        <p className="text-sm text-muted font-medium mb-8 max-w-3xl">
-                            Each point is one hour bucket from the <strong className="text-foreground/80">extension</strong>: how
-                            much you scrolled, clicked, and stayed on pages. Higher = busier attention, not a medical measure.{" "}
-                            <strong className="text-foreground/80">Hover</strong> a dot for exact time and score.
-                        </p>
-                        <div className="h-[350px] w-full flex items-center justify-center">
+                        <div className="flex min-h-0 w-full flex-1 flex-col">
                             {loading ? (
-                                <div className="text-muted/40 animate-pulse font-black uppercase tracking-widest text-xs">
-                                    Loading your chart…
+                                <div className="flex min-h-[280px] flex-1 items-center justify-center text-muted/40">
+                                    <span className="animate-pulse font-black uppercase tracking-widest text-xs">
+                                        Loading chart…
+                                    </span>
                                 </div>
                             ) : (
-                                <BurnoutRiskChart data={cognitiveMetrics} />
+                                <div className="min-h-[280px] flex-1 lg:min-h-[360px]">
+                                    <BurnoutRiskChart data={cognitiveMetrics} />
+                                </div>
                             )}
                         </div>
                     </section>
-                </div>
 
-                <aside className="space-y-10">
-                    <div className="glass-card bg-gradient-to-b from-primary/5 to-transparent p-10">
+                    <div className="glass-card flex h-full min-h-0 flex-col bg-gradient-to-b from-primary/5 to-transparent p-10">
                         <h3 className="text-xs font-black text-muted uppercase tracking-[0.4em] mb-2 flex items-center gap-3">
-                            <BrainCircuit size={16} /> Today in four numbers
+                            <BrainCircuit size={16} /> Key metrics (24h)
                         </h3>
                         <p className="text-xs text-muted font-medium mb-8 leading-relaxed">
-                            Plain-language names; values come from your last 24h of tracked browsing.
+                            Four at-a-glance indicators from your extension-tracked browsing over the last 24 hours.
                         </p>
                         <div className="space-y-8">
                             <MetricRow
-                                label="Activity level"
+                                label="Interaction intensity"
                                 value={intensityPct}
-                                sub="Scrolls & clicks"
-                                explain="How “busy” your browsing looked—more motion usually means shallower reading or multitasking."
+                                sub="Clicks & scrolls"
+                                explain="How much navigation and input your sessions generated; higher values often correlate with multitasking or lighter reading."
                                 color="primary"
                                 fill={clampPctWidth(m.intensity)}
                             />
                             <MetricRow
-                                label="Staying on task"
+                                label="Session continuity"
                                 value={persistencePct}
-                                sub="Session length"
-                                explain="Longer average time on sites before switching suggests deeper sessions."
+                                sub="Avg. dwell per visit"
+                                explain="Typical time spent on a site before switching—longer dwell usually indicates deeper, less fragmented attention."
                                 color="success"
                                 fill={clampPctWidth(m.resilience)}
                             />
                             <MetricRow
-                                label="Attention strain (estimate)"
+                                label="Attention load (estimate)"
                                 value={cognitivePct}
-                                sub="Derived from patterns"
-                                explain="Higher when sessions are shorter or more fragmented—not a diagnosis, just a workload hint."
+                                sub="Pattern-based signal"
+                                explain="Rises when visits are shorter or more fragmented. This is a workload-style estimate only—not a medical or diagnostic measure."
                                 color="danger"
                                 fill={clampPctWidth(m.drag)}
                             />
                             <MetricRow
-                                label="Share on productive sites"
+                                label="Productive time share"
                                 value={deepRatioPct}
-                                sub={`~${deepHours}h deep work window`}
-                                explain="Productive-site time vs all tracked time in the last 24 hours."
+                                sub={`~${deepHours}h productive window`}
+                                explain="Share of tracked time on productive sites versus total tracked time in the last 24 hours."
                                 color="secondary"
                                 fill={clampPctWidth(m.ratio)}
                             />
                         </div>
                     </div>
+                </div>
 
-                    <div className="p-8 rounded-[40px] bg-secondary/10 border border-secondary/20 relative overflow-hidden group">
-                        <div className="absolute inset-0 bg-secondary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 blur-3xl -z-10" />
-                        <h4 className="text-sm font-black uppercase tracking-widest text-secondary mb-2 tracking-[0.3em]">
-                            Encouragement from your data
-                        </h4>
-                        <p className="text-[11px] text-muted font-medium mb-4">
-                            Streaks and depth—no fake “top 5%” unless you earn it with real usage.
-                        </p>
-                        <p className="text-lg font-black leading-tight text-foreground/90">{milestone.title}</p>
-                        <p className="mt-3 text-sm font-medium text-muted leading-relaxed">{milestone.body}</p>
-                        <div className="mt-6 h-1 w-full overflow-hidden rounded-full bg-foreground/10">
-                            <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${milestone.barPct}%` }}
-                                className="h-full bg-secondary"
-                            />
-                        </div>
+                <div className="relative overflow-hidden rounded-[40px] border border-secondary/20 bg-secondary/10 p-8 group">
+                    <div className="absolute inset-0 -z-10 bg-secondary/20 opacity-0 blur-3xl transition-opacity duration-1000 group-hover:opacity-100" />
+                    <h4 className="mb-2 text-sm font-black uppercase tracking-[0.3em] text-secondary">
+                        Encouragement from your data
+                    </h4>
+                    <p className="mb-4 text-[11px] font-medium text-muted">
+                        Streaks and depth—no fake “top 5%” unless you earn it with real usage.
+                    </p>
+                    <p className="text-lg font-black leading-tight text-foreground/90">{milestone.title}</p>
+                    <p className="mt-3 text-sm font-medium leading-relaxed text-muted">{milestone.body}</p>
+                    <div className="mt-6 h-1 w-full overflow-hidden rounded-full bg-foreground/10">
+                        <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${milestone.barPct}%` }}
+                            className="h-full bg-secondary"
+                        />
                     </div>
-                </aside>
+                </div>
             </div>
         </div>
     );
-}
-
-function getMilestoneCard(metrics, cognitiveMetrics, deepWorkHoursRaw) {
-    const streak = Number(metrics?.streak) || 0;
-    const score = Number(metrics?.score) || 0;
-    const samples = cognitiveMetrics.length;
-    const totalTracked =
-        (Number(metrics?.productiveTime) || 0) +
-        (Number(metrics?.unproductiveTime) || 0) +
-        (Number(metrics?.neutralTime) || 0);
-    const deepH = Number(deepWorkHoursRaw);
-    const deepOk = Number.isFinite(deepH) ? deepH : 0;
-
-    if (samples < 2 && totalTracked < 180) {
-        return {
-            title: "Calibrate your insights",
-            body: "Browse with the ProdLytics extension for a day—milestones and peak windows will match your real rhythms.",
-            barPct: 18,
-        };
-    }
-    if (streak >= 7) {
-        return {
-            title: "Unstoppable streak",
-            body: `${streak} productive days in a row. You're building a serious habit.`,
-            barPct: Math.min(100, 42 + Math.min(streak, 14) * 4),
-        };
-    }
-    if (streak >= 3) {
-        return {
-            title: "Momentum locked in",
-            body: `${streak}-day streak—small consistent wins beat occasional heroics.`,
-            barPct: Math.min(100, 38 + streak * 8),
-        };
-    }
-    if (score >= 85) {
-        return {
-            title: "Elite focus day",
-            body: "Your productive share is outstanding today. Protect this window from low-value tabs.",
-            barPct: Math.min(100, score),
-        };
-    }
-    if (deepOk >= 3) {
-        return {
-            title: "Deep work in the bank",
-            body: `Roughly ${deepOk}h on productive sites in the last 24h—strong depth signal.`,
-            barPct: Math.min(100, 35 + deepOk * 12),
-        };
-    }
-    if (streak >= 1) {
-        return {
-            title: "Keep the chain going",
-            body: "You're on the board—come back tomorrow to extend your streak.",
-            barPct: Math.min(100, 28 + streak * 12),
-        };
-    }
-    return {
-        title: "Keep tracking",
-        body: "Every hour of data sharpens peak windows, load curves, and your objectives.",
-        barPct: Math.min(100, Math.max(22, score)),
-    };
 }
 
 function formatMetricPercent(n, allowDecimal = false) {

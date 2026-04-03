@@ -19,6 +19,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { PieChart as RePieChart, Pie, ResponsiveContainer, Cell, Tooltip } from "recharts";
 import Image from "next/image";
+import { isProdlyticsPremiumUser } from "@/lib/premiumAccess";
+import { PremiumUpsellDialog, PremiumBadge } from "@/components/premium/PremiumUpsellDialog";
 
 function faviconHostFromTrackingId(id) {
     const s = String(id || "").trim();
@@ -35,6 +37,7 @@ export default function OverviewView({ onTabChange }) {
     const [loading, setLoading] = useState(true);
     const [topDomains, setTopDomains] = useState([]);
     const [pdfExporting, setPdfExporting] = useState(false);
+    const [premiumOpen, setPremiumOpen] = useState(false);
 
     useEffect(() => {
         if (user) {
@@ -80,6 +83,10 @@ export default function OverviewView({ onTabChange }) {
     }
 
     async function handleExportPdf() {
+        if (!isProdlyticsPremiumUser(user)) {
+            setPremiumOpen(true);
+            return;
+        }
         if (pdfExporting || loading) return;
         setPdfExporting(true);
         try {
@@ -110,6 +117,13 @@ export default function OverviewView({ onTabChange }) {
 
     return (
         <div className="p-8 space-y-10 max-w-7xl mx-auto">
+            <PremiumUpsellDialog
+                open={premiumOpen}
+                onOpenChange={setPremiumOpen}
+                title="Export PDF is a Premium feature"
+                description="Download a polished summary of your dashboard — focus score, objectives, and top sites. Upgrade to export and share your progress."
+                user={user}
+            />
             <header className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
                     <h1 className="text-5xl font-black tracking-tighter bg-gradient-to-r from-foreground to-foreground/55 bg-clip-text text-transparent">
@@ -128,6 +142,7 @@ export default function OverviewView({ onTabChange }) {
                     >
                         <FileDown size={16} className="shrink-0" />
                         {pdfExporting ? "Generating…" : "Export PDF"}
+                        <PremiumBadge />
                     </button>
                     <button type="button" onClick={() => onTabChange("analytics")} className="btn-primary text-[11px] font-black uppercase tracking-widest">
                         Detailed Report

@@ -2,6 +2,7 @@
  * Authenticated fetch for ProdLytics API. Shares JWT with the dashboard (same Chrome profile).
  */
 import { API_BASE, DASHBOARD_ORIGIN } from "./buildEnv.js";
+import { getOrCreateAnonymousDeviceKey } from "./anonymousDeviceKey.js";
 
 /** Same host + port as the built-in dashboard URL (ignores www, treats localhost/127.0.0.1 as same). */
 function tabMatchesDashboard(tabUrl) {
@@ -68,10 +69,13 @@ async function tryPullTokenFromDashboardTab() {
     return null;
 }
 
-async function obtainNewJwt() {
+/** Creates anonymous (guest) dashboard user; stores JWT and optional guest user id for support. */
+export async function obtainNewJwt() {
+    const deviceKey = await getOrCreateAnonymousDeviceKey();
     const res = await fetch(`${API_BASE}/auth/anonymous`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(deviceKey ? { deviceKey } : {}),
     });
     if (!res.ok) {
         const errText = await res.text();
@@ -81,15 +85,23 @@ async function obtainNewJwt() {
     if (!data?.accessToken) {
         throw new Error("No JWT from server");
     }
-    await chrome.storage.local.set({ accessToken: data.accessToken });
+    await chrome.storage.local.set({
+        accessToken: data.accessToken,
+        extensionGuestUserId: data.user?.id || null,
+        extensionAuthChoice: "guest",
+    });
     return data.accessToken;
 }
 
 /**
- * Ensures chrome.storage has a valid JWT: reuse existing, copy from an open dashboard tab, or POST /anonymous.
+ * JWT: existing storage, dashboard tab, or (only if user chose guest in popup) POST /anonymous.
+ * Does not auto-create a guest until extensionAuthChoice === "guest".
  */
 async function ensureAccessToken() {
-    const { accessToken: existing } = await chrome.storage.local.get("accessToken");
+    const { accessToken: existing, extensionAuthChoice } = await chrome.storage.local.get([
+        "accessToken",
+        "extensionAuthChoice",
+    ]);
     if (existing && typeof existing === "string" && existing.length > 0) {
         return existing;
     }
@@ -98,7 +110,10 @@ async function ensureAccessToken() {
         await chrome.storage.local.set({ accessToken: pulled });
         return pulled;
     }
-    return obtainNewJwt();
+    if (extensionAuthChoice === "guest") {
+        return obtainNewJwt();
+    }
+    return null;
 }
 
 /**

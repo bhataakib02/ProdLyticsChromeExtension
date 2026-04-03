@@ -5,6 +5,7 @@
  */
 
 import { DASHBOARD_ORIGIN } from "./buildEnv.js";
+import { PRODLYTICS_ANONYMOUS_DEVICE_KEY } from "./anonymousDeviceKey.js";
 
 /** Match built dashboard URL: same host+port, ignore www; localhost ↔ 127.0.0.1. */
 function pageMatchesDashboardBuild() {
@@ -57,18 +58,57 @@ function safeRuntimeSendMessage(payload) {
             }
         }
 
+        /** One guest profile: merge UUID between extension storage and dashboard localStorage. */
+        function syncAnonymousDeviceKeyWithExtension() {
+            chrome.storage.local.get([PRODLYTICS_ANONYMOUS_DEVICE_KEY], (r) => {
+                if (chrome.runtime.lastError) return;
+                let extK = r[PRODLYTICS_ANONYMOUS_DEVICE_KEY];
+                let pageK = null;
+                try {
+                    pageK = localStorage.getItem(PRODLYTICS_ANONYMOUS_DEVICE_KEY);
+                } catch {
+                    /* ignore */
+                }
+                let canonical = pageK || extK;
+                if (!canonical) {
+                    canonical = crypto.randomUUID();
+                }
+                try {
+                    if (localStorage.getItem(PRODLYTICS_ANONYMOUS_DEVICE_KEY) !== canonical) {
+                        localStorage.setItem(PRODLYTICS_ANONYMOUS_DEVICE_KEY, canonical);
+                    }
+                } catch {
+                    /* ignore */
+                }
+                if (canonical !== extK) {
+                    chrome.storage.local.set({ [PRODLYTICS_ANONYMOUS_DEVICE_KEY]: canonical });
+                }
+            });
+        }
+        syncAnonymousDeviceKeyWithExtension();
+
         chrome.storage.local.get(["accessToken"], (r) => {
             if (chrome.runtime.lastError) return;
             if (r?.accessToken) pushTokenToPageLocalStorage(r.accessToken);
         });
 
         chrome.storage.onChanged.addListener((changes, area) => {
-            if (area !== "local" || !changes.accessToken) return;
-            const next = changes.accessToken.newValue;
-            if (next === undefined) {
-                pushTokenToPageLocalStorage("");
-            } else if (typeof next === "string") {
-                pushTokenToPageLocalStorage(next);
+            if (area !== "local") return;
+            if (changes.accessToken) {
+                const next = changes.accessToken.newValue;
+                if (next === undefined) {
+                    pushTokenToPageLocalStorage("");
+                } else if (typeof next === "string") {
+                    pushTokenToPageLocalStorage(next);
+                }
+            }
+            const dkCh = changes[PRODLYTICS_ANONYMOUS_DEVICE_KEY];
+            if (dkCh && typeof dkCh.newValue === "string" && dkCh.newValue.length > 0) {
+                try {
+                    localStorage.setItem(PRODLYTICS_ANONYMOUS_DEVICE_KEY, dkCh.newValue);
+                } catch {
+                    /* ignore */
+                }
             }
         });
 

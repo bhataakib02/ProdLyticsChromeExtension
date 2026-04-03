@@ -15,7 +15,10 @@ export async function GET(req) {
         if (!userId) {
             return withCors(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
         }
-        const user = await User.findById(userId).select("name email avatar isAnonymous").lean();
+        const user = await User.findById(userId)
+            .select("name email avatar isAnonymous isPremium subscription stripeCustomerId role")
+            .select("+password")
+            .lean();
         if (!user) {
             return withCors(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
         }
@@ -27,6 +30,11 @@ export async function GET(req) {
                 name: anonymous ? "ProdLytics user" : user.name,
                 avatar: anonymous ? "" : user.avatar || "",
                 isAnonymous: anonymous,
+                isPremium: user.subscription ? user.subscription === "pro" : Boolean(user.isPremium),
+                subscription: user.subscription || (user.isPremium ? "pro" : "free"),
+                stripeCustomerId: user.stripeCustomerId || null,
+                hasPassword: Boolean(user.password),
+                role: user.role || "user",
             })
         );
     } catch (err) {

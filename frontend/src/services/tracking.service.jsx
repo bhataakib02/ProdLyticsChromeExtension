@@ -49,12 +49,25 @@ export const trackingService = {
     },
 
     async getCognitiveLoad() {
-        const response = await axios.get(`${API_URL}/tracking/cognitive-load`, { headers: getHeaders() });
+        const local = trackingRangeQueryString("today");
+        const response = await axios.get(`${API_URL}/tracking/cognitive-load?range=today${local}`, {
+            headers: getHeaders(),
+        });
         return response.data;
     },
 
     async getDeepWorkHistory() {
         const response = await axios.get(`${API_URL}/deepwork`, { headers: getHeaders() });
+        return response.data;
+    },
+
+    async getWeekComparison() {
+        const response = await axios.get(`${API_URL}/tracking/week-compare`, { headers: getHeaders() });
+        return response.data;
+    },
+
+    async getWeekdayInsights() {
+        const response = await axios.get(`${API_URL}/tracking/weekday-insights`, { headers: getHeaders() });
         return response.data;
     },
 

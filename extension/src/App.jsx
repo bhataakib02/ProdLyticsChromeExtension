@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import "./App.css";
 import { DASHBOARD_ORIGIN } from "./buildEnv.js";
+import { obtainNewJwt, syncAccessTokenFromDashboardTab } from "./plApi.js";
 
 const defaultCache = {
   productiveToday: 0,
@@ -116,11 +117,54 @@ function ProgressRow({ label, sublabel, percent, barClass = "", valueLabel }) {
   );
 }
 
+/** checking | pick | waiting-account | app */
 function App() {
+  const [uiMode, setUiMode] = useState("checking");
+  const [guestError, setGuestError] = useState("");
+  const [guestBusy, setGuestBusy] = useState(false);
+  const [syncBusy, setSyncBusy] = useState(false);
+
   const [siteTimes, setSiteTimes] = useState({});
   const [activeTab, setActiveTab] = useState(null);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [popupCache, setPopupCache] = useState(defaultCache);
+  const uiModeRef = useRef(uiMode);
+  uiModeRef.current = uiMode;
+
+  const refreshAuthMode = useCallback(() => {
+    if (typeof chrome === "undefined" || !chrome.storage?.local) {
+      setUiMode("app");
+      return;
+    }
+    chrome.storage.local.get(["accessToken", "extensionAuthChoice"], (data) => {
+      if (data?.accessToken && typeof data.accessToken === "string" && data.accessToken.length > 0) {
+        setUiMode("app");
+        return;
+      }
+      if (data?.extensionAuthChoice === "account") {
+        setUiMode("waiting-account");
+        return;
+      }
+      setUiMode("pick");
+    });
+  }, []);
+
+  useEffect(() => {
+    refreshAuthMode();
+  }, [refreshAuthMode]);
+
+  useEffect(() => {
+    if (typeof chrome === "undefined" || !chrome.storage?.onChanged) return;
+    const handler = (changes, area) => {
+      if (area !== "local") return;
+      const t = changes.accessToken?.newValue;
+      if (t && typeof t === "string" && t.length > 0) {
+        setUiMode("app");
+      }
+    };
+    chrome.storage.onChanged.addListener(handler);
+    return () => chrome.storage.onChanged.removeListener(handler);
+  }, []);
 
   const applyThemeToChrome = useCallback((dark) => {
     if (typeof document !== "undefined") {
@@ -131,6 +175,7 @@ function App() {
   }, []);
 
   const readStorage = useCallback(() => {
+    if (uiModeRef.current !== "app") return;
     if (typeof chrome === "undefined" || !chrome.storage?.local) return;
     chrome.storage.local.get(
       [
@@ -203,6 +248,7 @@ function App() {
   }, [applyThemeToChrome]);
 
   useEffect(() => {
+    if (uiMode !== "app") return;
     readStorage();
     try {
       chrome.runtime.sendMessage({ action: "refreshPopupCache" });
@@ -211,13 +257,28 @@ function App() {
     }
     const interval = setInterval(readStorage, 1000);
     return () => clearInterval(interval);
-  }, [readStorage]);
+  }, [readStorage, uiMode]);
 
   useEffect(() => {
     applyThemeToChrome(isDarkMode);
   }, [isDarkMode, applyThemeToChrome]);
 
   useEffect(() => {
+    if (uiMode === "app" || typeof chrome === "undefined" || !chrome.storage?.local) return;
+    chrome.storage.local.get(["preferences", "isDarkMode"], (data) => {
+      let dark = true;
+      if (data.preferences?.theme === "light" || data.preferences?.theme === "dark") {
+        dark = data.preferences.theme === "dark";
+      } else if (data.isDarkMode !== undefined) {
+        dark = Boolean(data.isDarkMode);
+      }
+      setIsDarkMode(dark);
+      applyThemeToChrome(dark);
+    });
+  }, [uiMode, applyThemeToChrome]);
+
+  useEffect(() => {
+    if (uiMode !== "app") return;
     if (typeof chrome === "undefined" || !chrome.storage?.onChanged) return;
     const handler = (changes, area) => {
       if (area !== "local") return;
@@ -233,7 +294,7 @@ function App() {
     };
     chrome.storage.onChanged.addListener(handler);
     return () => chrome.storage.onChanged.removeListener(handler);
-  }, [readStorage]);
+  }, [readStorage, uiMode]);
 
   const toggleTheme = () => {
     const newDark = !isDarkMode;
@@ -274,6 +335,161 @@ function App() {
     goalsCount > 0
       ? `${goalsCount} for today`
       : "";
+
+  const openLoginTab = () => {
+    const q = `?callbackUrl=${encodeURIComponent("/")}`;
+    const url = `${DASHBOARD_ORIGIN}/auth/login${q}`;
+    if (typeof chrome !== "undefined" && chrome.tabs?.create) {
+      chrome.tabs.create({ url });
+    } else {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  const openRegisterTab = () => {
+    const url = `${DASHBOARD_ORIGIN}/auth/register?callbackUrl=${encodeURIComponent("/")}`;
+    if (typeof chrome !== "undefined" && chrome.tabs?.create) {
+      chrome.tabs.create({ url });
+    } else {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  const handleContinueGuest = async () => {
+    setGuestError("");
+    setGuestBusy(true);
+    try {
+      await obtainNewJwt();
+      setUiMode("app");
+    } catch (e) {
+      setGuestError(e?.message || "Could not start guest session.");
+    } finally {
+      setGuestBusy(false);
+    }
+  };
+
+  const handleChooseAccount = async () => {
+    await new Promise((res) => {
+      chrome.storage.local.set({ extensionAuthChoice: "account" }, res);
+    });
+    openLoginTab();
+    setUiMode("waiting-account");
+  };
+
+  const handleCheckSignedIn = async () => {
+    setSyncBusy(true);
+    try {
+      await syncAccessTokenFromDashboardTab();
+      const { accessToken } = await chrome.storage.local.get("accessToken");
+      if (accessToken) {
+        setUiMode("app");
+        try {
+          chrome.runtime.sendMessage({ action: "refreshPopupCache" });
+        } catch {
+          /* ignore */
+        }
+      }
+    } finally {
+      setSyncBusy(false);
+    }
+  };
+
+  const handleBackToChoices = async () => {
+    await new Promise((res) => {
+      chrome.storage.local.remove(["extensionAuthChoice"], res);
+    });
+    setUiMode("pick");
+    setGuestError("");
+  };
+
+  if (uiMode === "checking") {
+    return (
+      <div className={`pl-popup pl-popup--${isDarkMode ? "dark" : "light"} pl-auth-gate`}>
+        <p className="pl-muted" style={{ margin: 0 }}>
+          Loading…
+        </p>
+      </div>
+    );
+  }
+
+  if (uiMode === "pick") {
+    return (
+      <div className={`pl-popup pl-popup--${isDarkMode ? "dark" : "light"} pl-auth-gate`}>
+        <header className="pl-header">
+          <div>
+            <h1 className="pl-title">ProdLytics</h1>
+            <p className="pl-popup-hint" style={{ maxWidth: "100%" }}>
+              Choose how to continue. Guest mode keeps tracking on this profile without email; signing in saves data to
+              your account and works with the dashboard.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="pl-theme-icon-btn"
+            onClick={toggleTheme}
+            aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {isDarkMode ? <SunIcon /> : <MoonIcon />}
+          </button>
+        </header>
+        <div className="pl-auth-actions">
+          <button
+            type="button"
+            className="pl-btn pl-btn-primary"
+            disabled={guestBusy}
+            onClick={() => void handleContinueGuest()}
+          >
+            {guestBusy ? "Starting…" : "Use without login"}
+          </button>
+          <button type="button" className="pl-btn pl-btn-secondary" onClick={() => void handleChooseAccount()}>
+            Sign up / Log in
+          </button>
+          <p className="pl-auth-foot">
+            Sign in opens your ProdLytics site with <strong>Google</strong> or <strong>email &amp; password</strong>. Your
+            email is remembered for next time.
+          </p>
+        </div>
+        {guestError ? (
+          <p className="pl-auth-error" role="alert">
+            {guestError}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (uiMode === "waiting-account") {
+    return (
+      <div className={`pl-popup pl-popup--${isDarkMode ? "dark" : "light"} pl-auth-gate`}>
+        <header className="pl-header">
+          <div>
+            <h1 className="pl-title">Finish signing in</h1>
+            <p className="pl-popup-hint" style={{ maxWidth: "100%" }}>
+              Use <strong>Sign in with Google</strong> or email on the tab we opened. Keep the ProdLytics dashboard open,
+              then tap <em>Pull my session</em> below.
+            </p>
+          </div>
+          <button type="button" className="pl-theme-icon-btn" onClick={toggleTheme} aria-label="Toggle theme">
+            {isDarkMode ? <SunIcon /> : <MoonIcon />}
+          </button>
+        </header>
+        <div className="pl-auth-actions">
+          <button type="button" className="pl-btn pl-btn-primary" disabled={syncBusy} onClick={() => void handleCheckSignedIn()}>
+            {syncBusy ? "Checking…" : "Pull my session from dashboard"}
+          </button>
+          <button type="button" className="pl-btn pl-btn-secondary" onClick={openLoginTab}>
+            Open login again
+          </button>
+          <button type="button" className="pl-btn pl-btn-secondary" onClick={openRegisterTab}>
+            Create account
+          </button>
+          <button type="button" className="pl-auth-link" onClick={() => void handleBackToChoices()}>
+            ← Back to choices
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`pl-popup ${isDarkMode ? "pl-popup--dark" : "pl-popup--light"}`}>

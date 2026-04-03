@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { isProdlyticsPremiumUser } from "@/lib/premiumAccess";
+import { PremiumUpsellDialog, PremiumBadge } from "@/components/premium/PremiumUpsellDialog";
 import { useDashboard } from "@/context/DashboardContext";
 import { matchesActivitySearch } from "@/lib/activitySearch";
 import { goalsService } from "@/services/goals.service";
@@ -30,6 +32,14 @@ export default function FocusView() {
     const [domains, setDomains] = useState([]);
     const [newDomain, setNewDomain] = useState("");
     const [loading, setLoading] = useState(true);
+    const [premiumOpen, setPremiumOpen] = useState(false);
+    const [premiumCopy, setPremiumCopy] = useState({ title: "", description: "" });
+
+    const premium = isProdlyticsPremiumUser(user);
+    const openPremium = (title, description) => {
+        setPremiumCopy({ title, description });
+        setPremiumOpen(true);
+    };
 
     useEffect(() => {
         if (user) {
@@ -167,9 +177,18 @@ export default function FocusView() {
 
                 <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-5 space-y-10">
                     <div className="glass-card p-10 space-y-10 border-2 border-ui shadow-2xl">
-                        <div className="flex items-center gap-4 mb-2">
-                            <div className="p-3 bg-primary/10 rounded-2xl"><Activity className="text-primary" size={24} /></div>
-                            <h3 className="text-2xl font-black tracking-tight">Advanced Guard</h3>
+                        <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="rounded-2xl bg-primary/10 p-3">
+                                    <Activity className="text-primary" size={24} />
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-black tracking-tight">Advanced Guard</h3>
+                                    <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-muted">
+                                        Premium automation for focus
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                         <div className="space-y-8">
                             <ToggleSetting
@@ -189,10 +208,18 @@ export default function FocusView() {
                                 description="After 3 hours unproductive time today, the site is blocked and added to your Neural Blocklist (until you remove it)"
                                 checked={user.preferences?.smartBlock}
                                 onChange={async (val) => {
-                                    await updatePreference('smartBlock', val);
+                                    await updatePreference("smartBlock", val);
                                     dispatchExtensionSync();
                                 }}
                                 sliderVariant="primary"
+                                showPremiumBadge
+                                premiumLocked={!premium}
+                                onPremiumBlocked={() =>
+                                    openPremium(
+                                        "AI Smart Block is Premium",
+                                        "Automatically block repeat distractions after heavy unproductive time. Upgrade to enable Smart Block and sync it with your extension."
+                                    )
+                                }
                             />
                             <ToggleSetting
                                 icon={<Zap className="text-yellow-400" size={18} />}
@@ -200,12 +227,20 @@ export default function FocusView() {
                                 description="Browser notification on a fixed rhythm when you're active (Chrome idle = active)"
                                 checked={user.preferences?.breakReminders}
                                 onChange={async (val) => {
-                                    await updatePreference('breakReminders', val);
+                                    await updatePreference("breakReminders", val);
                                     dispatchExtensionSync();
                                 }}
                                 sliderVariant="warning"
+                                showPremiumBadge
+                                premiumLocked={!premium}
+                                onPremiumBlocked={() =>
+                                    openPremium(
+                                        "Flow Reminders are Premium",
+                                        "Rhythm-based nudges while you’re active help you reset before burnout. Upgrade to turn on Flow Reminders."
+                                    )
+                                }
                             />
-                            {user.preferences?.breakReminders && (
+                            {user.preferences?.breakReminders && premium && (
                                 <div className="ml-2 space-y-4 border-l-ui py-2 pl-6">
                                     <p className="text-[10px] text-muted uppercase tracking-widest font-bold">
                                         Extension shows a break reminder every &quot;focus stretch&quot; while the system sees you as active.
@@ -261,7 +296,17 @@ export default function FocusView() {
     );
 }
 
-function ToggleSetting({ icon, label, description, checked, onChange, sliderVariant = "primary" }) {
+function ToggleSetting({
+    icon,
+    label,
+    description,
+    checked,
+    onChange,
+    sliderVariant = "primary",
+    showPremiumBadge,
+    premiumLocked,
+    onPremiumBlocked,
+}) {
     const sliderClass =
         sliderVariant === "secondary"
             ? "slider slider-secondary"
@@ -270,16 +315,35 @@ function ToggleSetting({ icon, label, description, checked, onChange, sliderVari
               : "slider slider-primary";
 
     return (
-        <div className="group/toggle flex items-center justify-between rounded-2xl border-2 border-ui bg-foreground/[0.02] p-5 transition-colors hover:border-ui-strong hover:bg-foreground/[0.04]">
-            <div className="flex min-w-0 flex-1 items-center gap-5 pr-4">
-                <div className="shrink-0 rounded-xl border-2 border-ui bg-foreground/5 p-3">{icon}</div>
+        <div
+            className={`group/toggle relative flex items-center justify-between gap-4 rounded-[22px] border-2 border-ui bg-gradient-to-br from-foreground/[0.04] to-transparent p-5 transition-colors hover:border-ui-strong ${premiumLocked ? "opacity-95" : ""}`}
+        >
+            {premiumLocked ? (
+                <span className="pointer-events-none absolute inset-0 rounded-[20px] ring-1 ring-inset ring-amber-400/15" />
+            ) : null}
+            <div className="flex min-w-0 flex-1 items-center gap-5 pr-2">
+                <div className="shrink-0 rounded-xl border-2 border-ui bg-foreground/5 p-3 shadow-inner">{icon}</div>
                 <div className="min-w-0">
-                    <p className="text-base font-black text-foreground/90">{label}</p>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted opacity-80">{description}</p>
+                    <div className="flex flex-wrap items-center gap-2 gap-y-1">
+                        <p className="text-base font-black text-foreground/90">{label}</p>
+                        {showPremiumBadge ? <PremiumBadge /> : null}
+                    </div>
+                    <p className="mt-1.5 text-[10px] font-bold uppercase tracking-widest text-muted opacity-85">{description}</p>
                 </div>
             </div>
-            <label className="switch">
-                <input type="checkbox" checked={!!checked} onChange={(e) => onChange(e.target.checked)} />
+            <label className={`switch shrink-0 ${premiumLocked ? "cursor-pointer" : ""}`}>
+                <input
+                    type="checkbox"
+                    checked={!!checked}
+                    onChange={(e) => {
+                        const next = e.target.checked;
+                        if (premiumLocked && next) {
+                            onPremiumBlocked?.();
+                            return;
+                        }
+                        onChange(next);
+                    }}
+                />
                 <span className={sliderClass} />
             </label>
         </div>

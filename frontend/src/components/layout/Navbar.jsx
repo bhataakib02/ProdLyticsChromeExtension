@@ -33,8 +33,8 @@ export default function Navbar() {
     if (!user) return null;
 
     return (
-        <header className="sticky top-0 z-50 flex h-20 w-full items-center justify-between border-b-ui-muted bg-background/60 px-8 backdrop-blur-md transition-all">
-            <div className="relative w-96 group">
+        <header className="sticky top-0 z-50 flex min-h-20 w-full flex-wrap items-center justify-between gap-3 border-b-ui-muted bg-background/60 px-4 py-3 backdrop-blur-md transition-all sm:h-20 sm:flex-nowrap sm:px-8 sm:py-0">
+            <div className="relative w-full max-w-xl flex-1 group sm:w-96">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-primary transition-colors" size={18} />
                 <input
                     type="search"
@@ -50,17 +50,18 @@ export default function Navbar() {
                 />
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex w-full items-center justify-end gap-3 sm:w-auto sm:justify-start sm:gap-4">
                 <button
                     type="button"
                     onClick={syncWithExtension}
                     className={`btn-secondary-sm ${syncing ? "cursor-wait border-primary/35 bg-primary/15 text-primary" : ""}`}
                 >
                     <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
-                    {syncing ? "Syncing..." : "Sync Extension"}
+                    <span className="hidden sm:inline">{syncing ? "Syncing..." : "Sync Extension"}</span>
+                    <span className="sm:hidden">{syncing ? "Syncing" : "Sync"}</span>
                 </button>
 
-                <div className="mx-1 h-8 w-px bg-foreground/10" />
+                <div className="mx-1 hidden h-8 w-px bg-foreground/10 sm:block" />
 
                 <div className="relative" ref={profileRef}>
                     <button

@@ -36,3 +36,24 @@ function escapeIcsText(s) {
         .replace(/;/g, "\\;")
         .replace(/,/g, "\\,");
 }
+
+/**
+ * Focus “shield” block for next week (same weekday/time as peak), local floating times.
+ * @param {{ title: string, peakDate: Date, durationMinutes: number, uid: string }} opts
+ */
+export function buildNextWeekFocusIcs({ title, peakDate, durationMinutes, uid }) {
+    const d = peakDate instanceof Date && !Number.isNaN(peakDate.getTime()) ? peakDate : new Date();
+    const now = new Date();
+    const target = new Date(now);
+    const wantDow = d.getDay();
+    const daysAhead = (wantDow - target.getDay() + 7) % 7;
+    target.setDate(target.getDate() + daysAhead + 7);
+    target.setHours(d.getHours(), d.getMinutes(), 0, 0);
+    const end = new Date(target.getTime() + Math.max(5, Number(durationMinutes) || 25) * 60 * 1000);
+    return buildTomorrowFocusIcs({
+        title,
+        start: target,
+        end,
+        uid,
+    });
+}

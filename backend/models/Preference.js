@@ -15,6 +15,12 @@ const PreferenceSchema = new mongoose.Schema({
     theme: { type: String, default: "dark" },
     /** Periodic gentle reminder (extension) to refocus — synced with dashboard prefs */
     productivityNudges: { type: Boolean, default: true },
+    /** Pro: weekly summary email (preference stored; delivery pipeline hooks in later) */
+    weeklyDigestEmail: { type: Boolean, default: false },
+    /** Pro: web push for weekly digest */
+    weeklyDigestPush: { type: Boolean, default: false },
+    /** Pro: optional softer LLM phrasing on top of structured coach facts (off by default) */
+    coachLlmPhrasing: { type: Boolean, default: false },
 }, { timestamps: true });
 
 export default mongoose.models.Preference || mongoose.model('Preference', PreferenceSchema);

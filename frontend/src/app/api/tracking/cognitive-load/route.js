@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect, { isDbUnavailableError } from '../../../../../../backend/db/mongodb.js';
 import Tracking from '../../../../../../backend/models/Tracking.js';
 import { getUserIdFromRequest } from '@/lib/apiUser';
+import { resolveTrackingMatch } from '@/lib/trackingRangeServer';
 
 export async function GET(req) {
     try {
@@ -11,32 +12,35 @@ export async function GET(req) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const now = new Date();
-        const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const { searchParams } = new URL(req.url);
+        const range = searchParams.get("range") || "today";
+        const { match, hourZone } = resolveTrackingMatch(userId, range, searchParams);
 
-        // Bucket by calendar hour derived from `date` — stored `hour` is often missing on upserts.
+        // Bucket by user's local calendar hour (timezone-aware).
         const data = await Tracking.aggregate([
-            { $match: { userId, date: { $gte: twentyFourHoursAgo } } },
+            { $match: match },
             {
                 $group: {
                     _id: {
-                        year: { $year: "$date" },
-                        month: { $month: "$date" },
-                        day: { $dayOfMonth: "$date" },
-                        hour: { $hour: "$date" },
+                        bucket: {
+                            $dateTrunc: {
+                                date: "$date",
+                                unit: "hour",
+                                timezone: hourZone,
+                            },
+                        },
                     },
                     avgScrolls: { $avg: "$scrolls" },
                     avgClicks: { $avg: "$clicks" },
                     totalTime: { $sum: "$time" },
                 },
             },
-            { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1, "_id.hour": 1 } },
+            { $sort: { "_id.bucket": 1 } },
         ]);
 
         const history = data.map((item) => {
-            const h = Number(item._id.hour);
-            const hour = Number.isFinite(h) ? h : 0;
-            const date = new Date(item._id.year, item._id.month - 1, item._id.day, hour);
+            const date = item?._id?.bucket ? new Date(item._id.bucket) : null;
+            if (!date || Number.isNaN(date.getTime())) return null;
 
             const avgS = Number(item.avgScrolls) || 0;
             const avgC = Number(item.avgClicks) || 0;
@@ -51,7 +55,7 @@ export async function GET(req) {
                 time: date.toISOString(),
                 loadScore: load,
             };
-        });
+        }).filter(Boolean);
 
         // Ensure we have at least a few points if data is sparse
         if (history.length === 1) {
@@ -59,7 +63,7 @@ export async function GET(req) {
             history.unshift({ time: prev, loadScore: 2 });
         }
 
-        // Calculate Real Metrics for the last 24h
+        // Calculate metrics for requested range (today in user's timezone by default)
         const totalSessions = data.length;
         const totalTime = data.reduce((acc, curr) => acc + (Number(curr.totalTime) || 0), 0);
         const avgScrolls =
@@ -79,7 +83,7 @@ export async function GET(req) {
 
         // Deep Work Ratio: needs categorization. 
         const summary = await Tracking.aggregate([
-            { $match: { userId, date: { $gte: twentyFourHoursAgo } } },
+            { $match: match },
             { $group: { _id: "$category", total: { $sum: "$time" } } }
         ]);
 
