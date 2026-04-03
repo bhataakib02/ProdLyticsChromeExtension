@@ -2,39 +2,32 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
 import {
-    BarChart,
-    Bar,
-    CartesianGrid,
-"use client";
-
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
-import {
-    BarChart,
-    Bar,
-    CartesianGrid,
-    Legend,
-    Line,
-    LineChart,
-    ResponsiveContainer,
-    Tooltip,
-    XAxis,
-    YAxis,
-} from "recharts";
-import {
+    Activity,
     Users,
-    UserPlus,
-    Crown,
     CreditCard,
-    Calendar,
+    TrendingUp,
+    Shield,
     Search,
     Download,
+    Calendar,
+    Filter,
+    UserPlus,
     RefreshCw,
-    Shield,
 } from "lucide-react";
+import {
+    AreaChart,
+    Area,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+    BarChart,
+    Bar,
+} from "recharts";
+import { useAuth, API_URL } from "@/context/AuthContext";
+import { cn } from "@/lib/utils";
 
 function inrFromMinor(amount) {
     return `Rs ${(Number(amount || 0) / 100).toFixed(2)}`;

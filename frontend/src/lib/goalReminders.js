@@ -1,7 +1,7 @@
-import dbConnect from '../../../../backend/db/mongodb.js';
-import Goal from '../../../../backend/models/Goal.js';
-import Tracking from '../../../../backend/models/Tracking.js';
-import Notification from '../../../../backend/models/Notification.js';
+import dbConnect from '../../../backend/db/mongodb.js';
+import Goal from '../../../backend/models/Goal.js';
+import Tracking from '../../../backend/models/Tracking.js';
+import Notification from '../../../backend/models/Notification.js';
 
 /**
  * Checks for incomplete goals created more than 2 hours ago and sends a reminder notification.
