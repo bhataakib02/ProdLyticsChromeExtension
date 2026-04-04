@@ -102,16 +102,8 @@ export async function GET(req) {
         const data = await Tracking.aggregate([
             { $match: match },
             {
-                $addFields: {
-                    pn: { $ifNull: ["$pathNorm", ""] },
-                },
-            },
-            {
                 $group: {
-                    _id: {
-                        website: "$website",
-                        pathNorm: "$pn",
-                    },
+                    _id: "$website",
                     totalTime: { $sum: "$time" },
                     category: { $last: "$category" },
                     sessions: { $sum: 1 },
@@ -119,13 +111,7 @@ export async function GET(req) {
             },
             {
                 $project: {
-                    _id: {
-                        $cond: [
-                            { $eq: ["$_id.pathNorm", ""] },
-                            "$_id.website",
-                            { $concat: ["$_id.website", " · ", "$_id.pathNorm"] },
-                        ],
-                    },
+                    _id: 1,
                     totalTime: 1,
                     category: 1,
                     sessions: 1,

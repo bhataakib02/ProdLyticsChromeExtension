@@ -174,7 +174,7 @@ export function AuthProvider({ children }) {
                 const msg =
                     err.response?.data?.error ||
                     err.message ||
-                    "Could not start a session. Check MONGO_URI and JWT_SECRET on the server.";
+                    "Could not start a session. (Local dev? Check your MongoDB Atlas IP Whitelist.)";
                 if (!cancelled) {
                     setBootstrapError(String(msg));
                     setUser(null);

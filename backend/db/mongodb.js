@@ -74,12 +74,18 @@ async function dbConnect() {
             cached.unavailableUntil = 0;
             return mongoose;
         }).catch(err => {
-            console.error("🔴 MongoDB connection error:", err);
+            let userFriendlyMsg = err.message;
+            if (isNetworkDbError(err)) {
+                userFriendlyMsg = `${err.message}. (Local dev? Check your MongoDB Atlas IP Whitelist.)`;
+            }
+            console.error("🔴 MongoDB connection error:", userFriendlyMsg);
             cached.conn = null;
             cached.promise = null;
             // Avoid retry storms on every request when DB is down.
             if (isNetworkDbError(err)) cached.unavailableUntil = Date.now() + 30000;
-            throw err;
+            const enhancedErr = new Error(userFriendlyMsg);
+            enhancedErr.code = err.code;
+            throw enhancedErr;
         });
     }
     cached.conn = await cached.promise;

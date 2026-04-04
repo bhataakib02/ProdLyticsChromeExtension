@@ -41,8 +41,8 @@ export async function GET(req) {
             const h = item._id.hour;
             const cat = item._id.category || "neutral";
             if (h >= 0 && h < 24) {
-                // frontend expects minutes for h.productive, etc.
-                hourlyData[h][cat] = Math.round(item.totalTime / 60);
+                // Return minutes (float) so small activity chunks don't disappear in rounding
+                hourlyData[h][cat] = Number((item.totalTime / 60).toFixed(1));
             }
         });
 
