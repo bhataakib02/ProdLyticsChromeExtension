@@ -43,7 +43,16 @@ import { useAuth, API_URL } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 
 function inrFromMinor(amount) {
-    return `Rs ${(Number(amount || 0) / 100).toFixed(2)}`;
+    const val = (Number(amount || 0) / 100).toLocaleString('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    return (
+        <span className="inline-flex items-baseline gap-0.5">
+            <span className="text-[0.6em] font-black opacity-50">₹</span>
+            <span>{val}</span>
+        </span>
+    );
 }
 
 function dateFmt(iso) {
@@ -646,31 +655,31 @@ export default function AdminPage() {
                             <StatCard
                                 label="Users"
                                 value={k.totalUsers ?? 0}
-                                icon={<Users className="text-primary" size={20} />}
+                                icon={<Users size={20} />}
                                 color="primary"
                             />
                             <StatCard
                                 label="Anon"
                                 value={k.anonymousUsers ?? 0}
-                                icon={<Activity className="text-neutral-400" size={20} />}
+                                icon={<Activity size={20} />}
                                 color="neutral"
                             />
                             <StatCard
                                 label="Reg."
                                 value={k.registeredUsers ?? 0}
-                                icon={<UserPlus className="text-secondary" size={20} />}
+                                icon={<UserPlus size={20} />}
                                 color="secondary"
                             />
                             <StatCard
                                 label="Pro"
                                 value={k.proUsers ?? 0}
-                                icon={<Crown className="text-warning" size={20} />}
-                                color="warning"
+                                icon={<Crown size={20} />}
+                                color="gold"
                             />
                             <StatCard
                                 label="Rev"
                                 value={inrFromMinor(k.totalRevenue)}
-                                icon={<TrendingUp className="text-success" size={20} />}
+                                icon={<TrendingUp size={20} />}
                                 color="success"
                             />
                         </section>
@@ -1230,21 +1239,44 @@ function CustomTooltip({ active, payload, label }) {
 
 function StatCard({ label, value, icon, color }) {
     const colorMap = {
-        primary: "bg-primary/10",
-        secondary: "bg-secondary/10",
-        warning: "bg-amber-400/10",
-        success: "bg-success/10",
-        neutral: "bg-foreground/5",
+        primary: "bg-primary/10 text-primary border-primary/20",
+        secondary: "bg-secondary/10 text-secondary border-secondary/20",
+        gold: "bg-amber-400/10 text-amber-500 border-amber-400/20 shadow-[0_0_20px_-5px_rgba(251,191,36,0.1)]",
+        success: "bg-success/10 text-success border-success/20",
+        neutral: "bg-foreground/5 text-muted-foreground/60 border-foreground/10",
     };
 
     return (
-        <div className="glass-card group flex items-center gap-5 rounded-2xl border border-ui p-6 transition-all hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5">
-            <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${colorMap[color] || "bg-foreground/5"} transition-transform group-hover:scale-110`}>
-                {icon}
+        <div className={cn(
+            "glass-card group relative flex flex-col gap-3 overflow-hidden rounded-3xl border border-ui p-5 transition-all duration-500",
+            "hover:border-primary/30 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1",
+            color === 'gold' && "hover:border-amber-400/50 hover:shadow-amber-400/10"
+        )}>
+            {/* Background Accent */}
+            <div className={cn(
+                "absolute -right-4 -top-4 h-24 w-24 rounded-full blur-3xl opacity-10 transition-opacity group-hover:opacity-20",
+                color === 'gold' ? "bg-amber-400" : "bg-primary"
+            )} />
+
+            <div className="flex items-center justify-between">
+                <div className={cn(
+                    "flex h-12 w-12 items-center justify-center rounded-2xl border transition-all duration-500 group-hover:scale-110 group-hover:rotate-3",
+                    colorMap[color] || colorMap.neutral
+                )}>
+                    {icon}
+                </div>
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 group-hover:text-muted-foreground/60 transition-colors">
+                    {label}
+                </div>
             </div>
-            <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">{label}</p>
-                <p className="text-3xl font-black tracking-tight text-foreground">{value}</p>
+
+            <div className="mt-1">
+                <p className={cn(
+                    "truncate font-black tracking-tighter text-foreground transition-all duration-500 group-hover:scale-[1.02] origin-left",
+                    typeof value === 'string' ? "text-2xl" : "text-4xl"
+                )}>
+                    {value}
+                </p>
             </div>
         </div>
     );

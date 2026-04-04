@@ -18,6 +18,8 @@ import {
     Table2,
     FileDown,
     Crown,
+    Calendar,
+    Clock,
 } from "lucide-react";
 import { useAuth, API_URL } from "@/context/AuthContext";
 import { useTheme } from "@/components/layout/Providers";
@@ -587,8 +589,8 @@ export default function SettingsPage() {
                                         <div className="glass-card space-y-8 rounded-[32px] border-2 border-ui p-8 shadow-2xl shadow-primary/5">
                                             <div className="flex items-center justify-between p-5 rounded-2xl bg-foreground/[0.03] border-2 border-ui">
                                                 <div className="space-y-1">
-                                                    <p className="text-sm font-black text-foreground uppercase tracking-wider">Tracking State</p>
-                                                    <p className="text-[10px] font-bold text-muted uppercase">Enable or disable all telemetry collection.</p>
+                                                    <p className="text-sm font-black text-foreground uppercase tracking-wider">TRACKING STATUS</p>
+                                                    <p className="text-[10px] font-bold text-muted uppercase">Turn automatic tracking on or off.</p>
                                                 </div>
                                                 <Toggle
                                                     checked={merged.privacy.trackingEnabled}
@@ -597,16 +599,27 @@ export default function SettingsPage() {
                                             </div>
 
                                             <div className="space-y-3">
-                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted/80">Pause Tracking Until</span>
-                                                <input
-                                                    type="datetime-local"
-                                                    value={merged.privacy.pauseTrackingUntil ? new Date(merged.privacy.pauseTrackingUntil).toISOString().slice(0, 16) : ""}
-                                                    onChange={(e) => {
-                                                        const v = e.target.value;
-                                                        setSettings(prev => ({...prev, privacy: {...prev.privacy, pauseTrackingUntil: v ? new Date(v).toISOString() : null}}));
-                                                    }}
-                                                    className="w-full rounded-2xl border border-ui bg-background px-5 py-3 text-sm font-bold shadow-inner"
-                                                />
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted/80">PAUSE SYNC UNTIL</span>
+                                                    <div className="flex gap-1">
+                                                        <Calendar size={10} className="text-primary/40" />
+                                                        <Clock size={10} className="text-primary/40" />
+                                                    </div>
+                                                </div>
+                                                <div className="relative group">
+                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none text-muted transition-colors group-focus-within:text-primary">
+                                                        <Calendar size={18} />
+                                                    </div>
+                                                    <input
+                                                        type="datetime-local"
+                                                        value={merged.privacy.pauseTrackingUntil ? new Date(merged.privacy.pauseTrackingUntil).toISOString().slice(0, 16) : ""}
+                                                        onChange={(e) => {
+                                                            const v = e.target.value;
+                                                            setSettings(prev => ({...prev, privacy: {...prev.privacy, pauseTrackingUntil: v ? new Date(v).toISOString() : null}}));
+                                                        }}
+                                                        className="w-full rounded-2xl border border-ui bg-background pl-12 pr-5 py-4 text-sm font-black shadow-inner transition-all focus:border-primary/40 focus:ring-4 focus:ring-primary/10"
+                                                    />
+                                                </div>
                                             </div>
 
                                             <div className="pt-8 border-t border-ui-muted space-y-6">
@@ -616,7 +629,7 @@ export default function SettingsPage() {
                                                         onClick={clearBrowsingData}
                                                         className="flex-1 rounded-2xl border-2 border-destructive/30 bg-destructive/5 px-6 py-4 text-xs font-black uppercase tracking-widest text-destructive hover:bg-destructive hover:text-white transition-all shadow-lg shadow-destructive/5"
                                                     >
-                                                        Purge Telemetry Data
+                                                        DELETE ALL TRACKED DATA
                                                     </button>
                                                 </div>
 
