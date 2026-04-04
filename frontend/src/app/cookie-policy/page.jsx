@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-const lastUpdated = "April 4, 2026";
+const DEFAULT_LAST_UPDATED = "April 4, 2026";
 
 function Section({ title, children }) {
     return (
@@ -18,15 +18,17 @@ const DEFAULT_SUPPORT_EMAIL = "thefreelancer2076@gmail.com, crystalcclera@gmail.
 
 export default function CookiePolicyPage() {
     const [dynamicContent, setDynamicContent] = useState(null);
+    const [lastUpdated, setLastUpdated] = useState(DEFAULT_LAST_UPDATED);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch("/api/site-config?key=cookie_policy")
-            .then((res) => (res.ok ? res.json() : null))
-            .then((data) => {
-                if (data?.value) setDynamicContent(data.value);
-            })
-            .catch(() => { })
+        Promise.all([
+            fetch("/api/site-config?key=cookie_policy").then(res => res.ok ? res.json() : null),
+            fetch("/api/site-config?key=cookie_policy_date").then(res => res.ok ? res.json() : null),
+        ]).then(([contentData, dateData]) => {
+            if (contentData?.value) setDynamicContent(contentData.value);
+            if (dateData?.value) setLastUpdated(dateData.value);
+        }).catch(() => { })
             .finally(() => setLoading(false));
     }, []);
 

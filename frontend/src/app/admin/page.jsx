@@ -105,6 +105,11 @@ export default function AdminPage() {
     });
     const [savingPolicy, setSavingPolicy] = useState(false);
     const [policyMsg, setPolicyMsg] = useState({ type: "", text: "" });
+    const [policyDates, setPolicyDates] = useState({
+        privacy_policy: "",
+        terms_of_service: "",
+        cookie_policy: "",
+    });
 
     // Bulk Actions
     const [selectedUserIds, setSelectedUserIds] = useState(new Set());
@@ -177,12 +182,19 @@ export default function AdminPage() {
             if (res.ok) {
                 const data = await res.json();
                 const newPolicies = { ...policies };
+                const newPolicyDates = { ...policyDates };
                 data.forEach(c => {
                     if (newPolicies.hasOwnProperty(c.key)) {
                         newPolicies[c.key] = c.value;
+                    } else if (c.key.endsWith("_date")) {
+                        const baseKey = c.key.replace("_date", "");
+                        if (newPolicyDates.hasOwnProperty(baseKey)) {
+                            newPolicyDates[baseKey] = c.value;
+                        }
                     }
                 });
                 setPolicies(newPolicies);
+                setPolicyDates(newPolicyDates);
             }
         } catch { /* ignore */ }
     }, [policies]);
@@ -193,15 +205,25 @@ export default function AdminPage() {
         setSavingPolicy(true);
         setPolicyMsg({ type: "", text: "" });
         try {
-            const res = await fetch("/api/admin/site-config", {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify({ key: policyKey, value: policies[policyKey] })
-            });
-            if (res.ok) {
+            const [res1, res2] = await Promise.all([
+                fetch("/api/admin/site-config", {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ key: policyKey, value: policies[policyKey] })
+                }),
+                fetch("/api/admin/site-config", {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ key: `${policyKey}_date`, value: policyDates[policyKey] })
+                })
+            ]);
+            if (res1.ok && res2.ok) {
                 setPolicyMsg({ type: "success", text: `${policyKey.split('_').join(' ')} updated successfully!` });
             } else {
                 setPolicyMsg({ type: "error", text: "Failed to update policy." });
@@ -1062,9 +1084,20 @@ export default function AdminPage() {
                                             : "bg-danger/10 border-danger/20 text-danger"
                                     )}>
                                         {policyMsg.type === "success" ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-                                        {policyMsg.text}
+                                        <p className="font-medium">{policyMsg.text}</p>
                                     </div>
                                 )}
+
+                                <div className="mb-4">
+                                    <label className="block text-xs font-bold uppercase tracking-widest text-foreground/40 mb-2">Last Updated Date</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. April 4, 2026"
+                                        value={policyDates[policyKey] || ""}
+                                        onChange={(e) => setPolicyDates({ ...policyDates, [policyKey]: e.target.value })}
+                                        className="w-full sm:w-64 rounded-xl border border-ui bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-shadow"
+                                    />
+                                </div>
 
                                 <div className="relative group">
                                     <textarea
