@@ -15,7 +15,16 @@ import {
     UserPlus,
     RefreshCw,
     Crown,
+    Settings,
+    FileText,
+    CheckCircle2,
+    AlertCircle,
+    Copy,
+    ExternalLink,
+    Lock,
 } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import {
     AreaChart,
     Area,
@@ -83,6 +92,12 @@ export default function AdminPage() {
     const [expandedUserId, setExpandedUserId] = useState(null);
     const [expandedPaymentId, setExpandedPaymentId] = useState(null);
 
+    // Dynamic Enhancements
+    const [activeTab, setActiveTab] = useState("overview"); // "overview" | "policies"
+    const [privacyPolicy, setPrivacyPolicy] = useState("");
+    const [savingPolicy, setSavingPolicy] = useState(false);
+    const [policyMsg, setPolicyMsg] = useState({ type: "", text: "" });
+
     useEffect(() => {
         if (loading) return;
         if (!user || user.role !== "admin") {
@@ -139,6 +154,114 @@ export default function AdminPage() {
             setPending(false);
         }
     }, [fromDate, toDate, userKind, userSub, userQuery, paymentStatus, paymentQuery]);
+
+    const fetchPrivacyPolicy = useCallback(async () => {
+        const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+        if (!token) return;
+        try {
+            const res = await fetch("/api/admin/site-config", {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const p = data.find(c => c.key === "privacy_policy");
+                if (p) setPrivacyPolicy(p.value);
+            }
+        } catch { /* ignore */ }
+    }, []);
+
+    const savePrivacyPolicy = async () => {
+        const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+        if (!token) return;
+        setSavingPolicy(true);
+        setPolicyMsg({ type: "", text: "" });
+        try {
+            const res = await fetch("/api/admin/site-config", {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ key: "privacy_policy", value: privacyPolicy })
+            });
+            if (res.ok) {
+                setPolicyMsg({ type: "success", text: "Privacy policy updated successfully!" });
+            } else {
+                setPolicyMsg({ type: "error", text: "Failed to update policy." });
+            }
+        } catch {
+            setPolicyMsg({ type: "error", text: "Network error." });
+        } finally {
+            setSavingPolicy(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === "policies" && !privacyPolicy) {
+            fetchPrivacyPolicy();
+        }
+    }, [activeTab, privacyPolicy, fetchPrivacyPolicy]);
+
+    const downloadFullReportPDF = () => {
+        if (!overview) return;
+        const doc = new jsPDF();
+        const now = new Date().toLocaleString();
+
+        // Title
+        doc.setFontSize(20);
+        doc.text("ProdLytics Admin Report", 14, 22);
+        doc.setFontSize(10);
+        doc.text(`Generated: ${now}`, 14, 30);
+        doc.text(`Date Range: ${fromDate} to ${toDate}`, 14, 35);
+
+        // KPI Summary
+        const k = overview.kpis;
+        autoTable(doc, {
+            startY: 45,
+            head: [["Metric", "Value"]],
+            body: [
+                ["Total Users", k.totalUsers],
+                ["Registered Users", k.registeredUsers],
+                ["Anonymous Users", k.anonymousUsers],
+                ["Pro Users", k.proUsers],
+                ["Total Revenue", `Rs ${k.totalRevenue.toFixed(2)}`],
+                ["New Payments", k.paidPayments],
+            ],
+            theme: "grid",
+            headStyles: { fillColor: [79, 70, 229] }, // Brand Indigo
+        });
+
+        // Recent Users
+        doc.setFontSize(14);
+        doc.text("Recent User Activity", 14, doc.lastAutoTable.finalY + 15);
+        autoTable(doc, {
+            startY: doc.lastAutoTable.finalY + 20,
+            head: [["Name", "Email", "Type", "Plan", "Joined"]],
+            body: overview.recentUsers.map(u => [
+                u.name,
+                u.email || "Anonymous",
+                u.isAnonymous ? "Anon" : "Registered",
+                u.subscription.toUpperCase(),
+                new Date(u.createdAt).toLocaleDateString()
+            ]),
+        });
+
+        // Recent Payments
+        doc.setFontSize(14);
+        doc.text("Recent Transactions", 14, doc.lastAutoTable.finalY + 15);
+        autoTable(doc, {
+            startY: doc.lastAutoTable.finalY + 20,
+            head: [["Customer", "Amount", "Status", "Date"]],
+            body: overview.recentPayments.map(p => [
+                p.email,
+                `Rs ${p.amount.toFixed(2)}`,
+                p.status.toUpperCase(),
+                new Date(p.createdAt).toLocaleDateString()
+            ]),
+        });
+
+        doc.save(`ProdLytics_Report_${fromDate}_to_${toDate}.pdf`);
+    };
 
     async function downloadCsv(pathname, filename) {
         const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
@@ -305,7 +428,7 @@ export default function AdminPage() {
 
     return (
         <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex items-center gap-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/30 bg-primary/15 text-primary">
                         <Shield size={24} />
@@ -324,401 +447,497 @@ export default function AdminPage() {
                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={14} />
                         <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full rounded-xl border border-ui bg-background px-9 py-2 text-sm sm:w-auto outline-none focus:ring-2 focus:ring-primary/20 transition-shadow" />
                     </div>
-                    <button
-                        type="button"
-                        onClick={() => fetchAdminData()}
-                        disabled={pending}
-                        className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/25 hover:opacity-90 transition-opacity disabled:opacity-50 sm:py-2"
-                    >
-                        <RefreshCw size={14} className={pending ? "animate-spin" : ""} />
-                        <span>{pending ? "Syncing…" : "Sync"}</span>
-                    </button>
-                </div>
-            </div>
 
-            {loadError ? (
-                <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{loadError}</div>
-            ) : null}
-
-            <p className="text-xs text-muted">
-                Charts and revenue use the <strong className="text-foreground/90">date range</strong> above. Widen “To” to include recent payments if revenue looks empty.
-            </p>
-
-            <section className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
-                <StatCard
-                    label="Users"
-                    value={k.totalUsers ?? 0}
-                    icon={<Users className="text-primary" size={20} />}
-                    color="primary"
-                />
-                <StatCard
-                    label="Reg."
-                    value={k.registeredUsers ?? 0}
-                    icon={<UserPlus className="text-secondary" size={20} />}
-                    color="secondary"
-                />
-                <StatCard
-                    label="Pro"
-                    value={k.proUsers ?? 0}
-                    icon={<Crown className="text-amber-400" size={20} />}
-                    color="warning"
-                />
-                <StatCard
-                    label="Rev"
-                    value={inrFromMinor(k.totalRevenue)}
-                    icon={<CreditCard className="text-success" size={20} />}
-                    color="success"
-                />
-            </section>
-
-            <section className="grid gap-4 lg:grid-cols-2">
-                <div className="rounded-2xl border border-white/10 bg-background p-4">
-                    <h2 className="mb-3 text-sm font-bold text-foreground">User growth (30 days)</h2>
-                    <div className="h-72">
-                        {mounted && (
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={chartData}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-ui-muted)" vertical={false} />
-                                    <XAxis
-                                        dataKey="day"
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tick={{ fontSize: 11, fill: "var(--color-muted)" }}
-                                        dy={10}
-                                    />
-                                    <YAxis
-                                        allowDecimals={false}
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tick={{ fontSize: 11, fill: "var(--color-muted)" }}
-                                    />
-                                    <Tooltip content={<CustomTooltip />} />
-                                    <Line
-                                        type="monotone"
-                                        dataKey="users"
-                                        stroke="var(--color-primary)"
-                                        strokeWidth={3}
-                                        dot={{ r: 4, fill: "var(--color-primary)", strokeWidth: 2, stroke: "var(--color-background)" }}
-                                        activeDot={{ r: 6, strokeWidth: 0 }}
-                                        name="New users"
-                                    />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        )}
-                    </div>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-background p-4">
-                    <h2 className="mb-3 text-sm font-bold text-foreground">Revenue (30 days)</h2>
-                    <div className="h-72">
-                        {mounted && (
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={chartData}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-ui-muted)" vertical={false} />
-                                    <XAxis
-                                        dataKey="day"
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tick={{ fontSize: 11, fill: "var(--color-muted)" }}
-                                        dy={10}
-                                    />
-                                    <YAxis
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tick={{ fontSize: 11, fill: "var(--color-muted)" }}
-                                    />
-                                    <Tooltip content={<CustomTooltip />} />
-                                    <Bar
-                                        dataKey="revenueINR"
-                                        fill="var(--color-success)"
-                                        radius={[4, 4, 0, 0]}
-                                        name="Revenue (INR)"
-                                    />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        )}
-                    </div>
-                </div>
-            </section>
-
-            <section className="grid gap-4 lg:grid-cols-2">
-                <div className="rounded-2xl border border-white/10 bg-background p-4">
-                    <div className="mb-4 flex flex-wrap items-center gap-3">
-                        <div className="relative min-w-0 flex-1 sm:min-w-[280px]">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
-                            <input
-                                value={userQuery}
-                                onChange={(e) => setUserQuery(e.target.value)}
-                                placeholder="Search by name or email..."
-                                className="w-full rounded-xl border border-ui bg-background/50 pl-10 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-shadow"
-                            />
+                    <div className="flex flex-wrap items-center gap-2">
+                        <div className="inline-flex rounded-lg bg-foreground/5 p-1">
+                            <button
+                                onClick={() => setActiveTab("overview")}
+                                className={cn(
+                                    "px-4 py-1.5 text-sm font-medium rounded-md transition-all",
+                                    activeTab === "overview"
+                                        ? "bg-background text-foreground shadow-sm"
+                                        : "text-foreground/60 hover:text-foreground"
+                                )}
+                            >
+                                Dashboard
+                            </button>
+                            <button
+                                onClick={() => setActiveTab("policies")}
+                                className={cn(
+                                    "px-4 py-1.5 text-sm font-medium rounded-md transition-all",
+                                    activeTab === "policies"
+                                        ? "bg-background text-foreground shadow-sm"
+                                        : "text-foreground/60 hover:text-foreground"
+                                )}
+                            >
+                                Policies
+                            </button>
                         </div>
-                        <select value={userKind} onChange={(e) => setUserKind(e.target.value)} className="rounded-xl border border-ui bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20">
-                            <option value="all">All Users</option>
-                            <option value="anonymous">Anonymous</option>
-                            <option value="registered">Registered</option>
-                        </select>
-                        <select value={userSub} onChange={(e) => setUserSub(e.target.value)} className="rounded-xl border border-ui bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20">
-                            <option value="all">All Plans</option>
-                            <option value="free">Free</option>
-                            <option value="pro">Pro</option>
-                        </select>
-                        <button type="button" onClick={exportUsersCsv} className="flex h-10 items-center gap-2 rounded-xl border border-ui bg-background px-4 text-sm font-bold text-foreground hover:bg-foreground/5 transition-colors">
-                            <Download size={14} />
-                            <span>Export</span>
-                        </button>
-                    </div>
-                    <div className="mb-4 flex items-center justify-between">
-                        <h2 className="text-sm font-bold text-foreground">Users ({usersData.total || 0})</h2>
-                    </div>
-                    <div className="max-h-[500px] overflow-x-auto overflow-y-auto text-sm no-scrollbar border-t border-ui-muted">
-                        <table className="w-full min-w-[760px] border-collapse">
-                            <thead className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
-                                <tr className="text-left text-[10px] font-black uppercase tracking-widest text-muted">
-                                    <th className="px-4 py-4">Name</th>
-                                    <th className="px-4 py-4">Email</th>
-                                    <th className="px-4 py-4">Type</th>
-                                    <th className="px-4 py-4">Plan</th>
-                                    <th className="px-4 py-4">Role</th>
-                                    <th className="px-4 py-4 text-right"> </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-ui-muted">
-                                {usersData.users?.map((u) => (
-                                    <Fragment key={u.id}>
-                                        <tr
-                                            role="button"
-                                            tabIndex={0}
-                                            onClick={() => setExpandedUserId((id) => (id === u.id ? null : u.id))}
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Enter" || e.key === " ") {
-                                                    e.preventDefault();
-                                                    setExpandedUserId((id) => (id === u.id ? null : u.id));
-                                                }
-                                            }}
-                                            className={cn(
-                                                "group cursor-pointer transition-all hover:bg-foreground/[0.03]",
-                                                expandedUserId === u.id ? "bg-foreground/[0.04]" : ""
-                                            )}
-                                        >
-                                            <td className="px-4 py-4 font-bold text-foreground max-w-[160px] truncate" title={u.name}>{u.name || "Anonymous User"}</td>
-                                            <td className="px-4 py-4 text-muted max-w-[200px] truncate font-medium" title={u.email}>{u.email || "-"}</td>
-                                            <td className="px-4 py-4">
-                                                <Badge variant={u.isAnonymous ? "neutral" : "primary"}>
-                                                    {u.isAnonymous ? "Anonymous" : "Registered"}
-                                                </Badge>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <Badge variant={u.subscription === "pro" ? "warning" : "secondary"}>
-                                                    {u.subscription?.toUpperCase()}
-                                                </Badge>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <Badge variant={u.role === "admin" ? "indigo" : "outline"}>
-                                                    {u.role}
-                                                </Badge>
-                                            </td>
-                                            <td className="px-4 py-4 text-right text-muted" aria-hidden>
-                                                <div className={cn("inline-flex h-6 w-6 items-center justify-center rounded-lg border border-ui transition-transform", expandedUserId === u.id ? "rotate-180 bg-primary/10 text-primary border-primary/20" : "")}>
-                                                    <Filter size={10} className="rotate-90" />
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        {expandedUserId === u.id ? (
-                                            <tr className="bg-foreground/[0.02]">
-                                                <td colSpan={6} className="px-4 py-6 border-ui-muted/50">
-                                                    <div
-                                                        className="flex flex-wrap gap-3"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        onKeyDown={(e) => e.stopPropagation()}
-                                                    >
-                                                        <p className="w-full mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
-                                                            User Management Actions
-                                                        </p>
-                                                        <button
-                                                            type="button"
-                                                            disabled={userExportBusy === u.id}
-                                                            onClick={() => downloadUserDataExport(u.id, "csv")}
-                                                            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-ui bg-background px-4 text-xs font-bold text-foreground transition-all hover:bg-foreground/5 disabled:opacity-40"
-                                                            title="ZIP of CSV files (Excel/Sheets) — full export."
-                                                        >
-                                                            <Download size={14} />
-                                                            {userExportBusy === u.id ? "Syncing…" : "Export Data"}
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => updateUserRole(u.id, u.role === "admin" ? "user" : "admin")}
-                                                            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-ui bg-background px-4 text-xs font-bold text-foreground transition-all hover:bg-foreground/5"
-                                                        >
-                                                            <Shield size={14} />
-                                                            {u.role === "admin" ? "Revoke Admin" : "Grant Admin"}
-                                                        </button>
-                                                        {u.subscription === "pro" ? (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => updateUserSubscription(u.id, "free")}
-                                                                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-ui bg-background px-4 text-xs font-bold text-muted-foreground/60 transition-all hover:bg-foreground/5"
-                                                            >
-                                                                <RefreshCw size={14} />
-                                                                Downgrade to Free
-                                                            </button>
-                                                        ) : (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => updateUserSubscription(u.id, "pro")}
-                                                                className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-amber-400 px-4 text-xs font-black text-amber-950 shadow-lg shadow-amber-400/20 transition-all hover:opacity-90"
-                                                            >
-                                                                <Crown size={14} />
-                                                                Upgrade to Pro
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ) : null}
-                                    </Fragment>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div className="rounded-2xl border border-ui bg-background p-1 shadow-sm">
-                    <div className="flex flex-wrap items-center gap-3 p-3">
-                        <div className="relative min-w-0 flex-1 sm:min-w-[280px]">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
-                            <input
-                                value={paymentQuery}
-                                onChange={(e) => setPaymentQuery(e.target.value)}
-                                placeholder="Search by email..."
-                                className="h-10 w-full rounded-xl border border-ui bg-background/50 pl-10 pr-4 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                            />
-                        </div>
-                        <select
-                            value={paymentStatus}
-                            onChange={(e) => setPaymentStatus(e.target.value)}
-                            className="h-10 rounded-xl border border-ui bg-background px-3 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 appearance-none min-w-[120px]"
+                        <button
+                            type="button"
+                            onClick={() => fetchAdminData()}
+                            disabled={pending}
+                            className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white shadow-lg shadow-primary/25 hover:opacity-90 transition-opacity disabled:opacity-50"
                         >
-                            <option value="all">All States</option>
-                            <option value="paid">Paid</option>
-                            <option value="pending">Pending</option>
-                            <option value="failed">Failed</option>
-                            <option value="refunded">Refunded</option>
-                        </select>
-                        <button type="button" onClick={exportPaymentsCsv} className="flex h-10 items-center gap-2 rounded-xl border border-ui bg-background px-4 text-sm font-bold text-foreground hover:bg-foreground/5 transition-colors">
-                            <Download size={14} />
-                            <span>Export</span>
+                            <RefreshCw className={cn("w-4 h-4", pending && "animate-spin")} />
+                            <span>Sync</span>
                         </button>
                     </div>
-                    <div className="px-4 py-1">
-                        <h2 className="text-sm font-bold text-foreground">
-                            Payments ({paymentsData.total || 0}) <span className="mx-2 opacity-30">/</span> <span className="text-success">{inrFromMinor(paymentsData.totalRevenue || 0)}</span>
-                        </h2>
-                    </div>
-                    <div className="max-h-[500px] overflow-x-auto overflow-y-auto text-sm no-scrollbar border-t border-ui-muted mt-3">
-                        <table className="w-full min-w-[760px] border-collapse">
-                            <thead className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
-                                <tr className="text-left text-[10px] font-black uppercase tracking-widest text-muted">
-                                    <th className="px-4 py-4">Customer</th>
-                                    <th className="px-4 py-4">Amount</th>
-                                    <th className="px-4 py-4">Status</th>
-                                    <th className="px-4 py-4">Type</th>
-                                    <th className="px-4 py-4">Date</th>
-                                    <th className="px-4 py-4 text-right"> </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-ui-muted">
-                                {paymentsData.payments?.map((p) => (
-                                    <Fragment key={p.id}>
-                                        <tr
-                                            role="button"
-                                            tabIndex={0}
-                                            onClick={() => setExpandedPaymentId((id) => (id === p.id ? null : p.id))}
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Enter" || e.key === " ") {
-                                                    e.preventDefault();
-                                                    setExpandedPaymentId((id) => (id === p.id ? null : p.id));
-                                                }
-                                            }}
-                                            className={cn(
-                                                "group cursor-pointer transition-all hover:bg-foreground/[0.03]",
-                                                expandedPaymentId === p.id ? "bg-foreground/[0.04]" : ""
-                                            )}
-                                        >
-                                            <td className="px-4 py-4 font-bold text-foreground">{p.email || "Guest"}</td>
-                                            <td className="px-4 py-4 font-medium text-foreground">{inrFromMinor(p.amount)}</td>
-                                            <td className="px-4 py-4">
-                                                <Badge
-                                                    variant={
-                                                        p.status === "paid" ? "success" :
-                                                            p.status === "refunded" ? "neutral" :
-                                                                p.status === "failed" ? "danger" : "warning"
-                                                    }
-                                                >
-                                                    {p.status}
-                                                </Badge>
-                                            </td>
-                                            <td className="px-4 py-4 text-muted font-medium">{p.type}</td>
-                                            <td className="px-4 py-4 text-muted font-medium">{dateFmt(p.createdAt)}</td>
-                                            <td className="px-4 py-4 text-right text-muted" aria-hidden>
-                                                <div className={cn("inline-flex h-6 w-6 items-center justify-center rounded-lg border border-ui transition-transform", expandedPaymentId === p.id ? "rotate-180 bg-primary/10 text-primary border-primary/20" : "")}>
-                                                    <Filter size={10} className="rotate-90" />
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        {expandedPaymentId === p.id ? (
-                                            <tr className="bg-foreground/[0.02]">
-                                                <td colSpan={6} className="px-4 py-6 border-ui-muted/50">
-                                                    <div
-                                                        className="flex flex-wrap gap-3"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                    >
-                                                        <p className="w-full mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
-                                                            Financial & Support Actions
-                                                        </p>
-                                                        {p.status === "paid" ? (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => markRefunded(p.id)}
-                                                                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-ui bg-background px-4 text-xs font-bold text-foreground transition-all hover:bg-foreground/5"
-                                                            >
-                                                                <RefreshCw size={14} />
-                                                                Mark Refunded (Local Only)
-                                                            </button>
-                                                        ) : (
-                                                            <span className="inline-flex h-9 items-center rounded-xl border border-ui/50 bg-foreground/[0.02] px-4 text-xs font-bold text-muted-foreground/50">
-                                                                Status: {p.status}
-                                                            </span>
-                                                        )}
-                                                        {p.stripeSessionId ? (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => copyText(p.stripeSessionId)}
-                                                                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-ui bg-background px-4 text-xs font-bold text-foreground transition-all hover:bg-foreground/5"
-                                                            >
-                                                                Copy Stripe Session
-                                                            </button>
-                                                        ) : null}
-                                                        {p.stripeSubscriptionId ? (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => copyText(p.stripeSubscriptionId)}
-                                                                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-ui bg-background px-4 text-xs font-bold text-foreground transition-all hover:bg-foreground/5"
-                                                            >
-                                                                Copy Subscription ID
-                                                            </button>
-                                                        ) : null}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ) : null}
-                                    </Fragment>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
                 </div>
-            </section>
+            </header>
+
+            <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+                {activeTab === "overview" ? (
+                    <>
+                        {loadError ? (
+                            <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{loadError}</div>
+                        ) : null}
+
+                        <p className="text-xs text-muted">
+                            Charts and revenue use the <strong className="text-foreground/90">date range</strong> above. Widen “To” to include recent payments if revenue looks empty.
+                        </p>
+
+                        <section className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-5">
+                            <StatCard
+                                label="Users"
+                                value={k.totalUsers ?? 0}
+                                icon={<Users className="text-primary" size={20} />}
+                                color="primary"
+                            />
+                            <StatCard
+                                label="Anon"
+                                value={k.anonymousUsers ?? 0}
+                                icon={<Activity className="text-neutral-400" size={20} />}
+                                color="neutral"
+                            />
+                            <StatCard
+                                label="Reg."
+                                value={k.registeredUsers ?? 0}
+                                icon={<UserPlus className="text-secondary" size={20} />}
+                                color="secondary"
+                            />
+                            <StatCard
+                                label="Pro"
+                                value={k.proUsers ?? 0}
+                                icon={<Crown className="text-warning" size={20} />}
+                                color="warning"
+                            />
+                            <StatCard
+                                label="Rev"
+                                value={inrFromMinor(k.totalRevenue)}
+                                icon={<TrendingUp className="text-success" size={20} />}
+                                color="success"
+                            />
+                        </section>
+
+                        <section className="grid gap-4 lg:grid-cols-2">
+                            <div className="rounded-2xl border border-white/10 bg-background p-4">
+                                <h2 className="mb-3 text-sm font-bold text-foreground">User growth (30 days)</h2>
+                                <div className="h-72">
+                                    {mounted && (
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <LineChart data={chartData}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-ui-muted)" vertical={false} />
+                                                <XAxis
+                                                    dataKey="day"
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    tick={{ fontSize: 11, fill: "var(--color-muted)" }}
+                                                    dy={10}
+                                                />
+                                                <YAxis
+                                                    allowDecimals={false}
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    tick={{ fontSize: 11, fill: "var(--color-muted)" }}
+                                                />
+                                                <Tooltip content={<CustomTooltip />} />
+                                                <Line
+                                                    type="monotone"
+                                                    dataKey="users"
+                                                    stroke="var(--color-primary)"
+                                                    strokeWidth={3}
+                                                    dot={{ r: 4, fill: "var(--color-primary)", strokeWidth: 2, stroke: "var(--color-background)" }}
+                                                    activeDot={{ r: 6, strokeWidth: 0 }}
+                                                    name="New users"
+                                                />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="rounded-2xl border border-white/10 bg-background p-4">
+                                <h2 className="mb-3 text-sm font-bold text-foreground">Revenue (30 days)</h2>
+                                <div className="h-72">
+                                    {mounted && (
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={chartData}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-ui-muted)" vertical={false} />
+                                                <XAxis
+                                                    dataKey="day"
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    tick={{ fontSize: 11, fill: "var(--color-muted)" }}
+                                                    dy={10}
+                                                />
+                                                <YAxis
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    tick={{ fontSize: 11, fill: "var(--color-muted)" }}
+                                                />
+                                                <Tooltip content={<CustomTooltip />} />
+                                                <Bar
+                                                    dataKey="revenueINR"
+                                                    fill="var(--color-success)"
+                                                    radius={[4, 4, 0, 0]}
+                                                    name="Revenue (INR)"
+                                                />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    )}
+                                </div>
+                            </div>
+                        </section>
+
+                        <section className="grid gap-4 lg:grid-cols-2">
+                            <div className="rounded-2xl border border-white/10 bg-background p-4">
+                                <div className="mb-4 flex flex-wrap items-center gap-3">
+                                    <div className="relative min-w-0 flex-1 sm:min-w-[280px]">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
+                                        <input
+                                            value={userQuery}
+                                            onChange={(e) => setUserQuery(e.target.value)}
+                                            placeholder="Search by name or email..."
+                                            className="w-full rounded-xl border border-ui bg-background/50 pl-10 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-shadow"
+                                        />
+                                    </div>
+                                    <select value={userKind} onChange={(e) => setUserKind(e.target.value)} className="rounded-xl border border-ui bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20">
+                                        <option value="all">All Users</option>
+                                        <option value="anonymous">Anonymous</option>
+                                        <option value="registered">Registered</option>
+                                    </select>
+                                    <select value={userSub} onChange={(e) => setUserSub(e.target.value)} className="rounded-xl border border-ui bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20">
+                                        <option value="all">All Plans</option>
+                                        <option value="free">Free</option>
+                                        <option value="pro">Pro</option>
+                                    </select>
+                                    <button type="button" onClick={exportUsersCsv} className="flex h-10 items-center gap-2 rounded-xl border border-ui bg-background px-4 text-sm font-bold text-foreground hover:bg-foreground/5 transition-colors">
+                                        <Download size={14} />
+                                        <span>Export</span>
+                                    </button>
+                                </div>
+                                <div className="flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <Users className="text-primary" size={20} />
+                                        <h2 className="text-lg font-bold text-foreground">Users ({usersData.total})</h2>
+                                    </div>
+                                    <button
+                                        onClick={downloadFullReportPDF}
+                                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-foreground/10 text-xs font-medium hover:bg-foreground/5 transition-colors"
+                                    >
+                                        <Download size={14} />
+                                        <span>Export PDF Report</span>
+                                    </button>
+                                </div>
+                                <div className="max-h-[500px] overflow-x-auto overflow-y-auto text-sm no-scrollbar border-t border-ui-muted">
+                                    <table className="w-full min-w-[760px] border-collapse">
+                                        <thead className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+                                            <tr className="text-left text-[10px] font-black uppercase tracking-widest text-muted">
+                                                <th className="px-4 py-4">Name</th>
+                                                <th className="px-4 py-4">Email</th>
+                                                <th className="px-4 py-4">Type</th>
+                                                <th className="px-4 py-4">Plan</th>
+                                                <th className="px-4 py-4">Role</th>
+                                                <th className="px-4 py-4 text-right"> </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-ui-muted">
+                                            {usersData.users?.map((u) => (
+                                                <Fragment key={u.id}>
+                                                    <tr
+                                                        role="button"
+                                                        tabIndex={0}
+                                                        onClick={() => setExpandedUserId((id) => (id === u.id ? null : u.id))}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter" || e.key === " ") {
+                                                                e.preventDefault();
+                                                                setExpandedUserId((id) => (id === u.id ? null : u.id));
+                                                            }
+                                                        }}
+                                                        className={cn(
+                                                            "group cursor-pointer transition-all hover:bg-foreground/[0.03]",
+                                                            expandedUserId === u.id ? "bg-foreground/[0.04]" : ""
+                                                        )}
+                                                    >
+                                                        <td className="px-4 py-4 font-bold text-foreground max-w-[160px] truncate" title={u.name}>{u.name || "Anonymous User"}</td>
+                                                        <td className="px-4 py-4 text-muted max-w-[200px] truncate font-medium" title={u.email}>{u.email || "-"}</td>
+                                                        <td className="px-4 py-4">
+                                                            <Badge variant={u.isAnonymous ? "neutral" : "primary"}>
+                                                                {u.isAnonymous ? "Anonymous" : "Registered"}
+                                                            </Badge>
+                                                        </td>
+                                                        <td className="px-4 py-4">
+                                                            <Badge variant={u.subscription === "pro" ? "warning" : "secondary"}>
+                                                                {u.subscription?.toUpperCase()}
+                                                            </Badge>
+                                                        </td>
+                                                        <td className="px-4 py-4">
+                                                            <Badge variant={u.role === "admin" ? "indigo" : "outline"}>
+                                                                {u.role}
+                                                            </Badge>
+                                                        </td>
+                                                        <td className="px-4 py-4 text-right text-muted" aria-hidden>
+                                                            <div className={cn("inline-flex h-6 w-6 items-center justify-center rounded-lg border border-ui transition-transform", expandedUserId === u.id ? "rotate-180 bg-primary/10 text-primary border-primary/20" : "")}>
+                                                                <Filter size={10} className="rotate-90" />
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    {expandedUserId === u.id ? (
+                                                        <tr className="bg-foreground/[0.02]">
+                                                            <td colSpan={6} className="px-4 py-6 border-ui-muted/50">
+                                                                <div
+                                                                    className="flex flex-wrap gap-3"
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                    onKeyDown={(e) => e.stopPropagation()}
+                                                                >
+                                                                    <p className="w-full mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
+                                                                        User Management Actions
+                                                                    </p>
+                                                                    <button
+                                                                        type="button"
+                                                                        disabled={userExportBusy === u.id}
+                                                                        onClick={() => downloadUserDataExport(u.id, "csv")}
+                                                                        className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-ui bg-background px-4 text-xs font-bold text-foreground transition-all hover:bg-foreground/5 disabled:opacity-40"
+                                                                        title="ZIP of CSV files (Excel/Sheets) — full export."
+                                                                    >
+                                                                        <Download size={14} />
+                                                                        {userExportBusy === u.id ? "Syncing…" : "Export Data"}
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => updateUserRole(u.id, u.role === "admin" ? "user" : "admin")}
+                                                                        className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-ui bg-background px-4 text-xs font-bold text-foreground transition-all hover:bg-foreground/5"
+                                                                    >
+                                                                        <Shield size={14} />
+                                                                        {u.role === "admin" ? "Revoke Admin" : "Grant Admin"}
+                                                                    </button>
+                                                                    {u.subscription === "pro" ? (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => updateUserSubscription(u.id, "free")}
+                                                                            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-ui bg-background px-4 text-xs font-bold text-muted-foreground/60 transition-all hover:bg-foreground/5"
+                                                                        >
+                                                                            <RefreshCw size={14} />
+                                                                            Downgrade to Free
+                                                                        </button>
+                                                                    ) : (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => updateUserSubscription(u.id, "pro")}
+                                                                            className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-amber-400 px-4 text-xs font-black text-amber-950 shadow-lg shadow-amber-400/20 transition-all hover:opacity-90"
+                                                                        >
+                                                                            <Crown size={14} />
+                                                                            Upgrade to Pro
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ) : null}
+                                                </Fragment>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div className="rounded-2xl border border-ui bg-background p-1 shadow-sm">
+                                <div className="flex flex-wrap items-center gap-3 p-3">
+                                    <div className="relative min-w-0 flex-1 sm:min-w-[280px]">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
+                                        <input
+                                            value={paymentQuery}
+                                            onChange={(e) => setPaymentQuery(e.target.value)}
+                                            placeholder="Search by email..."
+                                            className="h-10 w-full rounded-xl border border-ui bg-background/50 pl-10 pr-4 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                                        />
+                                    </div>
+                                    <select
+                                        value={paymentStatus}
+                                        onChange={(e) => setPaymentStatus(e.target.value)}
+                                        className="h-10 rounded-xl border border-ui bg-background px-3 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 appearance-none min-w-[120px]"
+                                    >
+                                        <option value="all">All States</option>
+                                        <option value="paid">Paid</option>
+                                        <option value="pending">Pending</option>
+                                        <option value="failed">Failed</option>
+                                        <option value="refunded">Refunded</option>
+                                    </select>
+                                    <button type="button" onClick={exportPaymentsCsv} className="flex h-10 items-center gap-2 rounded-xl border border-ui bg-background px-4 text-sm font-bold text-foreground hover:bg-foreground/5 transition-colors">
+                                        <Download size={14} />
+                                        <span>Export</span>
+                                    </button>
+                                </div>
+                                <div className="px-4 py-1">
+                                    <h2 className="text-sm font-bold text-foreground">
+                                        Payments ({paymentsData.total || 0}) <span className="mx-2 opacity-30">/</span> <span className="text-success">{inrFromMinor(paymentsData.totalRevenue || 0)}</span>
+                                    </h2>
+                                </div>
+                                <div className="max-h-[500px] overflow-x-auto overflow-y-auto text-sm no-scrollbar border-t border-ui-muted mt-3">
+                                    <table className="w-full min-w-[760px] border-collapse">
+                                        <thead className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+                                            <tr className="text-left text-[10px] font-black uppercase tracking-widest text-muted">
+                                                <th className="px-4 py-4">Customer</th>
+                                                <th className="px-4 py-4">Amount</th>
+                                                <th className="px-4 py-4">Status</th>
+                                                <th className="px-4 py-4">Type</th>
+                                                <th className="px-4 py-4">Date</th>
+                                                <th className="px-4 py-4 text-right"> </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-ui-muted">
+                                            {paymentsData.payments?.map((p) => (
+                                                <Fragment key={p.id}>
+                                                    <tr
+                                                        role="button"
+                                                        tabIndex={0}
+                                                        onClick={() => setExpandedPaymentId((id) => (id === p.id ? null : p.id))}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter" || e.key === " ") {
+                                                                e.preventDefault();
+                                                                setExpandedPaymentId((id) => (id === p.id ? null : p.id));
+                                                            }
+                                                        }}
+                                                        className={cn(
+                                                            "group cursor-pointer transition-all hover:bg-foreground/[0.03]",
+                                                            expandedPaymentId === p.id ? "bg-foreground/[0.04]" : ""
+                                                        )}
+                                                    >
+                                                        <td className="px-4 py-4 font-bold text-foreground">{p.email || "Guest"}</td>
+                                                        <td className="px-4 py-4 font-medium text-foreground">{inrFromMinor(p.amount)}</td>
+                                                        <td className="px-4 py-4">
+                                                            <Badge
+                                                                variant={
+                                                                    p.status === "paid" ? "success" :
+                                                                        p.status === "refunded" ? "neutral" :
+                                                                            p.status === "failed" ? "danger" : "warning"
+                                                                }
+                                                            >
+                                                                {p.status}
+                                                            </Badge>
+                                                        </td>
+                                                        <td className="px-4 py-4 text-muted font-medium">{p.type}</td>
+                                                        <td className="px-4 py-4 text-muted font-medium">{dateFmt(p.createdAt)}</td>
+                                                        <td className="px-4 py-4 text-right text-muted" aria-hidden>
+                                                            <div className={cn("inline-flex h-6 w-6 items-center justify-center rounded-lg border border-ui transition-transform", expandedPaymentId === p.id ? "rotate-180 bg-primary/10 text-primary border-primary/20" : "")}>
+                                                                <Filter size={10} className="rotate-90" />
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    {expandedPaymentId === p.id ? (
+                                                        <tr className="bg-foreground/[0.02]">
+                                                            <td colSpan={6} className="px-4 py-6 border-ui-muted/50">
+                                                                <div
+                                                                    className="flex flex-wrap gap-3"
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                >
+                                                                    <p className="w-full mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
+                                                                        Financial & Support Actions
+                                                                    </p>
+                                                                    {p.status === "paid" ? (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => markRefunded(p.id)}
+                                                                            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-ui bg-background px-4 text-xs font-bold text-foreground transition-all hover:bg-foreground/5"
+                                                                        >
+                                                                            <RefreshCw size={14} />
+                                                                            Mark Refunded (Local Only)
+                                                                        </button>
+                                                                    ) : (
+                                                                        <span className="inline-flex h-9 items-center rounded-xl border border-ui/50 bg-foreground/[0.02] px-4 text-xs font-bold text-muted-foreground/50">
+                                                                            Status: {p.status}
+                                                                        </span>
+                                                                    )}
+                                                                    {p.stripeSessionId ? (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => copyText(p.stripeSessionId)}
+                                                                            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-ui bg-background px-4 text-xs font-bold text-foreground transition-all hover:bg-foreground/5"
+                                                                        >
+                                                                            Copy Stripe Session
+                                                                        </button>
+                                                                    ) : null}
+                                                                    {p.stripeSubscriptionId ? (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => copyText(p.stripeSubscriptionId)}
+                                                                            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-ui bg-background px-4 text-xs font-bold text-foreground transition-all hover:bg-foreground/5"
+                                                                        >
+                                                                            Copy Subscription ID
+                                                                        </button>
+                                                                    ) : null}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ) : null}
+                                                </Fragment>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </section>
+                    </>
+                ) : (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        <div className="rounded-3xl border border-foreground/10 bg-background/50 p-6 backdrop-blur-xl sm:p-8">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                    <FileText className="text-primary" size={24} />
+                                    <div>
+                                        <h2 className="text-xl font-bold text-foreground">Privacy Policy</h2>
+                                        <p className="text-sm text-foreground/60">Edit the public privacy policy content here.</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={savePrivacyPolicy}
+                                    disabled={savingPolicy}
+                                    className="flex items-center gap-2 px-6 py-2 rounded-xl bg-primary text-sm font-bold text-white shadow-lg shadow-primary/25 hover:opacity-90 transition-all disabled:opacity-50"
+                                >
+                                    {savingPolicy ? <RefreshCw size={16} className="animate-spin" /> : <Lock size={16} />}
+                                    <span>{savingPolicy ? "Saving..." : "Save Changes"}</span>
+                                </button>
+                            </div>
+
+                            {policyMsg.text && (
+                                <div className={cn(
+                                    "mb-6 p-4 rounded-xl border flex items-center gap-3 text-sm",
+                                    policyMsg.type === "success"
+                                        ? "bg-success/10 border-success/20 text-success"
+                                        : "bg-danger/10 border-danger/20 text-danger"
+                                )}>
+                                    {policyMsg.type === "success" ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                                    {policyMsg.text}
+                                </div>
+                            )}
+
+                            <div className="relative group">
+                                <textarea
+                                    value={privacyPolicy}
+                                    onChange={(e) => setPrivacyPolicy(e.target.value)}
+                                    placeholder="Enter privacy policy text here (plain text or basic HTML patterns)..."
+                                    className="w-full min-h-[500px] bg-foreground/5 border-2 border-transparent focus:border-primary/30 rounded-2xl p-6 text-sm leading-relaxed text-foreground/90 font-mono focus:outline-none transition-all resize-none"
+                                />
+                                <div className="absolute inset-0 rounded-2xl pointer-events-none border border-foreground/10 group-hover:border-foreground/20 transition-colors" />
+                            </div>
+                            <p className="mt-4 text-xs text-foreground/40 italic">
+                                Tip: Use double line breaks for new paragraphs. Any changes saved here will reflect immediately on the /privacy-policy page.
+                            </p>
+                        </div>
+                    </div>
+                )}
+            </main>
 
             {pending ? (
                 <p className="text-sm text-muted">Loading admin data...</p>
@@ -750,6 +969,7 @@ function StatCard({ label, value, icon, color }) {
         secondary: "bg-secondary/10",
         warning: "bg-amber-400/10",
         success: "bg-success/10",
+        neutral: "bg-foreground/5",
     };
 
     return (
