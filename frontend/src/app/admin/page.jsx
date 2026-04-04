@@ -857,7 +857,7 @@ export default function AdminPage() {
                                                                 className="rounded border-ui bg-background"
                                                             />
                                                         </td>
-                                                        <td className="px-4 py-4 font-bold text-foreground max-w-[160px] truncate" title={u.name}>{u.name || "Anonymous User"}</td>
+                                                        <td className="px-4 py-4 font-bold text-foreground max-w-[240px] truncate" title={u.name}>{u.name || "Anonymous User"}</td>
                                                         <td className="px-4 py-4 text-muted max-w-[200px] truncate font-medium" title={u.email}>{u.email || "-"}</td>
                                                         <td className="px-4 py-4">
                                                             <Badge variant={u.isAnonymous ? "neutral" : "primary"}>
