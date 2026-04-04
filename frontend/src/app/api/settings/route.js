@@ -39,7 +39,6 @@ const DEFAULTS = {
     },
     partnerShare: {
         enabled: false,
-        token: null,
     },
 };
 
@@ -103,7 +102,7 @@ export async function PATCH(req) {
                         $set["partnerShare.token"] = newPartnerShareToken();
                     }
                 } else {
-                    $set["partnerShare.token"] = null;
+                    if (!$set) {} // just a placeholder
                 }
             }
         }
@@ -112,9 +111,14 @@ export async function PATCH(req) {
             return NextResponse.json({ error: "No valid fields" }, { status: 400 });
         }
 
+        const update = { $set };
+        if (body.partnerShare && body.partnerShare.enabled === false) {
+            update.$unset = { "partnerShare.token": "" };
+        }
+
         const doc = await UserSettings.findOneAndUpdate(
             { userId },
-            { $set },
+            update,
             { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
         ).lean();
 

@@ -33,12 +33,18 @@ const UserSettingsSchema = new mongoose.Schema(
         /** Read-only share link: weekly focus trend only (no URLs). Token issued when enabled. */
         partnerShare: {
             enabled: { type: Boolean, default: false },
-            token: { type: String, default: null },
+            token: { type: String },
         },
     },
     { timestamps: true }
 );
 
-UserSettingsSchema.index({ "partnerShare.token": 1 }, { sparse: true, unique: true });
+UserSettingsSchema.index(
+    { "partnerShare.token": 1 },
+    { 
+        unique: true, 
+        partialFilterExpression: { "partnerShare.token": { $type: "string" } } 
+    }
+);
 
 export default mongoose.models.UserSettings || mongoose.model("UserSettings", UserSettingsSchema);
