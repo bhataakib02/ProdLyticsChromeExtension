@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import SiteConfig from "../../../../../../backend/models/SiteConfig.js";
+import SiteConfig from "../../../../../backend/models/SiteConfig.js";
 
 export async function GET(req) {
     const { searchParams } = new URL(req.url);
