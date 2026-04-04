@@ -1,8 +1,9 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { Search, UserCircle, RefreshCw, LogOut } from "lucide-react";
+import { Search, UserCircle, RefreshCw, LogOut, Crown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { requestExtensionSync } from "@/lib/extensionSync";
 import { useDashboard } from "@/context/DashboardContext";
@@ -10,6 +11,7 @@ import { useDashboard } from "@/context/DashboardContext";
 export default function Navbar() {
     const { user, logout } = useAuth();
     const { activitySearchQuery, setActivitySearchQuery } = useDashboard();
+    const router = useRouter();
     const [syncing, setSyncing] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
     const profileRef = useRef(null);
@@ -108,9 +110,17 @@ export default function Navbar() {
                                 </div>
 
                                 {user.subscription !== "pro" && !user.isPremium && (
-                                    <div className="mt-4 rounded-xl bg-black/20 p-3 text-center">
-                                        <p className="text-[10px] font-bold text-white/90">Upgrade to Pro for full insights</p>
-                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowProfile(false);
+                                            router.push("/upgrade");
+                                        }}
+                                        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 px-4 py-3 text-[11px] font-black tracking-wide text-white shadow-lg shadow-amber-500/30 transition-all hover:opacity-90 hover:scale-[1.02] active:scale-[0.98]"
+                                    >
+                                        <Crown size={13} />
+                                        <span>Upgrade to Pro for full insights</span>
+                                    </button>
                                 )}
                             </motion.div>
                         )}
