@@ -119,8 +119,27 @@ export default function TermsOfServicePage() {
                                 </p>
                             </Section>
 
-                            <Section title="5. Contact">
-                                <p>For any questions regarding these terms, contact us at: {supportEmail}</p>
+                            <Section title="5. Contact Us & Data Access">
+                                <p>
+                                    If you have any questions regarding these Terms of Service, or if you wish to exercise your data rights, please contact our support team at:
+                                </p>
+                                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="rounded-lg bg-foreground/5 p-4 border border-foreground/10">
+                                        <p className="text-xs font-semibold uppercase tracking-wider text-foreground/50 mb-1">Primary Support</p>
+                                        <a className="text-sm font-medium text-primary hover:underline" href="mailto:thefreelancer2076@gmail.com">
+                                            thefreelancer2076@gmail.com
+                                        </a>
+                                    </div>
+                                    <div className="rounded-lg bg-foreground/5 p-4 border border-foreground/10">
+                                        <p className="text-xs font-semibold uppercase tracking-wider text-foreground/50 mb-1">Secondary Support</p>
+                                        <a className="text-sm font-medium text-primary hover:underline" href="mailto:crystalclear@gmail.com">
+                                            crystalclear@gmail.com
+                                        </a>
+                                    </div>
+                                </div>
+                                <p className="mt-4 text-sm italic text-foreground/60">
+                                    Users may reach out to either of the addresses above for any legal inquiries or data-related assistance.
+                                </p>
                             </Section>
                         </div>
                     </>

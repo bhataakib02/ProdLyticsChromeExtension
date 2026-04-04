@@ -199,26 +199,27 @@ export default function PrivacyPolicyPage() {
                                 </p>
                             </Section>
 
-                            <Section title="9. Contact & Support">
+                            <Section title="6. Contact Us & Data Access">
                                 <p>
-                                    For privacy inquiries, data deletion requests, or technical support, please contact
-                                    our development and privacy team at:
+                                    If you have any questions regarding this Privacy Policy, or if you wish to exercise your data rights (including data access or deletion requests), please contact our support team at:
                                 </p>
-                                <div className="mt-4 rounded-lg bg-foreground/5 p-4 border border-foreground/10">
-                                    <p className="font-semibold text-primary">Primary Contact:</p>
-                                    {supportEmail ? (
-                                        <a
-                                            className="text-sm font-medium hover:text-primary transition-colors underline decoration-primary/30 underline-offset-4"
-                                            href={`mailto:${supportEmail}`}
-                                        >
-                                            {supportEmail}
+                                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="rounded-lg bg-foreground/5 p-4 border border-foreground/10">
+                                        <p className="text-xs font-semibold uppercase tracking-wider text-foreground/50 mb-1">Primary Support</p>
+                                        <a className="text-sm font-medium text-primary hover:underline" href="mailto:thefreelancer2076@gmail.com">
+                                            thefreelancer2076@gmail.com
                                         </a>
-                                    ) : (
-                                        <span className="text-sm text-foreground/60 italic">
-                                            [Support email to follow via Chrome Web Store listing]
-                                        </span>
-                                    )}
+                                    </div>
+                                    <div className="rounded-lg bg-foreground/5 p-4 border border-foreground/10">
+                                        <p className="text-xs font-semibold uppercase tracking-wider text-foreground/50 mb-1">Secondary Support</p>
+                                        <a className="text-sm font-medium text-primary hover:underline" href="mailto:crystalclear@gmail.com">
+                                            crystalclear@gmail.com
+                                        </a>
+                                    </div>
                                 </div>
+                                <p className="mt-4 text-sm italic text-foreground/60">
+                                    Users may request a full copy of their tracked data or permanent account deletion by mailing either of the addresses above.
+                                </p>
                             </Section>
                         </div>
                     </>
