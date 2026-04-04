@@ -8,10 +8,43 @@ const DEFAULT_LAST_UPDATED = "April 4, 2026";
 function Section({ title, children }) {
     return (
         <section className="space-y-3">
-            <h2 className="text-lg font-semibold tracking-tight text-foreground">{title}</h2>
+            <h2 className="text-xl font-bold tracking-tight text-foreground">{title}</h2>
             <div className="space-y-3 text-sm leading-relaxed text-foreground/85">{children}</div>
         </section>
     );
+}
+
+function renderMarkdown(text) {
+    if (!text) return null;
+    
+    return text.split("\n\n").map((block, i) => {
+        const trimmed = block.trim();
+        if (!trimmed) return null;
+
+        // Headers
+        if (trimmed.startsWith("### ")) {
+            return (
+                <h2 key={i} className="text-xl font-bold tracking-tight text-foreground mt-10 mb-4 First:mt-0">
+                    {trimmed.replace("### ", "")}
+                </h2>
+            );
+        }
+
+        // Bolding (simple)
+        const parts = trimmed.split(/(\*\*.*?\*\*)/g);
+        const rendered = parts.map((part, j) => {
+            if (part.startsWith("**") && part.endsWith("**")) {
+                return <strong key={j} className="font-bold text-foreground">{part.slice(2, -2)}</strong>;
+            }
+            return part;
+        });
+
+        return (
+            <p key={i} className="text-sm leading-relaxed text-foreground/80 mb-4 last:mb-0">
+                {rendered}
+            </p>
+        );
+    });
 }
 
 const DEFAULT_SUPPORT_EMAIL = "thefreelancer2076@gmail.com, crystalcclera@gmail.com";
@@ -48,8 +81,8 @@ export default function TermsOfServicePage() {
                 </p>
 
                 {dynamicContent ? (
-                    <div className="mt-12 whitespace-pre-wrap text-sm leading-relaxed text-foreground/85">
-                        {dynamicContent}
+                    <div className="mt-12">
+                        {renderMarkdown(dynamicContent)}
                     </div>
                 ) : (
                     <>
