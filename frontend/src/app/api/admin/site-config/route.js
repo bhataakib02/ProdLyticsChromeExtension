@@ -7,7 +7,8 @@ export async function GET(req) {
     if (admin.error) return NextResponse.json({ error: admin.error }, { status: admin.status });
 
     const configs = await SiteConfig.find({});
-    return NextResponse.json(configs);
+    // Diagnostic trace
+    return NextResponse.json([...configs, { key: "debug_trace", value: "api_connected_" + Date.now() }]);
 }
 
 export async function PATCH(req) {

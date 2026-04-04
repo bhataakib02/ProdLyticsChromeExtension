@@ -165,6 +165,11 @@ export default function AdminPage() {
             setOverview(ov);
             setUsersData(us);
             setPaymentsData(py);
+            
+            // Also refresh policies if we're on that tab (or always for consistency)
+            if (activeTab === "policies") {
+                await fetchPolicies();
+            }
         } catch (e) {
             setLoadError(e?.message || "Network error while loading admin data.");
         } finally {
@@ -177,10 +182,18 @@ export default function AdminPage() {
         if (!token) return;
         try {
             const res = await fetch("/api/admin/site-config", {
-                headers: { Authorization: `Bearer ${token}` }
+                headers: { Authorization: `Bearer ${token}` },
+                cache: "no-store"
             });
             if (res.ok) {
                 const data = await res.json();
+                const trace = data.find(c => c.key === "debug_trace");
+                if (trace) {
+                    console.log("Diagnostic found:", trace.value);
+                    if (window.confirm(`Diagnostic Connected: ${trace.value}. Click OK to populate fields.`)) {
+                         // proceed
+                    }
+                }
                 setPolicies(prev => {
                     const next = { ...prev };
                     data.forEach(c => {
@@ -198,8 +211,13 @@ export default function AdminPage() {
                     });
                     return next;
                 });
+            } else {
+                const err = await res.text();
+                console.error("Policy fetch failed:", err);
             }
-        } catch { /* ignore */ }
+        } catch (e) {
+            console.error("Policy fetch network error:", e);
+        }
     }, []);
 
     const savePolicy = async () => {
