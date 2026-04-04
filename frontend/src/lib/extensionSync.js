@@ -80,6 +80,37 @@ export function bridgeClearAccessToken() {
 }
 
 /**
+ * Explicitly pull the anonymous deviceKey from the extension (chrome.storage).
+ * Used as a 2nd-stage check in AuthContext if localStorage is empty.
+ */
+export function bridgeGetDeviceKey({ timeoutMs = 1500 } = {}) {
+    if (typeof window === "undefined" || !isProdlyticsDashboardPage()) {
+        return Promise.resolve("");
+    }
+    return new Promise((resolve) => {
+        const nonce = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const timer = setTimeout(() => {
+            window.removeEventListener("message", onReply);
+            resolve("");
+        }, timeoutMs);
+        function onReply(event) {
+            if (event.source !== window) return;
+            if (event.origin !== window.location.origin) return;
+            if (event.data?.source !== BRIDGE_REPLY_SOURCE) return;
+            if (event.data?.type !== "PRODLYTICS_DEVICE_KEY_REPLY" || event.data?.nonce !== nonce) return;
+            clearTimeout(timer);
+            window.removeEventListener("message", onReply);
+            resolve(event.data.deviceKey || "");
+        }
+        window.addEventListener("message", onReply);
+        window.postMessage(
+            { type: "PRODLYTICS_GET_DEVICE_KEY", source: "prodlytics-dashboard", nonce },
+            window.location.origin
+        );
+    });
+}
+
+/**
  * Shows a ProdLytics toast on whatever tab is currently focused (via extension),
  * not only the dashboard. Falls back to a system notification if the active tab
  * cannot run the content script (e.g. chrome:// URLs).

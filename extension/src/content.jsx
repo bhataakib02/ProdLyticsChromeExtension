@@ -72,7 +72,9 @@ function safeRuntimeSendMessage(payload) {
                 } catch {
                     /* ignore */
                 }
-                let canonical = pageK || extK;
+                // Extension storage is the source of truth (persists across browser restarts).
+                // Fall back to page key only when no extension key exists yet.
+                let canonical = extK || pageK;
                 if (!canonical) {
                     canonical = crypto.randomUUID();
                 }
@@ -83,12 +85,19 @@ function safeRuntimeSendMessage(payload) {
                 } catch {
                     /* ignore */
                 }
+                try {
+                    sessionStorage.setItem(PRODLYTICS_ANONYMOUS_DEVICE_KEY, canonical);
+                } catch {
+                    /* ignore */
+                }
                 if (canonical !== extK) {
                     chrome.storage.local.set({ [PRODLYTICS_ANONYMOUS_DEVICE_KEY]: canonical });
                 }
             });
         }
         syncAnonymousDeviceKeyWithExtension();
+        // Secondary sync after 2 seconds to catch any race conditions where React app started first
+        setTimeout(syncAnonymousDeviceKeyWithExtension, 2000);
 
         chrome.storage.local.get(["accessToken"], (r) => {
             if (chrome.runtime.lastError) return;
@@ -167,6 +176,23 @@ function safeRuntimeSendMessage(payload) {
                 safeRuntimeSendMessage({ action: "syncAll" });
                 return;
             }
+
+            if (event.data?.type === "PRODLYTICS_GET_DEVICE_KEY") {
+                const nonce = event.data.nonce;
+                chrome.storage.local.get([PRODLYTICS_ANONYMOUS_DEVICE_KEY], (r) => {
+                    window.postMessage(
+                        {
+                            source: "prodlytics-extension-bridge",
+                            type: "PRODLYTICS_DEVICE_KEY_REPLY",
+                            nonce,
+                            deviceKey: r[PRODLYTICS_ANONYMOUS_DEVICE_KEY] || "",
+                        },
+                        origin
+                    );
+                });
+                return;
+            }
+
             if (event.data?.type === "PRODLYTICS_WORKSPACE_TOAST") {
                 safeRuntimeSendMessage({
                     action: "workspaceToastFromDashboard",

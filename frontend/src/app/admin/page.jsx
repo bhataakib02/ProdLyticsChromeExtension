@@ -379,28 +379,28 @@ export default function AdminPage() {
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={chartData}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border-ui-muted)" vertical={false} />
-                                    <XAxis 
-                                        dataKey="day" 
+                                    <XAxis
+                                        dataKey="day"
                                         axisLine={false}
                                         tickLine={false}
-                                        tick={{ fontSize: 11, fill: "var(--color-muted)" }} 
+                                        tick={{ fontSize: 11, fill: "var(--color-muted)" }}
                                         dy={10}
                                     />
-                                    <YAxis 
-                                        allowDecimals={false} 
+                                    <YAxis
+                                        allowDecimals={false}
                                         axisLine={false}
                                         tickLine={false}
-                                        tick={{ fontSize: 11, fill: "var(--color-muted)" }} 
+                                        tick={{ fontSize: 11, fill: "var(--color-muted)" }}
                                     />
                                     <Tooltip content={<CustomTooltip />} />
-                                    <Line 
-                                        type="monotone" 
-                                        dataKey="users" 
-                                        stroke="var(--color-primary)" 
-                                        strokeWidth={3} 
+                                    <Line
+                                        type="monotone"
+                                        dataKey="users"
+                                        stroke="var(--color-primary)"
+                                        strokeWidth={3}
                                         dot={{ r: 4, fill: "var(--color-primary)", strokeWidth: 2, stroke: "var(--color-background)" }}
                                         activeDot={{ r: 6, strokeWidth: 0 }}
-                                        name="New users" 
+                                        name="New users"
                                     />
                                 </LineChart>
                             </ResponsiveContainer>
@@ -415,24 +415,24 @@ export default function AdminPage() {
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={chartData}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border-ui-muted)" vertical={false} />
-                                    <XAxis 
-                                        dataKey="day" 
+                                    <XAxis
+                                        dataKey="day"
                                         axisLine={false}
                                         tickLine={false}
-                                        tick={{ fontSize: 11, fill: "var(--color-muted)" }} 
+                                        tick={{ fontSize: 11, fill: "var(--color-muted)" }}
                                         dy={10}
                                     />
-                                    <YAxis 
+                                    <YAxis
                                         axisLine={false}
                                         tickLine={false}
-                                        tick={{ fontSize: 11, fill: "var(--color-muted)" }} 
+                                        tick={{ fontSize: 11, fill: "var(--color-muted)" }}
                                     />
                                     <Tooltip content={<CustomTooltip />} />
-                                    <Bar 
-                                        dataKey="revenueINR" 
-                                        fill="var(--color-success)" 
+                                    <Bar
+                                        dataKey="revenueINR"
+                                        fill="var(--color-success)"
                                         radius={[4, 4, 0, 0]}
-                                        name="Revenue (INR)" 
+                                        name="Revenue (INR)"
                                     />
                                 </BarChart>
                             </ResponsiveContainer>
@@ -463,25 +463,27 @@ export default function AdminPage() {
                             <option value="free">Free</option>
                             <option value="pro">Pro</option>
                         </select>
-                        <button type="button" onClick={exportUsersCsv} className="flex items-center gap-2 rounded-xl border border-ui bg-background px-4 py-2 text-sm font-bold text-foreground hover:bg-foreground/5">
+                        <button type="button" onClick={exportUsersCsv} className="flex h-10 items-center gap-2 rounded-xl border border-ui bg-background px-4 text-sm font-bold text-foreground hover:bg-foreground/5 transition-colors">
                             <Download size={14} />
                             <span>Export</span>
                         </button>
                     </div>
-                    <h2 className="mb-2 text-sm font-bold text-foreground">Users ({usersData.total || 0})</h2>
-                    <div className="max-h-96 overflow-x-auto overflow-y-auto text-sm">
-                        <table className="w-full min-w-[720px]">
-                            <thead className="text-left text-xs text-muted">
-                                <tr>
-                                    <th className="py-2">Name</th>
-                                    <th>Email</th>
-                                    <th>Type</th>
-                                    <th>Plan</th>
-                                    <th>Role</th>
-                                    <th className="w-10 text-right"> </th>
+                    <div className="mb-4 flex items-center justify-between">
+                        <h2 className="text-sm font-bold text-foreground">Users ({usersData.total || 0})</h2>
+                    </div>
+                    <div className="max-h-[500px] overflow-x-auto overflow-y-auto text-sm no-scrollbar border-t border-ui-muted">
+                        <table className="w-full min-w-[760px] border-collapse">
+                            <thead className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+                                <tr className="text-left text-[10px] font-black uppercase tracking-widest text-muted">
+                                    <th className="px-4 py-4">Name</th>
+                                    <th className="px-4 py-4">Email</th>
+                                    <th className="px-4 py-4">Type</th>
+                                    <th className="px-4 py-4">Plan</th>
+                                    <th className="px-4 py-4">Role</th>
+                                    <th className="px-4 py-4 text-right"> </th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-ui-muted">
                                 {usersData.users?.map((u) => (
                                     <Fragment key={u.id}>
                                         <tr
@@ -494,77 +496,80 @@ export default function AdminPage() {
                                                     setExpandedUserId((id) => (id === u.id ? null : u.id));
                                                 }
                                             }}
-                                            className="group cursor-pointer border-t border-ui-muted transition-colors hover:bg-foreground/[0.02]"
+                                            className={cn(
+                                                "group cursor-pointer transition-all hover:bg-foreground/[0.03]",
+                                                expandedUserId === u.id ? "bg-foreground/[0.04]" : ""
+                                            )}
                                         >
-                                            <td className="py-2 font-medium text-foreground max-w-[150px] truncate" title={u.name}>{u.name}</td>
-                                            <td className="max-w-[200px] truncate" title={u.email}>{u.email || "-"}</td>
-                                            <td>{u.isAnonymous ? "Anonymous" : "Registered"}</td>
-                                            <td className="uppercase">{u.subscription}</td>
-                                            <td>{u.role}</td>
-                                            <td className="text-right text-muted" aria-hidden>
-                                                {expandedUserId === u.id ? "▲" : "▼"}
+                                            <td className="px-4 py-4 font-bold text-foreground max-w-[160px] truncate" title={u.name}>{u.name || "Anonymous User"}</td>
+                                            <td className="px-4 py-4 text-muted max-w-[200px] truncate font-medium" title={u.email}>{u.email || "-"}</td>
+                                            <td className="px-4 py-4">
+                                                <Badge variant={u.isAnonymous ? "neutral" : "primary"}>
+                                                    {u.isAnonymous ? "Anonymous" : "Registered"}
+                                                </Badge>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <Badge variant={u.subscription === "pro" ? "warning" : "secondary"}>
+                                                    {u.subscription?.toUpperCase()}
+                                                </Badge>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <Badge variant={u.role === "admin" ? "indigo" : "outline"}>
+                                                    {u.role}
+                                                </Badge>
+                                            </td>
+                                            <td className="px-4 py-4 text-right text-muted" aria-hidden>
+                                                <div className={cn("inline-flex h-6 w-6 items-center justify-center rounded-lg border border-ui transition-transform", expandedUserId === u.id ? "rotate-180 bg-primary/10 text-primary border-primary/20" : "")}>
+                                                    <Filter size={10} className="rotate-90" />
+                                                </div>
                                             </td>
                                         </tr>
                                         {expandedUserId === u.id ? (
-                                            <tr className="border-t border-ui-muted bg-foreground/[0.035]">
-                                                <td colSpan={6} className="px-3 py-3">
+                                            <tr className="bg-foreground/[0.02]">
+                                                <td colSpan={6} className="px-4 py-6 border-ui-muted/50">
                                                     <div
-                                                        className="flex min-w-[240px] flex-col gap-2"
+                                                        className="flex flex-wrap gap-3"
                                                         onClick={(e) => e.stopPropagation()}
                                                         onKeyDown={(e) => e.stopPropagation()}
                                                     >
-                                                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
-                                                            Actions for this user
+                                                        <p className="w-full mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
+                                                            User Management Actions
                                                         </p>
                                                         <button
                                                             type="button"
                                                             disabled={userExportBusy === u.id}
                                                             onClick={() => downloadUserDataExport(u.id, "csv")}
-                                                            className="rounded-lg border px-3 py-2 text-left text-xs font-semibold transition-colors disabled:opacity-50"
-                                                            style={{ 
-                                                                backgroundColor: 'var(--success-badge-bg)', 
-                                                                color: 'var(--success-badge-text)',
-                                                                borderColor: 'var(--success-badge-border)'
-                                                            }}
+                                                            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-ui bg-background px-4 text-xs font-bold text-foreground transition-all hover:bg-foreground/5 disabled:opacity-40"
                                                             title="ZIP of CSV files (Excel/Sheets) — full export."
                                                         >
-                                                            {userExportBusy === u.id ? "Preparing…" : "Their data · CSV (ZIP)"}
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            disabled={userExportBusy === u.id}
-                                                            onClick={() => downloadUserDataExport(u.id, "pdf")}
-                                                            className="rounded-lg border px-3 py-2 text-left text-xs font-semibold transition-colors disabled:opacity-50"
-                                                            style={{ 
-                                                                backgroundColor: 'var(--danger-badge-bg)', 
-                                                                color: 'var(--danger-badge-text)',
-                                                                borderColor: 'var(--danger-badge-border)'
-                                                            }}
-                                                        >
-                                                            Their data · PDF summary
+                                                            <Download size={14} />
+                                                            {userExportBusy === u.id ? "Syncing…" : "Export Data"}
                                                         </button>
                                                         <button
                                                             type="button"
                                                             onClick={() => updateUserRole(u.id, u.role === "admin" ? "user" : "admin")}
-                                                            className="rounded-lg border border-white/25 bg-foreground/[0.06] px-3 py-2 text-left text-xs font-semibold hover:bg-foreground/10"
+                                                            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-ui bg-background px-4 text-xs font-bold text-foreground transition-all hover:bg-foreground/5"
                                                         >
-                                                            {u.role === "admin" ? "Remove admin role" : "Promote to admin"}
+                                                            <Shield size={14} />
+                                                            {u.role === "admin" ? "Revoke Admin" : "Grant Admin"}
                                                         </button>
                                                         {u.subscription === "pro" ? (
                                                             <button
                                                                 type="button"
                                                                 onClick={() => updateUserSubscription(u.id, "free")}
-                                                                className="rounded-lg border border-white/25 px-3 py-2 text-left text-xs font-semibold hover:bg-foreground/10"
+                                                                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-ui bg-background px-4 text-xs font-bold text-muted-foreground/60 transition-all hover:bg-foreground/5"
                                                             >
-                                                                Set plan: Free
+                                                                <RefreshCw size={14} />
+                                                                Downgrade to Free
                                                             </button>
                                                         ) : (
                                                             <button
                                                                 type="button"
                                                                 onClick={() => updateUserSubscription(u.id, "pro")}
-                                                                className="rounded-lg border border-primary/35 bg-primary/15 px-3 py-2 text-left text-xs font-semibold text-primary hover:bg-primary/25"
+                                                                className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-amber-400 px-4 text-xs font-black text-amber-950 shadow-lg shadow-amber-400/20 transition-all hover:opacity-90"
                                                             >
-                                                                Grant ProdLytics Pro
+                                                                <Crown size={14} />
+                                                                Upgrade to Pro
                                                             </button>
                                                         )}
                                                     </div>
@@ -578,51 +583,51 @@ export default function AdminPage() {
                     </div>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-background p-4">
-                    <div className="mb-4 flex flex-wrap items-center gap-3">
+                <div className="rounded-2xl border border-ui bg-background p-1 shadow-sm">
+                    <div className="flex flex-wrap items-center gap-3 p-3">
                         <div className="relative min-w-0 flex-1 sm:min-w-[280px]">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
                             <input
                                 value={paymentQuery}
                                 onChange={(e) => setPaymentQuery(e.target.value)}
                                 placeholder="Search by email..."
-                                className="w-full rounded-xl border border-ui bg-background/50 pl-10 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-shadow"
+                                className="h-10 w-full rounded-xl border border-ui bg-background/50 pl-10 pr-4 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                             />
                         </div>
                         <select
                             value={paymentStatus}
                             onChange={(e) => setPaymentStatus(e.target.value)}
-                            className="rounded-xl border border-ui bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                            className="h-10 rounded-xl border border-ui bg-background px-3 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 appearance-none min-w-[120px]"
                         >
-                            <option value="all">All Statuses</option>
+                            <option value="all">All States</option>
                             <option value="paid">Paid</option>
                             <option value="pending">Pending</option>
                             <option value="failed">Failed</option>
-                            <option value="canceled">Canceled</option>
                             <option value="refunded">Refunded</option>
                         </select>
-                        <button type="button" onClick={exportPaymentsCsv} className="flex items-center gap-2 rounded-xl border border-ui bg-background px-4 py-2 text-sm font-bold text-foreground hover:bg-foreground/5">
+                        <button type="button" onClick={exportPaymentsCsv} className="flex h-10 items-center gap-2 rounded-xl border border-ui bg-background px-4 text-sm font-bold text-foreground hover:bg-foreground/5 transition-colors">
                             <Download size={14} />
                             <span>Export</span>
                         </button>
                     </div>
-                    <h2 className="mb-2 text-sm font-bold text-foreground">
-                        Payments ({paymentsData.total || 0}) - {inrFromMinor(paymentsData.totalRevenue || 0)}
-                    </h2>
-                    <p className="mb-2 text-[11px] text-muted">Tap a payment row for refunds and Stripe IDs.</p>
-                    <div className="max-h-96 overflow-x-auto overflow-y-auto text-sm">
-                        <table className="w-full min-w-[720px]">
-                            <thead className="text-left text-xs text-muted">
-                                <tr>
-                                    <th className="py-2">Email</th>
-                                    <th>Amount</th>
-                                    <th>Status</th>
-                                    <th>Type</th>
-                                    <th>Time</th>
-                                    <th className="w-10 text-right"> </th>
+                    <div className="px-4 py-1">
+                        <h2 className="text-sm font-bold text-foreground">
+                            Payments ({paymentsData.total || 0}) <span className="mx-2 opacity-30">/</span> <span className="text-success">{inrFromMinor(paymentsData.totalRevenue || 0)}</span>
+                        </h2>
+                    </div>
+                    <div className="max-h-[500px] overflow-x-auto overflow-y-auto text-sm no-scrollbar border-t border-ui-muted mt-3">
+                        <table className="w-full min-w-[760px] border-collapse">
+                            <thead className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+                                <tr className="text-left text-[10px] font-black uppercase tracking-widest text-muted">
+                                    <th className="px-4 py-4">Customer</th>
+                                    <th className="px-4 py-4">Amount</th>
+                                    <th className="px-4 py-4">Status</th>
+                                    <th className="px-4 py-4">Type</th>
+                                    <th className="px-4 py-4">Date</th>
+                                    <th className="px-4 py-4 text-right"> </th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-ui-muted">
                                 {paymentsData.payments?.map((p) => (
                                     <Fragment key={p.id}>
                                         <tr
@@ -635,60 +640,72 @@ export default function AdminPage() {
                                                     setExpandedPaymentId((id) => (id === p.id ? null : p.id));
                                                 }
                                             }}
-                                            className="cursor-pointer border-t border-ui-muted hover:bg-foreground/[0.04]"
+                                            className={cn(
+                                                "group cursor-pointer transition-all hover:bg-foreground/[0.03]",
+                                                expandedPaymentId === p.id ? "bg-foreground/[0.04]" : ""
+                                            )}
                                         >
-                                            <td className="py-2 font-medium text-foreground">{p.email || "-"}</td>
-                                            <td>{inrFromMinor(p.amount)}</td>
-                                            <td className="capitalize">{p.status}</td>
-                                            <td>{p.type}</td>
-                                            <td>{dateFmt(p.createdAt)}</td>
-                                            <td className="text-right text-muted" aria-hidden>
-                                                {expandedPaymentId === p.id ? "▲" : "▼"}
+                                            <td className="px-4 py-4 font-bold text-foreground">{p.email || "Guest"}</td>
+                                            <td className="px-4 py-4 font-medium text-foreground">{inrFromMinor(p.amount)}</td>
+                                            <td className="px-4 py-4">
+                                                <Badge
+                                                    variant={
+                                                        p.status === "paid" ? "success" :
+                                                            p.status === "refunded" ? "neutral" :
+                                                                p.status === "failed" ? "danger" : "warning"
+                                                    }
+                                                >
+                                                    {p.status}
+                                                </Badge>
+                                            </td>
+                                            <td className="px-4 py-4 text-muted font-medium">{p.type}</td>
+                                            <td className="px-4 py-4 text-muted font-medium">{dateFmt(p.createdAt)}</td>
+                                            <td className="px-4 py-4 text-right text-muted" aria-hidden>
+                                                <div className={cn("inline-flex h-6 w-6 items-center justify-center rounded-lg border border-ui transition-transform", expandedPaymentId === p.id ? "rotate-180 bg-primary/10 text-primary border-primary/20" : "")}>
+                                                    <Filter size={10} className="rotate-90" />
+                                                </div>
                                             </td>
                                         </tr>
                                         {expandedPaymentId === p.id ? (
-                                            <tr className="border-t border-ui-muted bg-foreground/[0.035]">
-                                                <td colSpan={6} className="px-3 py-3">
+                                            <tr className="bg-foreground/[0.02]">
+                                                <td colSpan={6} className="px-4 py-6 border-ui-muted/50">
                                                     <div
-                                                        className="flex min-w-[188px] flex-col gap-2"
+                                                        className="flex flex-wrap gap-3"
                                                         onClick={(e) => e.stopPropagation()}
                                                     >
-                                                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
-                                                            Actions for this payment
+                                                        <p className="w-full mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
+                                                            Financial & Support Actions
                                                         </p>
                                                         {p.status === "paid" ? (
                                                             <button
                                                                 type="button"
                                                                 onClick={() => markRefunded(p.id)}
-                                                                className="rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-left text-xs font-semibold text-amber-100 hover:bg-amber-400/20"
+                                                                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-ui bg-background px-4 text-xs font-bold text-foreground transition-all hover:bg-foreground/5"
                                                             >
-                                                                Mark refunded (dashboard only)
+                                                                <RefreshCw size={14} />
+                                                                Mark Refunded (Local Only)
                                                             </button>
-                                                        ) : p.status === "refunded" ? (
-                                                            <span className="rounded-lg border border-white/10 px-3 py-2 text-xs text-muted">
-                                                                Recorded as refunded — issue refunds in Stripe if needed.
-                                                            </span>
                                                         ) : (
-                                                            <span className="rounded-lg border border-white/10 px-3 py-2 text-xs text-muted">
-                                                                No dashboard action for “{p.status}”. Update via Stripe or webhooks.
+                                                            <span className="inline-flex h-9 items-center rounded-xl border border-ui/50 bg-foreground/[0.02] px-4 text-xs font-bold text-muted-foreground/50">
+                                                                Status: {p.status}
                                                             </span>
                                                         )}
                                                         {p.stripeSessionId ? (
                                                             <button
                                                                 type="button"
                                                                 onClick={() => copyText(p.stripeSessionId)}
-                                                                className="rounded-lg border border-white/20 px-3 py-2 text-left text-xs font-medium hover:bg-foreground/10"
+                                                                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-ui bg-background px-4 text-xs font-bold text-foreground transition-all hover:bg-foreground/5"
                                                             >
-                                                                Copy Stripe session ID
+                                                                Copy Stripe Session
                                                             </button>
                                                         ) : null}
                                                         {p.stripeSubscriptionId ? (
                                                             <button
                                                                 type="button"
                                                                 onClick={() => copyText(p.stripeSubscriptionId)}
-                                                                className="rounded-lg border border-white/20 px-3 py-2 text-left text-xs font-medium hover:bg-foreground/10"
+                                                                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-ui bg-background px-4 text-xs font-bold text-foreground transition-all hover:bg-foreground/5"
                                                             >
-                                                                Copy subscription ID
+                                                                Copy Subscription ID
                                                             </button>
                                                         ) : null}
                                                     </div>
@@ -703,7 +720,9 @@ export default function AdminPage() {
                 </div>
             </section>
 
-            {pending ? <p className="text-sm text-muted">Loading admin data...</p> : null}
+            {pending ? (
+                <p className="text-sm text-muted">Loading admin data...</p>
+            ) : null}
         </div>
     );
 }
@@ -734,14 +753,36 @@ function StatCard({ label, value, icon, color }) {
     };
 
     return (
-        <div className="glass-card group flex items-center gap-4 rounded-2xl border border-ui p-6 transition-all hover:border-primary/20 hover:shadow-lg">
-            <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${colorMap[color] || "bg-foreground/5"}`}>
+        <div className="glass-card group flex items-center gap-5 rounded-2xl border border-ui p-6 transition-all hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5">
+            <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${colorMap[color] || "bg-foreground/5"} transition-transform group-hover:scale-110`}>
                 {icon}
             </div>
             <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">{label}</p>
-                <p className="text-2xl font-black tracking-tight text-foreground">{value}</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">{label}</p>
+                <p className="text-3xl font-black tracking-tight text-foreground">{value}</p>
             </div>
         </div>
+    );
+}
+
+function Badge({ children, variant = "neutral" }) {
+    const variants = {
+        primary: "bg-primary/10 text-primary border-primary/20",
+        secondary: "bg-secondary/10 text-secondary border-secondary/20",
+        success: "bg-success/10 text-success border-success/20",
+        warning: "bg-amber-400/10 text-amber-500 border-amber-400/20",
+        danger: "bg-red-500/10 text-red-500 border-red-500/20",
+        indigo: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+        neutral: "bg-foreground/5 text-muted-foreground/80 border-ui",
+        outline: "border-ui text-muted-foreground/70",
+    };
+
+    return (
+        <span className={cn(
+            "inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all",
+            variants[variant] || variants.neutral
+        )}>
+            {children}
+        </span>
     );
 }

@@ -6,6 +6,7 @@ import axios from "axios";
 import {
     requestExtensionSync,
     bridgeGetAccessToken,
+    bridgeGetDeviceKey,
     bridgeSetAccessToken,
     bridgeClearAccessToken,
 } from "@/lib/extensionSync";
@@ -103,10 +104,11 @@ export function AuthProvider({ children }) {
             setBootstrapError("");
             try {
                 if (typeof window !== "undefined") {
-                    await new Promise((r) => setTimeout(r, 120));
+                    // Small delay to ensure content scripts have started injecting
+                    await new Promise((r) => setTimeout(r, 400));
                 }
                 const fromBridge =
-                    typeof window !== "undefined" ? await bridgeGetAccessToken({ timeoutMs: 550 }) : null;
+                    typeof window !== "undefined" ? await bridgeGetAccessToken({ timeoutMs: 1500 }) : null;
                 const fromLs = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
 
                 const trySession = async (t) => {
@@ -140,16 +142,32 @@ export function AuthProvider({ children }) {
 
                 bridgeClearAccessToken();
 
-                let deviceKey = await waitForSyncedAnonymousDeviceKey(450);
+                // PERMANENT FIX: Multi-stage wait for anonymous device key
+                let deviceKey = await waitForSyncedAnonymousDeviceKey(2500);
+
+                // Final on-demand check against the bridge if sync hasn't happened yet
+                if (!deviceKey && typeof window !== "undefined") {
+                    deviceKey = await bridgeGetDeviceKey({ timeoutMs: 1200 });
+                }
+
                 if (!deviceKey) deviceKey = getOrCreateAnonymousDeviceKey();
+
                 const anonBody = deviceKey ? { deviceKey } : {};
 
                 const { data } = await axios.post(`${API_URL}/auth/anonymous`, anonBody);
                 if (!data?.accessToken) {
                     throw new Error("No session token from server.");
                 }
-                if (typeof window !== "undefined") localStorage.setItem("accessToken", data.accessToken);
+                // Persist token to extension storage (chrome.storage.local) via the bridge
+                // so it survives browser restarts and new window sessions.
                 bridgeSetAccessToken(data.accessToken);
+                if (typeof window !== "undefined") {
+                    localStorage.setItem("accessToken", data.accessToken);
+                    // Also persist the deviceKey to sessionStorage for fast future lookups
+                    if (deviceKey) {
+                        try { sessionStorage.setItem("prodlytics_anonymous_device_key", deviceKey); } catch { /* ignore */ }
+                    }
+                }
                 const sessionUser = await loadSession(data.accessToken);
                 if (!cancelled) setUser(sessionUser);
             } catch (err) {
