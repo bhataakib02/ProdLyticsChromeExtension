@@ -181,23 +181,26 @@ export default function AdminPage() {
             });
             if (res.ok) {
                 const data = await res.json();
-                const newPolicies = { ...policies };
-                const newPolicyDates = { ...policyDates };
-                data.forEach(c => {
-                    if (newPolicies.hasOwnProperty(c.key)) {
-                        newPolicies[c.key] = c.value;
-                    } else if (c.key.endsWith("_date")) {
-                        const baseKey = c.key.replace("_date", "");
-                        if (newPolicyDates.hasOwnProperty(baseKey)) {
-                            newPolicyDates[baseKey] = c.value;
-                        }
-                    }
+                setPolicies(prev => {
+                    const next = { ...prev };
+                    data.forEach(c => {
+                        if (next.hasOwnProperty(c.key)) next[c.key] = c.value;
+                    });
+                    return next;
                 });
-                setPolicies(newPolicies);
-                setPolicyDates(newPolicyDates);
+                setPolicyDates(prev => {
+                    const next = { ...prev };
+                    data.forEach(c => {
+                        if (c.key.endsWith("_date")) {
+                            const baseKey = c.key.replace("_date", "");
+                            if (next.hasOwnProperty(baseKey)) next[baseKey] = c.value;
+                        }
+                    });
+                    return next;
+                });
             }
         } catch { /* ignore */ }
-    }, [policies]);
+    }, []);
 
     const savePolicy = async () => {
         const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;

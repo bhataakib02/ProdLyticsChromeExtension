@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/prodlytics";
+const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/prodlytics";
 
 const SiteConfigSchema = new mongoose.Schema({
     key: { type: String, required: true, unique: true },
@@ -55,7 +55,7 @@ const policies = [
 
 async function seed() {
     try {
-        await mongoose.connect(MONGODB_URI);
+        await mongoose.connect(MONGO_URI);
         console.log("Connected to MongoDB for seeding...");
 
         for (const p of policies) {
