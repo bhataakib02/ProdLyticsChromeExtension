@@ -8,24 +8,11 @@ export async function GET(req) {
     if (admin.error) return NextResponse.json({ error: admin.error }, { status: admin.status });
 
     const db = mongoose.connection.db;
-    let configs = await db.collection("siteconfigs").find({}).toArray();
+    const configs = await db.collection("siteconfigs").find({}).toArray();
     
-    let debugMsg = "db_" + mongoose.connection.name;
-    if (configs.length === 0) {
-        try {
-            const cols = await db.listCollections().toArray();
-            debugMsg += "_cols_" + cols.map(c => c.name).join(",");
-        } catch (e) {
-            debugMsg += "_err_" + e.message;
-        }
-    } else {
-        debugMsg += "_found_" + configs.length;
-    }
-    
-    return NextResponse.json([
-        ...configs.map(c => ({ ...c, _id: c._id?.toString(), id: c._id?.toString() })), 
-        { key: "debug_trace", value: debugMsg + "_" + Date.now() }
-    ]);
+    return NextResponse.json(
+        configs.map(c => ({ ...c, _id: c._id?.toString(), id: c._id?.toString() }))
+    );
 }
 
 export async function PATCH(req) {

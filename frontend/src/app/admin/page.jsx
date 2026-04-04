@@ -187,25 +187,18 @@ export default function AdminPage() {
             });
             if (res.ok) {
                 const data = await res.json();
-                const trace = data.find(c => c.key === "debug_trace");
-                alert("Diagnostic: " + (trace ? trace.value : "No trace") + "\nFull Data Count: " + data.length + "\nKeys: " + data.map(d => d.key).join(", "));
-                setPolicies(prev => {
-                    const next = { ...prev };
-                    data.forEach(c => {
-                        if (next.hasOwnProperty(c.key)) next[c.key] = c.value;
-                    });
-                    return next;
+                const contentBatch = {};
+                const dateBatch = {};
+                data.forEach(c => {
+                    if (["privacy_policy", "terms_of_service", "cookie_policy"].includes(c.key)) {
+                        contentBatch[c.key] = c.value;
+                    } else if (c.key.endsWith("_date")) {
+                        const baseKey = c.key.replace("_date", "");
+                        dateBatch[baseKey] = c.value;
+                    }
                 });
-                setPolicyDates(prev => {
-                    const next = { ...prev };
-                    data.forEach(c => {
-                        if (c.key.endsWith("_date")) {
-                            const baseKey = c.key.replace("_date", "");
-                            if (next.hasOwnProperty(baseKey)) next[baseKey] = c.value;
-                        }
-                    });
-                    return next;
-                });
+                setPolicies(prev => ({ ...prev, ...contentBatch }));
+                setPolicyDates(prev => ({ ...prev, ...dateBatch }));
             } else {
                 const err = await res.text();
                 console.error("Policy fetch failed:", err);
