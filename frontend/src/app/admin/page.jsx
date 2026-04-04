@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import JSZip from "jszip";
 import {
     AreaChart,
     Area,
@@ -94,9 +95,20 @@ export default function AdminPage() {
 
     // Dynamic Enhancements
     const [activeTab, setActiveTab] = useState("overview"); // "overview" | "policies"
-    const [privacyPolicy, setPrivacyPolicy] = useState("");
+
+    // Policy Suite
+    const [policyKey, setPolicyKey] = useState("privacy_policy");
+    const [policies, setPolicies] = useState({
+        privacy_policy: "",
+        terms_of_service: "",
+        cookie_policy: "",
+    });
     const [savingPolicy, setSavingPolicy] = useState(false);
     const [policyMsg, setPolicyMsg] = useState({ type: "", text: "" });
+
+    // Bulk Actions
+    const [selectedUserIds, setSelectedUserIds] = useState(new Set());
+    const [isBulkLoading, setIsBulkLoading] = useState(false);
 
     useEffect(() => {
         if (loading) return;
@@ -153,9 +165,9 @@ export default function AdminPage() {
         } finally {
             setPending(false);
         }
-    }, [fromDate, toDate, userKind, userSub, userQuery, paymentStatus, paymentQuery]);
+    }, [fromDate, toDate, userQuery, userKind, userSub, paymentQuery, paymentStatus]);
 
-    const fetchPrivacyPolicy = useCallback(async () => {
+    const fetchPolicies = useCallback(async () => {
         const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
         if (!token) return;
         try {
@@ -164,13 +176,18 @@ export default function AdminPage() {
             });
             if (res.ok) {
                 const data = await res.json();
-                const p = data.find(c => c.key === "privacy_policy");
-                if (p) setPrivacyPolicy(p.value);
+                const newPolicies = { ...policies };
+                data.forEach(c => {
+                    if (newPolicies.hasOwnProperty(c.key)) {
+                        newPolicies[c.key] = c.value;
+                    }
+                });
+                setPolicies(newPolicies);
             }
         } catch { /* ignore */ }
-    }, []);
+    }, [policies]);
 
-    const savePrivacyPolicy = async () => {
+    const savePolicy = async () => {
         const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
         if (!token) return;
         setSavingPolicy(true);
@@ -182,10 +199,10 @@ export default function AdminPage() {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`
                 },
-                body: JSON.stringify({ key: "privacy_policy", value: privacyPolicy })
+                body: JSON.stringify({ key: policyKey, value: policies[policyKey] })
             });
             if (res.ok) {
-                setPolicyMsg({ type: "success", text: "Privacy policy updated successfully!" });
+                setPolicyMsg({ type: "success", text: `${policyKey.split('_').join(' ')} updated successfully!` });
             } else {
                 setPolicyMsg({ type: "error", text: "Failed to update policy." });
             }
@@ -197,24 +214,86 @@ export default function AdminPage() {
     };
 
     useEffect(() => {
-        if (activeTab === "policies" && !privacyPolicy) {
-            fetchPrivacyPolicy();
+        if (activeTab === "policies") {
+            fetchPolicies();
         }
-    }, [activeTab, privacyPolicy, fetchPrivacyPolicy]);
+    }, [activeTab, fetchPolicies]);
+
+    const downloadPolicyPDF = () => {
+        const content = policies[policyKey];
+        if (!content) return;
+        const doc = new jsPDF();
+        doc.setFontSize(20);
+        doc.text(policyKey.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '), 14, 22);
+        doc.setFontSize(10);
+        doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 30);
+
+        const splitText = doc.splitTextToSize(content, 180);
+        doc.text(splitText, 14, 40);
+        doc.save(`${policyKey}.pdf`);
+    };
+
+    const downloadPoliciesZip = async () => {
+        const zip = new JSZip();
+        Object.entries(policies).forEach(([key, val]) => {
+            if (val) zip.file(`${key}.txt`, val);
+        });
+        const blob = await zip.generateAsync({ type: "blob" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "ProdLytics_Policies.zip";
+        a.click();
+    };
+
+    const toggleUserSelection = (id) => {
+        const next = new Set(selectedUserIds);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        setSelectedUserIds(next);
+    };
+
+    const handleBulkAction = async (action) => {
+        if (!selectedUserIds.size) return;
+        if (!confirm(`Are you sure you want to ${action} ${selectedUserIds.size} users?`)) return;
+
+        setIsBulkLoading(true);
+        const token = localStorage.getItem("accessToken");
+        try {
+            const results = await Promise.all([...selectedUserIds].map(async (id) => {
+                const res = await fetch(`${API_URL}/admin/users/${id}`, {
+                    method: action === "delete" ? "DELETE" : "PATCH",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: action === "downgrade" ? JSON.stringify({ subscription: "free" }) : undefined
+                });
+                return res.ok;
+            }));
+
+            const successCount = results.filter(Boolean).length;
+            alert(`${successCount}/${selectedUserIds.size} users ${action}d.`);
+            setSelectedUserIds(new Set());
+            fetchAdminData();
+        } catch (e) {
+            alert("Bulk action failed: " + e.message);
+        } finally {
+            setIsBulkLoading(false);
+        }
+    };
 
     const downloadFullReportPDF = () => {
         if (!overview) return;
         const doc = new jsPDF();
         const now = new Date().toLocaleString();
 
-        // Title
         doc.setFontSize(20);
         doc.text("ProdLytics Admin Report", 14, 22);
         doc.setFontSize(10);
         doc.text(`Generated: ${now}`, 14, 30);
         doc.text(`Date Range: ${fromDate} to ${toDate}`, 14, 35);
 
-        // KPI Summary
         const k = overview.kpis;
         autoTable(doc, {
             startY: 45,
@@ -224,14 +303,13 @@ export default function AdminPage() {
                 ["Registered Users", k.registeredUsers],
                 ["Anonymous Users", k.anonymousUsers],
                 ["Pro Users", k.proUsers],
-                ["Total Revenue", `Rs ${k.totalRevenue.toFixed(2)}`],
+                ["Total Revenue", inrFromMinor(k.totalRevenue)],
                 ["New Payments", k.paidPayments],
             ],
             theme: "grid",
-            headStyles: { fillColor: [79, 70, 229] }, // Brand Indigo
+            headStyles: { fillColor: [79, 70, 229] },
         });
 
-        // Recent Users
         doc.setFontSize(14);
         doc.text("Recent User Activity", 14, doc.lastAutoTable.finalY + 15);
         autoTable(doc, {
@@ -243,20 +321,6 @@ export default function AdminPage() {
                 u.isAnonymous ? "Anon" : "Registered",
                 u.subscription.toUpperCase(),
                 new Date(u.createdAt).toLocaleDateString()
-            ]),
-        });
-
-        // Recent Payments
-        doc.setFontSize(14);
-        doc.text("Recent Transactions", 14, doc.lastAutoTable.finalY + 15);
-        autoTable(doc, {
-            startY: doc.lastAutoTable.finalY + 20,
-            head: [["Customer", "Amount", "Status", "Date"]],
-            body: overview.recentPayments.map(p => [
-                p.email,
-                `Rs ${p.amount.toFixed(2)}`,
-                p.status.toUpperCase(),
-                new Date(p.createdAt).toLocaleDateString()
             ]),
         });
 
@@ -627,6 +691,29 @@ export default function AdminPage() {
                                         <span>Export</span>
                                     </button>
                                 </div>
+
+                                {selectedUserIds.size > 0 && (
+                                    <div className="flex items-center gap-4 p-4 mb-4 rounded-2xl bg-primary/10 border border-primary/20 animate-in fade-in slide-in-from-top-2">
+                                        <span className="text-sm font-bold text-primary">{selectedUserIds.size} users selected</span>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => handleBulkAction("downgrade")}
+                                                disabled={isBulkLoading}
+                                                className="px-3 py-1.5 rounded-lg bg-foreground/5 text-xs font-bold hover:bg-foreground/10 transition-colors"
+                                            >
+                                                Downgrade to Free
+                                            </button>
+                                            <button
+                                                onClick={() => handleBulkAction("delete")}
+                                                disabled={isBulkLoading}
+                                                className="px-3 py-1.5 rounded-lg bg-danger/10 text-danger text-xs font-bold hover:bg-danger/20 transition-colors"
+                                            >
+                                                Delete Selected
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="flex items-center justify-between gap-4">
                                     <div className="flex items-center gap-3">
                                         <Users className="text-primary" size={20} />
@@ -644,6 +731,17 @@ export default function AdminPage() {
                                     <table className="w-full min-w-[760px] border-collapse">
                                         <thead className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
                                             <tr className="text-left text-[10px] font-black uppercase tracking-widest text-muted">
+                                                <th className="px-4 py-4 w-10">
+                                                    <input
+                                                        type="checkbox"
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) setSelectedUserIds(new Set(usersData.users.map(u => u.id)));
+                                                            else setSelectedUserIds(new Set());
+                                                        }}
+                                                        checked={selectedUserIds.size === usersData.users.length && usersData.users.length > 0}
+                                                        className="rounded border-ui bg-background"
+                                                    />
+                                                </th>
                                                 <th className="px-4 py-4">Name</th>
                                                 <th className="px-4 py-4">Email</th>
                                                 <th className="px-4 py-4">Type</th>
@@ -667,9 +765,18 @@ export default function AdminPage() {
                                                         }}
                                                         className={cn(
                                                             "group cursor-pointer transition-all hover:bg-foreground/[0.03]",
-                                                            expandedUserId === u.id ? "bg-foreground/[0.04]" : ""
+                                                            expandedUserId === u.id ? "bg-foreground/[0.04]" : "",
+                                                            selectedUserIds.has(u.id) && "bg-primary/5"
                                                         )}
                                                     >
+                                                        <td className="px-4 py-4 w-10" onClick={(e) => e.stopPropagation()}>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedUserIds.has(u.id)}
+                                                                onChange={() => toggleUserSelection(u.id)}
+                                                                className="rounded border-ui bg-background"
+                                                            />
+                                                        </td>
                                                         <td className="px-4 py-4 font-bold text-foreground max-w-[160px] truncate" title={u.name}>{u.name || "Anonymous User"}</td>
                                                         <td className="px-4 py-4 text-muted max-w-[200px] truncate font-medium" title={u.email}>{u.email || "-"}</td>
                                                         <td className="px-4 py-4">
@@ -891,49 +998,84 @@ export default function AdminPage() {
                     </>
                 ) : (
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                        <div className="rounded-3xl border border-foreground/10 bg-background/50 p-6 backdrop-blur-xl sm:p-8">
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center gap-3">
-                                    <FileText className="text-primary" size={24} />
+                        <div className="flex flex-col lg:flex-row gap-6">
+                            {/* Policy Selector Sidebar */}
+                            <div className="lg:w-64 flex flex-col gap-2">
+                                {[
+                                    { key: "privacy_policy", label: "Privacy Policy" },
+                                    { key: "terms_of_service", label: "Terms of Service" },
+                                    { key: "cookie_policy", label: "Cookie Policy" },
+                                ].map((p) => (
+                                    <button
+                                        key={p.key}
+                                        onClick={() => {
+                                            setPolicyKey(p.key);
+                                            setPolicyMsg({ type: "", text: "" });
+                                        }}
+                                        className={cn(
+                                            "flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all",
+                                            policyKey === p.key
+                                                ? "bg-primary text-white shadow-lg shadow-primary/20"
+                                                : "bg-foreground/5 text-foreground/60 hover:bg-foreground/10 hover:text-foreground"
+                                        )}
+                                    >
+                                        <FileText size={18} />
+                                        <span>{p.label}</span>
+                                    </button>
+                                ))}
+
+                                <div className="mt-4 pt-4 border-t border-foreground/10 space-y-2">
+                                    <p className="px-4 text-[10px] font-bold uppercase tracking-widest text-foreground/40">Exports</p>
+                                    <button onClick={downloadPolicyPDF} className="w-full flex items-center gap-3 px-4 py-2 text-xs font-bold text-foreground/60 hover:text-primary transition-colors">
+                                        <Download size={14} />
+                                        <span>Download PDF</span>
+                                    </button>
+                                    <button onClick={downloadPoliciesZip} className="w-full flex items-center gap-3 px-4 py-2 text-xs font-bold text-foreground/60 hover:text-primary transition-colors">
+                                        <Copy size={14} />
+                                        <span>Export All (ZIP)</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Editor Area */}
+                            <div className="flex-1 rounded-3xl border border-foreground/10 bg-background/50 p-6 backdrop-blur-xl sm:p-8">
+                                <div className="flex items-center justify-between mb-6">
                                     <div>
-                                        <h2 className="text-xl font-bold text-foreground">Privacy Policy</h2>
-                                        <p className="text-sm text-foreground/60">Edit the public privacy policy content here.</p>
+                                        <h2 className="text-xl font-bold text-foreground">{policyKey.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</h2>
+                                        <p className="text-sm text-foreground/60">Configure public legal document content.</p>
                                     </div>
+                                    <button
+                                        onClick={savePolicy}
+                                        disabled={savingPolicy}
+                                        className="flex items-center gap-2 px-6 py-2 rounded-xl bg-primary text-sm font-bold text-white shadow-lg shadow-primary/25 hover:opacity-90 transition-all disabled:opacity-50"
+                                    >
+                                        {savingPolicy ? <RefreshCw size={16} className="animate-spin" /> : <Lock size={16} />}
+                                        <span>{savingPolicy ? "Saving..." : "Save Changes"}</span>
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={savePrivacyPolicy}
-                                    disabled={savingPolicy}
-                                    className="flex items-center gap-2 px-6 py-2 rounded-xl bg-primary text-sm font-bold text-white shadow-lg shadow-primary/25 hover:opacity-90 transition-all disabled:opacity-50"
-                                >
-                                    {savingPolicy ? <RefreshCw size={16} className="animate-spin" /> : <Lock size={16} />}
-                                    <span>{savingPolicy ? "Saving..." : "Save Changes"}</span>
-                                </button>
-                            </div>
 
-                            {policyMsg.text && (
-                                <div className={cn(
-                                    "mb-6 p-4 rounded-xl border flex items-center gap-3 text-sm",
-                                    policyMsg.type === "success"
-                                        ? "bg-success/10 border-success/20 text-success"
-                                        : "bg-danger/10 border-danger/20 text-danger"
-                                )}>
-                                    {policyMsg.type === "success" ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-                                    {policyMsg.text}
+                                {policyMsg.text && (
+                                    <div className={cn(
+                                        "mb-6 p-4 rounded-xl border flex items-center gap-3 text-sm",
+                                        policyMsg.type === "success"
+                                            ? "bg-success/10 border-success/20 text-success"
+                                            : "bg-danger/10 border-danger/20 text-danger"
+                                    )}>
+                                        {policyMsg.type === "success" ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                                        {policyMsg.text}
+                                    </div>
+                                )}
+
+                                <div className="relative group">
+                                    <textarea
+                                        value={policies[policyKey]}
+                                        onChange={(e) => setPolicies({ ...policies, [policyKey]: e.target.value })}
+                                        placeholder={`Enter ${policyKey.split('_').join(' ')} text here...`}
+                                        className="w-full min-h-[500px] bg-foreground/5 border-2 border-transparent focus:border-primary/30 rounded-2xl p-6 text-sm leading-relaxed text-foreground/90 font-mono focus:outline-none transition-all resize-none"
+                                    />
+                                    <div className="absolute inset-0 rounded-2xl pointer-events-none border border-foreground/10 group-hover:border-foreground/20 transition-colors" />
                                 </div>
-                            )}
-
-                            <div className="relative group">
-                                <textarea
-                                    value={privacyPolicy}
-                                    onChange={(e) => setPrivacyPolicy(e.target.value)}
-                                    placeholder="Enter privacy policy text here (plain text or basic HTML patterns)..."
-                                    className="w-full min-h-[500px] bg-foreground/5 border-2 border-transparent focus:border-primary/30 rounded-2xl p-6 text-sm leading-relaxed text-foreground/90 font-mono focus:outline-none transition-all resize-none"
-                                />
-                                <div className="absolute inset-0 rounded-2xl pointer-events-none border border-foreground/10 group-hover:border-foreground/20 transition-colors" />
                             </div>
-                            <p className="mt-4 text-xs text-foreground/40 italic">
-                                Tip: Use double line breaks for new paragraphs. Any changes saved here will reflect immediately on the /privacy-policy page.
-                            </p>
                         </div>
                     </div>
                 )}
