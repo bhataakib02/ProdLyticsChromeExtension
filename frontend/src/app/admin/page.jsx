@@ -187,24 +187,23 @@ export default function AdminPage() {
             });
             if (res.ok) {
                 const data = await res.json();
-                const contentBatch = {};
-                const dateBatch = {};
-                data.forEach(c => {
-                    if (["privacy_policy", "terms_of_service", "cookie_policy"].includes(c.key)) {
-                        contentBatch[c.key] = c.value;
-                    } else if (c.key.endsWith("_date")) {
-                        const baseKey = c.key.replace("_date", "");
-                        dateBatch[baseKey] = c.value;
-                    }
-                });
-                setPolicies(prev => ({ ...prev, ...contentBatch }));
-                setPolicyDates(prev => ({ ...prev, ...dateBatch }));
+                setPolicies(prev => ({
+                    ...prev,
+                    privacy_policy: data.find(c => c.key === "privacy_policy")?.value ?? prev.privacy_policy,
+                    terms_of_service: data.find(c => c.key === "terms_of_service")?.value ?? prev.terms_of_service,
+                    cookie_policy: data.find(c => c.key === "cookie_policy")?.value ?? prev.cookie_policy,
+                }));
+                setPolicyDates(prev => ({
+                    ...prev,
+                    privacy_policy: data.find(c => c.key === "privacy_policy_date")?.value ?? prev.privacy_policy,
+                    terms_of_service: data.find(c => c.key === "terms_of_service_date")?.value ?? prev.terms_of_service,
+                    cookie_policy: data.find(c => c.key === "cookie_policy_date")?.value ?? prev.cookie_policy,
+                }));
             } else {
-                const err = await res.text();
-                console.error("Policy fetch failed:", err);
+                console.error("Policy fetch non-ok");
             }
         } catch (e) {
-            console.error("Policy fetch network error:", e);
+            console.error("Policy fetch error:", e);
         }
     }, []);
 
