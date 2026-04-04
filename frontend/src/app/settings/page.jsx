@@ -305,7 +305,7 @@ export default function SettingsPage() {
                         </button>
                         <div>
                             <h1 className="text-xl font-black tracking-tight text-foreground md:text-2xl">Settings</h1>
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Hacker OS</p>
+
                         </div>
                     </div>
 

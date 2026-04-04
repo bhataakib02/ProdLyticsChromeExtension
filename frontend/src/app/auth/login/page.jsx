@@ -115,7 +115,7 @@ function LoginPageInner() {
                         <Shield className="text-primary" size={32} aria-hidden />
                     </div>
                     <h2 className="text-3xl font-black tracking-tight text-foreground">ProdLytics</h2>
-                    <p className="mt-1 text-sm font-bold uppercase tracking-[0.3em] text-muted/60">Hacker OS Analytics</p>
+
                 </div>
 
                 <div className="glass-card mt-2 rounded-[32px] border border-ui p-10 shadow-2xl shadow-black/30 backdrop-blur-3xl sm:p-12">

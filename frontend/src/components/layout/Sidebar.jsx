@@ -49,7 +49,7 @@ export default function Sidebar() {
                 </div>
                 <div className="hidden flex-col md:flex">
                     <span className="text-xl font-black tracking-tighter text-foreground leading-tight">ProdLytics</span>
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Hacker OS</span>
+
                 </div>
             </div>
 
