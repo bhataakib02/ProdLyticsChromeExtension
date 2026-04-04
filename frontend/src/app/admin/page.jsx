@@ -95,6 +95,7 @@ export default function AdminPage() {
 
     // Dynamic Enhancements
     const [activeTab, setActiveTab] = useState("overview"); // "overview" | "policies"
+    const [adminSubTab, setAdminSubTab] = useState("users"); // "users" | "payments"
 
     // Policy Suite
     const [policyKey, setPolicyKey] = useState("privacy_policy");
@@ -744,8 +745,36 @@ export default function AdminPage() {
                             </div>
                         </section>
 
-                        <section className="grid gap-4 lg:grid-cols-2">
-                            <div className="rounded-2xl border border-white/10 bg-background p-4">
+                        <div className="flex items-center gap-4 bg-background/50 p-2 rounded-2xl border border-ui-muted/30 w-fit mb-6">
+                            <button
+                                onClick={() => setAdminSubTab("users")}
+                                className={cn(
+                                    "flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all duration-300",
+                                    adminSubTab === "users"
+                                        ? "bg-primary text-white shadow-xl shadow-primary/25 scale-105"
+                                        : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                                )}
+                            >
+                                <Users size={18} />
+                                <span>User Management</span>
+                            </button>
+                            <button
+                                onClick={() => setAdminSubTab("payments")}
+                                className={cn(
+                                    "flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all duration-300",
+                                    adminSubTab === "payments"
+                                        ? "bg-primary text-white shadow-xl shadow-primary/25 scale-105"
+                                        : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                                )}
+                            >
+                                <CreditCard size={18} />
+                                <span>Payment History</span>
+                            </button>
+                        </div>
+
+                        <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            {adminSubTab === "users" && (
+                                <div className="rounded-2xl border border-white/10 bg-background p-4 animate-in fade-in zoom-in-95 duration-300">
                                 <div className="mb-4 flex flex-wrap items-center gap-3">
                                     <div className="relative min-w-0 flex-1 sm:min-w-[280px]">
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
@@ -937,9 +966,10 @@ export default function AdminPage() {
                                         </tbody>
                                     </table>
                                 </div>
-                            </div>
+                            )}
 
-                            <div className="rounded-2xl border border-ui bg-background p-1 shadow-sm">
+                            {adminSubTab === "payments" && (
+                                <div className="rounded-2xl border border-ui bg-background p-1 shadow-sm animate-in fade-in zoom-in-95 duration-300">
                                 <div className="flex flex-wrap items-center gap-3 p-3">
                                     <div className="relative min-w-0 flex-1 sm:min-w-[280px]">
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
@@ -1073,7 +1103,7 @@ export default function AdminPage() {
                                         </tbody>
                                     </table>
                                 </div>
-                            </div>
+                            )}
                         </section>
                     </>
                 ) : (
