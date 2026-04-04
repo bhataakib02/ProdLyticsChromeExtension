@@ -24,6 +24,7 @@ import {
 import { useAuth, API_URL } from "@/context/AuthContext";
 import { useTheme } from "@/components/layout/Providers";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
 const SECTIONS = [
     { id: "profile", label: "Profile", icon: User, registeredOnly: true },
@@ -134,12 +135,28 @@ export default function SettingsPage() {
             }
             if (partial.appearance?.theme === "midnight") setTheme("dark");
             setBanner("Saved.");
+            // Also update local storage or context if needed, though axios res handles state
         } catch (e) {
             setBanner(e.response?.data?.error || "Save failed.");
         } finally {
             setSaving(false);
         }
     }
+
+    const setPauseTime = (hours) => {
+        const d = new Date();
+        if (hours === 0) {
+            patchSettings({ privacy: { ...merged.privacy, pauseTrackingUntil: null } });
+            return;
+        }
+        if (hours === 'tomorrow') {
+            d.setDate(d.getDate() + 1);
+            d.setHours(9, 0, 0, 0); // Tomorrow at 9 AM
+        } else {
+            d.setHours(d.getHours() + hours);
+        }
+        patchSettings({ privacy: { ...merged.privacy, pauseTrackingUntil: d.toISOString() } });
+    };
 
     async function saveProfile(e) {
         e.preventDefault();
@@ -598,27 +615,79 @@ export default function SettingsPage() {
                                                 />
                                             </div>
 
-                                            <div className="space-y-3">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted/80">PAUSE SYNC UNTIL</span>
-                                                    <div className="flex gap-1">
-                                                        <Calendar size={10} className="text-primary/40" />
-                                                        <Clock size={10} className="text-primary/40" />
-                                                    </div>
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted/80">PAUSE SYNC OPTIONS</span>
+                                                    {merged.privacy.pauseTrackingUntil && (
+                                                        <button 
+                                                            onClick={() => setPauseTime(0)}
+                                                            className="text-[10px] font-black text-primary hover:underline uppercase tracking-widest"
+                                                        >
+                                                            Resume Tracking
+                                                        </button>
+                                                    )}
                                                 </div>
-                                                <div className="relative group">
-                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none text-muted transition-colors group-focus-within:text-primary">
-                                                        <Calendar size={18} />
+                                                
+                                                <div className="flex flex-wrap gap-2">
+                                                    {[
+                                                        { label: "1 Hour", val: 1 },
+                                                        { label: "4 Hours", val: 4 },
+                                                        { label: "Tomorrow 9AM", val: 'tomorrow' },
+                                                    ].map((opt) => (
+                                                        <button
+                                                            key={opt.label}
+                                                            onClick={() => setPauseTime(opt.val)}
+                                                            className="flex-1 min-w-[100px] rounded-xl border border-ui bg-foreground/[0.03] py-2.5 text-[10px] font-black uppercase tracking-widest transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+                                                        >
+                                                            {opt.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+
+                                                <div className="relative pt-2">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted/80">CUSTOM RANGE</span>
+                                                        <Calendar size={10} className="text-primary" />
                                                     </div>
-                                                    <input
-                                                        type="datetime-local"
-                                                        value={merged.privacy.pauseTrackingUntil ? new Date(merged.privacy.pauseTrackingUntil).toISOString().slice(0, 16) : ""}
-                                                        onChange={(e) => {
-                                                            const v = e.target.value;
-                                                            setSettings(prev => ({...prev, privacy: {...prev.privacy, pauseTrackingUntil: v ? new Date(v).toISOString() : null}}));
-                                                        }}
-                                                        className="w-full rounded-2xl border border-ui bg-background pl-12 pr-5 py-4 text-sm font-black shadow-inner transition-all focus:border-primary/40 focus:ring-4 focus:ring-primary/10"
-                                                    />
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                        <div className="relative group overflow-hidden rounded-2xl border-2 border-ui bg-background transition-all focus-within:border-primary/40 focus-within:ring-4 focus-within:ring-primary/10">
+                                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center pointer-events-none text-primary/60">
+                                                                <Calendar size={18} />
+                                                            </div>
+                                                            <input
+                                                                type="date"
+                                                                value={merged.privacy.pauseTrackingUntil ? new Date(merged.privacy.pauseTrackingUntil).toISOString().slice(0, 10) : ""}
+                                                                onChange={(e) => {
+                                                                    const datePart = e.target.value;
+                                                                    const current = merged.privacy.pauseTrackingUntil ? new Date(merged.privacy.pauseTrackingUntil) : new Date();
+                                                                    const newD = new Date(datePart);
+                                                                    newD.setHours(current.getHours(), current.getMinutes());
+                                                                    setSettings(prev => ({...prev, privacy: {...prev.privacy, pauseTrackingUntil: newD.toISOString()}}));
+                                                                }}
+                                                                className="w-full bg-transparent pl-12 pr-4 py-4 text-sm font-black outline-none appearance-none"
+                                                            />
+                                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-muted-foreground/40 pointer-events-none uppercase">DATE</div>
+                                                        </div>
+                                                        
+                                                        <div className="relative group overflow-hidden rounded-2xl border-2 border-ui bg-background transition-all focus-within:border-secondary/40 focus-within:ring-4 focus-within:ring-secondary/10">
+                                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center pointer-events-none text-secondary/60">
+                                                                <Clock size={18} />
+                                                            </div>
+                                                            <input
+                                                                type="time"
+                                                                value={merged.privacy.pauseTrackingUntil ? new Date(merged.privacy.pauseTrackingUntil).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : ""}
+                                                                onChange={(e) => {
+                                                                    const timePart = e.target.value; // HH:mm
+                                                                    const current = merged.privacy.pauseTrackingUntil ? new Date(merged.privacy.pauseTrackingUntil) : new Date();
+                                                                    const [h, m] = timePart.split(':');
+                                                                    current.setHours(Number(h), Number(m));
+                                                                    setSettings(prev => ({...prev, privacy: {...prev.privacy, pauseTrackingUntil: current.toISOString()}}));
+                                                                }}
+                                                                className="w-full bg-transparent pl-12 pr-4 py-4 text-sm font-black outline-none appearance-none"
+                                                            />
+                                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-muted-foreground/40 pointer-events-none uppercase">TIME</div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
 
