@@ -341,7 +341,7 @@ export default function AdminPage() {
         const token = localStorage.getItem("accessToken");
         try {
             const results = await Promise.all([...selectedUserIds].map(async (id) => {
-                const res = await fetch(`${API_URL}/admin/users/${id}`, {
+                const res = await fetch(`/api/admin/users/${id}`, {
                     method: action === "delete" ? "DELETE" : "PATCH",
                     headers: {
                         Authorization: `Bearer ${token}`,
