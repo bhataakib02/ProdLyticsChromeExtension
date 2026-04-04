@@ -81,8 +81,10 @@ async function dbConnect() {
             console.error("🔴 MongoDB connection error:", userFriendlyMsg);
             cached.conn = null;
             cached.promise = null;
-            // Avoid retry storms on every request when DB is down.
-            if (isNetworkDbError(err)) cached.unavailableUntil = Date.now() + 30000;
+            // Avoid retry storms on every request when DB is down (unless in local dev).
+            if (isNetworkDbError(err) && process.env.NODE_ENV !== 'development') {
+                cached.unavailableUntil = Date.now() + 30000;
+            }
             const enhancedErr = new Error(userFriendlyMsg);
             enhancedErr.code = err.code;
             throw enhancedErr;
