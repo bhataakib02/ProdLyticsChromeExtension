@@ -188,12 +188,7 @@ export default function AdminPage() {
             if (res.ok) {
                 const data = await res.json();
                 const trace = data.find(c => c.key === "debug_trace");
-                if (trace) {
-                    console.log("Diagnostic found:", trace.value);
-                    if (window.confirm(`Diagnostic Connected: ${trace.value}. Click OK to populate fields.`)) {
-                         // proceed
-                    }
-                }
+                alert("Diagnostic: " + (trace ? trace.value : "No trace") + "\nFull Data Count: " + data.length + "\nKeys: " + data.map(d => d.key).join(", "));
                 setPolicies(prev => {
                     const next = { ...prev };
                     data.forEach(c => {
