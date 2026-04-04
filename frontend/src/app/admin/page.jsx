@@ -14,6 +14,7 @@ import {
     Filter,
     UserPlus,
     RefreshCw,
+    Crown,
 } from "lucide-react";
 import {
     AreaChart,
@@ -25,6 +26,8 @@ import {
     ResponsiveContainer,
     BarChart,
     Bar,
+    LineChart,
+    Line,
 } from "recharts";
 import { useAuth, API_URL } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
@@ -325,10 +328,10 @@ export default function AdminPage() {
                         type="button"
                         onClick={() => fetchAdminData()}
                         disabled={pending}
-                        className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white shadow-lg shadow-primary/25 hover:opacity-90 transition-opacity disabled:opacity-50"
+                        className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/25 hover:opacity-90 transition-opacity disabled:opacity-50 sm:py-2"
                     >
                         <RefreshCw size={14} className={pending ? "animate-spin" : ""} />
-                        <span>{pending ? "Refreshing…" : "Refresh"}</span>
+                        <span>{pending ? "Syncing…" : "Sync"}</span>
                     </button>
                 </div>
             </div>
@@ -341,29 +344,29 @@ export default function AdminPage() {
                 Charts and revenue use the <strong className="text-foreground/90">date range</strong> above. Widen “To” to include recent payments if revenue looks empty.
             </p>
 
-            <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <section className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
                 <StatCard
-                    label="Total Users"
+                    label="Users"
                     value={k.totalUsers ?? 0}
-                    icon={<Users className="text-primary" size={22} />}
+                    icon={<Users className="text-primary" size={20} />}
                     color="primary"
                 />
                 <StatCard
-                    label="Registered Users"
+                    label="Reg."
                     value={k.registeredUsers ?? 0}
-                    icon={<UserPlus className="text-secondary" size={22} />}
+                    icon={<UserPlus className="text-secondary" size={20} />}
                     color="secondary"
                 />
                 <StatCard
-                    label="Premium (Pro)"
+                    label="Pro"
                     value={k.proUsers ?? 0}
-                    icon={<Crown className="text-amber-400" size={22} />}
+                    icon={<Crown className="text-amber-400" size={20} />}
                     color="warning"
                 />
                 <StatCard
-                    label="Revenue"
+                    label="Rev"
                     value={inrFromMinor(k.totalRevenue)}
-                    icon={<CreditCard className="text-success" size={22} />}
+                    icon={<CreditCard className="text-success" size={20} />}
                     color="success"
                 />
             </section>

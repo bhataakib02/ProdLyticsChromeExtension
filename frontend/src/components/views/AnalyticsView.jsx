@@ -127,7 +127,7 @@ export default function AnalyticsView() {
             {/* Header */}
             <header className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
-                    <h1 className="text-5xl font-black tracking-tighter bg-gradient-to-r from-foreground via-foreground to-foreground/45 bg-clip-text text-transparent">
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter bg-gradient-to-r from-foreground via-foreground to-foreground/45 bg-clip-text text-transparent truncate max-w-full">
                         Analytics
                     </h1>
                     <p className="text-muted mt-3 font-medium tracking-wide flex items-center gap-2">
@@ -136,12 +136,12 @@ export default function AnalyticsView() {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-1 rounded-2xl border-2 border-ui bg-foreground/5 p-1.5 backdrop-blur-xl">
+                <div className="flex flex-wrap items-center gap-1 rounded-2xl border-2 border-ui bg-foreground/5 p-1 backdrop-blur-xl w-full md:w-auto">
                     {["today", "week", "month"].map((r) => (
                         <button
                             key={r}
                             onClick={() => setRange(r)}
-                            className={`px-8 py-3 rounded-xl text-sm font-black transition-all duration-500 relative overflow-hidden group ${range === r ? "text-background" : "text-muted hover:text-foreground"
+                            className={`flex-1 md:flex-none px-4 sm:px-8 py-2.5 sm:py-3 rounded-xl text-[11px] sm:text-sm font-black transition-all duration-500 relative overflow-hidden group ${range === r ? "text-background" : "text-muted hover:text-foreground"
                                 }`}
                         >
                             {range === r && (
@@ -158,7 +158,7 @@ export default function AnalyticsView() {
             </header>
 
             {/* Premium Stat Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 <PremiumStatCard
                     icon={<Clock size={22} />}
                     label="Screen Time"
@@ -205,14 +205,14 @@ export default function AnalyticsView() {
                     className="glass-card group relative min-w-0 overflow-hidden p-8 lg:col-span-2"
                 >
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-secondary opacity-30 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div className="flex justify-between items-center mb-10">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-10">
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-primary/20 rounded-2xl text-primary shadow-[0_0_15px_rgba(99,102,241,0.2)]">
                                 <Activity size={24} />
                             </div>
                             <div>
-                                <h2 className="text-xl font-black uppercase tracking-wider">Hourly Pulse</h2>
-                                <p className="text-xs text-muted/60 font-medium">Activity levels throughout the day</p>
+                                <h2 className="text-xl font-black uppercase tracking-wider truncate">Hourly Pulse</h2>
+                                <p className="text-xs text-muted/60 font-medium truncate">Activity levels throughout the day</p>
                             </div>
                         </div>
                     </div>
@@ -340,8 +340,8 @@ export default function AnalyticsView() {
                                         />
                                     </RePieChart>
                                         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none">
-                                            <span className="text-4xl font-black text-foreground">{metrics.score}%</span>
-                                            <span className="text-[10px] text-muted uppercase font-black tracking-widest mt-1">Focus</span>
+                                            <span className="text-3xl sm:text-4xl font-black text-foreground">{metrics.score}%</span>
+                                            <span className="text-[9px] sm:text-[10px] text-muted uppercase font-black tracking-widest mt-0.5 sm:mt-1">Focus</span>
                                         </div>
                                     </ResponsiveContainer>
                                 )}
@@ -366,22 +366,22 @@ export default function AnalyticsView() {
 
             {/* Platform Leaderboard */}
             <div className="glass-card relative overflow-hidden">
-                <div className="flex flex-col items-start justify-between gap-6 border-b-ui bg-foreground/[0.03] p-8 sm:flex-row sm:items-center">
+                <div className="flex flex-col items-start justify-between gap-6 border-b-ui bg-foreground/[0.03] p-6 sm:p-8 md:flex-row md:items-center">
                     <div className="flex items-center gap-4">
                         <div className="rounded-2xl bg-foreground/5 p-3 text-foreground/85">
                             <TrendingUp size={24} />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-black uppercase tracking-tighter">Website Activity</h2>
+                            <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tighter">Website Activity</h2>
                             <p className="text-xs text-muted/60 font-medium mt-1">Top platforms used</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-1.5 rounded-2xl border-2 border-ui bg-foreground/10 p-1.5">
+                    <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 rounded-2xl border-2 border-ui bg-foreground/10 p-1 sm:p-1.5 w-full md:w-auto">
                         {["all", "productive", "neutral", "unproductive"].map(cat => (
                             <button
                                 key={cat}
                                 onClick={() => setCategoryFilter(cat)}
-                                className={`flex items-center gap-2 rounded-xl border-2 px-5 py-2 text-[11px] font-black capitalize transition-all ${categoryFilter === cat ? "border-ui-strong bg-foreground/10 text-foreground" : "border-transparent text-muted hover:border-ui-muted hover:text-foreground"
+                                className={`flex-1 md:flex-none flex items-center justify-center gap-2 rounded-xl border-2 px-3 sm:px-5 py-2 text-[10px] sm:text-[11px] font-black capitalize transition-all ${categoryFilter === cat ? "border-ui-strong bg-foreground/10 text-foreground" : "border-transparent text-muted hover:border-ui-muted hover:text-foreground"
                                     }`}
                             >
                                 {cat}
@@ -399,39 +399,42 @@ export default function AnalyticsView() {
                             : "No activity recorded for this period."}
                     </div>
                 ) : (
-                    <div className="p-4 space-y-3">
+                    <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
                         {filteredDomains.map((domain, index) => {
                             const percentage = maxTime > 0 ? Math.round((domain.totalTime / maxTime) * 100) : 0;
-                            const favHost = String(domain._id || "").split(" · ")[0].trim() || domain._id;
                             return (
                                 <motion.div
                                     key={domain._id}
                                     layout
-                                    className="group flex items-center gap-6 rounded-2xl border-2 border-ui bg-foreground/[0.02] px-6 py-4 hover:bg-foreground/[0.06]"
+                                    className="group flex items-center gap-3 sm:gap-6 rounded-xl sm:rounded-2xl border-2 border-ui bg-foreground/[0.02] px-4 sm:px-6 py-3 sm:py-4 hover:bg-foreground/[0.06] min-w-0"
                                 >
-                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-foreground/10 text-[10px] font-bold text-muted group-hover:text-primary">
+                                    <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-foreground/10 text-[9px] sm:text-[10px] font-bold text-muted group-hover:text-primary">
                                         {String(index + 1).padStart(2, "0")}
                                     </div>
-                                    <div className="flex items-center gap-4 min-w-[220px] w-[300px]">
+                                    <div className="flex items-center gap-3 sm:gap-4 min-w-[120px] sm:min-w-[220px] lg:w-[300px] flex-1 lg:flex-none">
                                         <FaviconImage
                                             domain={domain._id}
                                             size={24}
-                                            className="w-6 h-6"
+                                            className="w-5 h-5 sm:w-6 sm:h-6 shrink-0"
                                         />
                                         <div className="flex flex-col min-w-0 flex-1">
-                                            <span className="text-sm font-bold text-foreground/90 truncate block w-full">{domain._id}</span>
-                                            <span className="mt-1 w-fit rounded-md border-2 border-ui-muted px-2 py-0.5 text-[8px] font-black uppercase truncate max-w-full">
+                                            <span className="text-xs sm:text-sm font-bold text-foreground/90 truncate block w-full" title={domain._id}>{domain._id}</span>
+                                            <span className="mt-0.5 sm:mt-1 w-fit rounded-md border-2 border-ui-muted px-1.5 sm:px-2 py-0.5 text-[7px] sm:text-[8px] font-black uppercase truncate max-w-full">
                                                 {domain.category}
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="flex-1 hidden md:flex items-center gap-8">
-                                        <div className="h-1.5 flex-1 overflow-hidden rounded-full border border-ui-muted bg-foreground/15">
+                                    <div className="flex-1 hidden sm:flex items-center gap-4 lg:gap-8 min-w-0">
+                                        <div className="h-1 sm:h-1.5 flex-1 overflow-hidden rounded-full border border-ui-muted bg-foreground/15">
                                             <motion.div initial={{ width: 0 }} animate={{ width: `${percentage}%` }} className="h-full bg-primary" />
                                         </div>
-                                        <div className="min-w-[120px] text-right">
-                                            <span className="font-mono text-sm font-black text-foreground/90">{formatTime(domain.totalTime)}</span>
+                                        <div className="min-w-[70px] sm:min-w-[100px] lg:min-w-[120px] text-right shrink-0">
+                                            <span className="font-mono text-xs sm:text-sm font-black text-foreground/90">{formatTime(domain.totalTime)}</span>
                                         </div>
+                                    </div>
+                                    {/* Mobile/Small Screen Time Only */}
+                                    <div className="sm:hidden text-right shrink-0">
+                                        <span className="font-mono text-[10px] font-black text-foreground/90">{formatTime(domain.totalTime)}</span>
                                     </div>
                                 </motion.div>
                             );
@@ -453,15 +456,15 @@ function PremiumStatCard({ icon, label, value, subLabel, color, loading }) {
     };
 
     return (
-        <div className="glass-card group relative cursor-default p-6">
-            <div className="flex flex-col gap-6">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${colorClasses[color]}`}>
+        <div className="glass-card group relative cursor-default p-5 sm:p-6 flex flex-col min-w-0 transition-all hover:scale-[1.02]">
+            <div className="flex flex-col gap-4 sm:gap-6">
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center border shrink-0 ${colorClasses[color]}`}>
                     {icon}
                 </div>
-                <div>
-                    <span className="text-[10px] text-muted font-bold uppercase tracking-widest block mb-1">{label}</span>
-                    {loading ? <div className="h-8 w-24 animate-pulse rounded-lg bg-foreground/5" /> : <span className="text-3xl font-black text-foreground">{value}</span>}
-                    <span className="text-[10px] text-muted/40 font-bold uppercase tracking-widest mt-2 block">● {subLabel}</span>
+                <div className="min-w-0">
+                    <span className="text-[9px] sm:text-[10px] text-muted font-bold uppercase tracking-widest block mb-1 truncate">{label}</span>
+                    {loading ? <div className="h-8 w-20 sm:w-24 animate-pulse rounded-lg bg-foreground/5" /> : <span className="text-2xl sm:text-3xl font-black text-foreground truncate block">{value}</span>}
+                    <span className="text-[9px] sm:text-[10px] text-muted/40 font-bold uppercase tracking-widest mt-1.5 sm:mt-2 block truncate">● {subLabel}</span>
                 </div>
             </div>
         </div>

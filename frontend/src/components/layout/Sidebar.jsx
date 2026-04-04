@@ -42,7 +42,7 @@ export default function Sidebar() {
     if (!user) return null;
 
     return (
-        <aside className="sticky top-0 flex h-screen min-h-0 w-16 shrink-0 flex-col overflow-hidden border-r-ui bg-background p-3 md:w-64 md:p-6">
+        <aside className="sticky top-0 hidden h-screen min-h-0 w-16 shrink-0 flex-col overflow-hidden border-r-ui bg-background p-3 md:flex md:w-64 md:p-6">
             <div className="mb-6 flex shrink-0 items-center gap-3 md:mb-10">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-dark shadow-xl shadow-primary/30 ring-1 ring-white/20">
                     <Chrome className="text-white" size={20} />

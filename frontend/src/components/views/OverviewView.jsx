@@ -161,41 +161,41 @@ export default function OverviewView({ onTabChange }) {
             />
             <header className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
-                    <h1 className="text-5xl font-black tracking-tighter bg-gradient-to-r from-foreground to-foreground/55 bg-clip-text text-transparent">
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter bg-gradient-to-r from-foreground to-foreground/55 bg-clip-text text-transparent truncate max-w-full">
                         Welcome back, {user?.name.split(' ')[0]}
                     </h1>
                     <p className="text-muted mt-3 font-medium tracking-wide flex items-center gap-2">
                         <Activity size={14} className="text-primary" /> ProdLytics AI is monitoring your Productivity Momentum
                     </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto">
                     <button
                         type="button"
                         onClick={handleExportCsvZip}
                         disabled={loading || csvExporting}
-                        className="btn-secondary inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-widest disabled:opacity-50"
+                        className="btn-secondary flex-1 sm:flex-none inline-flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
                     >
-                        <Table2 size={16} className="shrink-0" />
-                        {csvExporting ? "Preparing…" : "Export CSV"}
+                        <Table2 size={14} className="shrink-0" />
+                        <span className="truncate">{csvExporting ? "Preparing…" : "CSV"}</span>
                         <PremiumBadge />
                     </button>
                     <button
                         type="button"
                         onClick={handleExportPdf}
                         disabled={loading || pdfExporting}
-                        className="btn-secondary inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-widest disabled:opacity-50"
+                        className="btn-secondary flex-1 sm:flex-none inline-flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
                     >
-                        <FileDown size={16} className="shrink-0" />
-                        {pdfExporting ? "Generating…" : "Export PDF"}
+                        <FileDown size={14} className="shrink-0" />
+                        <span className="truncate">{pdfExporting ? "Generating…" : "PDF"}</span>
                         <PremiumBadge />
                     </button>
-                    <button type="button" onClick={() => onTabChange("analytics")} className="btn-primary text-[11px] font-black uppercase tracking-widest">
+                    <button type="button" onClick={() => onTabChange("analytics")} className="btn-primary flex-1 sm:flex-none text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
                         Detailed Report
                     </button>
                 </div>
             </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 <StatCard icon={<Zap size={24} />} label="Focus Score" value={`${metrics.score}%`} trend={metrics.score > 70 ? "OPTIMAL" : "NEEDS FOCUS"} color="primary" />
                 <StatCard icon={<Clock size={24} />} label="Total Focus" value={formatTime(metrics.totalTime)} trend={`${formatTime(metrics.productiveTime)} prod.`} color="secondary" />
                 <StatCard icon={<Target size={24} />} label="Streak" value={`${metrics.streak} Days`} trend="RESISTANCE" color="success" />
@@ -209,8 +209,8 @@ export default function OverviewView({ onTabChange }) {
                         <h2 className="text-2xl font-black uppercase tracking-tighter">Daily Activity Hub</h2>
                     </div>
                 </div>
-                <div className="grid grid-cols-1 gap-10 p-8 lg:grid-cols-12">
-                    <div className="min-w-0 space-y-6 lg:col-span-7">
+                <div className="grid grid-cols-1 gap-6 p-6 sm:p-8 md:grid-cols-12">
+                    <div className="min-w-0 space-y-6 md:col-span-7">
                         <h3 className="text-xs font-black text-muted uppercase tracking-widest flex items-center gap-2"><Clock size={14} /> Usage Breakdown</h3>
                         <div className="space-y-4">
                             <ActivityRow label="Deep Work" time={metrics.productiveTime} color="success" total={metrics.totalTime} />
@@ -218,7 +218,7 @@ export default function OverviewView({ onTabChange }) {
                             <ActivityRow label="Neutral" time={metrics.neutralTime} color="muted" total={metrics.totalTime} />
                         </div>
                     </div>
-                    <div className="flex min-w-0 flex-col items-center justify-center rounded-[40px] border-2 border-ui bg-foreground/[0.04] p-6 lg:col-span-5">
+                    <div className="flex min-w-0 flex-col items-center justify-center rounded-[32px] sm:rounded-[40px] border-2 border-ui bg-foreground/[0.04] p-4 sm:p-6 md:col-span-5">
                         <div className="relative mb-4 h-40 min-h-40 w-full min-w-0">
                             {mounted && distribution.length > 0 ? (
                                 <ResponsiveContainer
@@ -334,24 +334,24 @@ export default function OverviewView({ onTabChange }) {
 
             <section className="space-y-6 mb-20">
                 <h3 className="text-xs font-black text-muted uppercase tracking-[0.3em] flex items-center gap-3"><TrendingUp size={16} /> Activity History</h3>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
                     {topDomains.filter(domainMatches).length === 0 && activitySearchQuery.trim() ? (
                         <div className="col-span-full py-8 text-center text-sm text-muted">No sites match your search.</div>
                     ) : null}
                     {topDomains.filter(domainMatches).slice(0, 5).map((domain) => (
                         <div
                             key={domain._id}
-                            className="glass-card group p-5 transition-all hover:bg-foreground/[0.06]"
+                            className="glass-card group p-3 sm:p-5 transition-all hover:bg-foreground/[0.06] min-w-0"
                         >
-                            <div className="flex items-center gap-3 mb-3">
+                            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3 min-w-0">
                                 <FaviconImage
                                     domain={domain._id}
                                     size={24}
-                                    className="w-6 h-6"
+                                    className="w-5 h-5 sm:w-6 sm:h-6 shrink-0"
                                 />
-                                <h4 className="text-[11px] font-bold truncate text-foreground/90 flex-1 min-w-0">{domain._id}</h4>
+                                <h4 className="text-[10px] sm:text-[11px] font-bold truncate text-foreground/90 flex-1 min-w-0" title={domain._id}>{domain._id}</h4>
                             </div>
-                            <span className="text-sm font-black font-mono text-primary">{formatTime(domain.totalTime)}</span>
+                            <span className="text-xs sm:text-sm font-black font-mono text-primary truncate block">{formatTime(domain.totalTime)}</span>
                         </div>
                     ))}
                 </div>
@@ -368,16 +368,17 @@ function StatCard({ icon, label, value, trend, color }) {
         warning: "text-warning bg-warning/10"
     };
     return (
-        <div className="glass-card group relative p-7 transition-all hover:scale-105">
+        <div className="glass-card group relative p-5 sm:p-7 transition-all hover:scale-[1.02] flex flex-col min-w-0">
             <div
-                className={`mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-ui ${colors[color]}`}
+                className={`mb-4 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl border-2 border-ui shrink-0 ${colors[color]}`}
             >
                 {icon}
             </div>
-            <div className="text-muted text-[10px] font-black uppercase tracking-widest">{label}</div>
-            <div className="mt-1 text-3xl font-black text-foreground">{value}</div>
-            <div className="mt-2 text-[9px] font-black text-muted/60 uppercase tracking-widest flex items-center gap-1.5">
-                <span className={`w-1.5 h-1.5 rounded-full ${colors[color].split(' ')[1]}`} /> {trend}
+            <div className="text-muted text-[9px] sm:text-[10px] font-black uppercase tracking-widest truncate">{label}</div>
+            <div className="mt-1 text-2xl sm:text-3xl font-black text-foreground truncate">{value}</div>
+            <div className="mt-2 text-[9px] font-black text-muted/60 uppercase tracking-widest flex items-center gap-1.5 min-w-0">
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${colors[color].split(' ')[1]}`} /> 
+                <span className="truncate">{trend}</span>
             </div>
         </div>
     );

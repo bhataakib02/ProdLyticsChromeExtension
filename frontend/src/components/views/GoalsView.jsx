@@ -209,25 +209,25 @@ export default function GoalsView() {
 
     return (
         <div className="p-8 space-y-8 max-w-7xl mx-auto relative text-foreground">
-            <header className="flex justify-between items-center">
+            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-4xl font-bold  tracking-tight">Goals & Targets</h1>
+                    <h1 className="text-3xl sm:text-4xl font-bold tracking-tight truncate max-w-full">Goals & Targets</h1>
                 </div>
-                <button type="button" onClick={() => setShowNewObjective(true)} className="btn-primary">
-                    <Plus size={20} /> Set Objective
+                <button type="button" onClick={() => setShowNewObjective(true)} className="btn-primary w-full sm:w-auto justify-center">
+                    <Plus size={18} /> <span className="truncate">Set Objective</span>
                 </button>
             </header>
 
             {loading ? (
                 <div className="py-20 text-center text-muted italic">Analyzing objectives...</div>
             ) : totalCount === 0 ? (
-                <div className="glass-card p-20 flex flex-col items-center justify-center text-center space-y-4">
-                    <Target size={48} className="text-muted/20" />
-                    <h3 className="text-xl font-bold ">No objectives for today yet</h3>
-                    <p className="text-sm text-muted max-w-md">
+                <div className="glass-card p-10 sm:p-20 flex flex-col items-center justify-center text-center space-y-4">
+                    <Target size={40} className="text-muted/20" />
+                    <h3 className="text-lg sm:text-xl font-bold ">No objectives for today yet</h3>
+                    <p className="text-xs sm:text-sm text-muted max-w-md">
                         Add goals for today with Set Objective. Tomorrow, add again if you want the same targets.
                     </p>
-                    <button type="button" onClick={() => setShowNewObjective(true)} className="btn-secondary mt-4 px-8">
+                    <button type="button" onClick={() => setShowNewObjective(true)} className="btn-secondary mt-4 px-8 w-full sm:w-auto">
                         Add today&apos;s goals
                     </button>
                 </div>
@@ -244,7 +244,7 @@ export default function GoalsView() {
                             {filteredYesterday.length === 0 && yesterdayGoals.length > 0 ? (
                                 <p className="text-sm text-muted">No yesterday goals match your search.</p>
                             ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                                     {filteredYesterday.map((goal) => (
                                         <div
                                             key={goal._id}
@@ -258,7 +258,7 @@ export default function GoalsView() {
                                                             : "bg-secondary/10 text-secondary"
                                                     }`}
                                                 >
-                                                    {goal.type === "productive" ? <Zap size={24} /> : <Target size={24} />}
+                                                    {goal.type === "productive" ? <Zap size={22} /> : <Target size={22} />}
                                                 </div>
                                                 <div className="flex items-center gap-1">
                                                     <button
@@ -302,7 +302,7 @@ export default function GoalsView() {
                                                     <span className="text-[10px] font-black uppercase tracking-widest text-muted">
                                                         {formatDayLabel(goal.displayDateKey)}
                                                     </span>
-                                                    <span className="text-[11px] font-semibold text-muted tabular-nums">
+                                                    <span className="text-[10px] sm:text-[11px] font-semibold text-muted tabular-nums truncate">
                                                         {compactGoalTime(goal, goal.currentSeconds)}
                                                     </span>
                                                     <div className="flex flex-wrap items-center gap-2">
@@ -359,7 +359,7 @@ export default function GoalsView() {
                                 </button>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                                 {filteredToday.map((goal) => (
                                     <div key={goal._id} className="glass-card p-8 group hover:border-primary/50 transition-all">
                                         <div className="flex justify-between items-start mb-6">
@@ -429,22 +429,22 @@ export default function GoalsView() {
                                             </div>
                                         )}
                                         {goal.yesterdayDateKey && !goalHasPinnedDay(goal) && (
-                                            <div className="rounded-xl border border-foreground/10 bg-foreground/[0.04] p-4 mb-5 space-y-2.5">
-                                                <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-                                                    <span className="text-[10px] font-black uppercase tracking-widest text-muted">
+                                            <div className="rounded-xl border border-foreground/10 bg-foreground/[0.04] p-3 sm:p-4 mb-5 space-y-2.5 min-w-0">
+                                                <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 min-w-0">
+                                                    <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted truncate">
                                                         Yesterday · {formatDayLabel(goal.yesterdayDateKey)}
                                                     </span>
-                                                    <span className="text-[11px] font-semibold text-muted tabular-nums">
+                                                    <span className="text-[10px] sm:text-[11px] font-semibold text-muted tabular-nums truncate">
                                                         {compactGoalTime(goal, goal.yesterdaySeconds)}
                                                     </span>
                                                     <div className="flex flex-wrap items-center gap-2">
                                                         {goal.metYesterday ? (
-                                                            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-                                                                <CheckCircle2 size={15} className="shrink-0" aria-hidden />
+                                                            <span className="inline-flex items-center gap-1 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                                                                <CheckCircle2 size={13} className="shrink-0" aria-hidden />
                                                                 {goal.type === "productive" ? "Done" : "OK"}
                                                             </span>
                                                         ) : (
-                                                            <span className="text-[10px] font-black uppercase tracking-widest text-muted">
+                                                            <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted">
                                                                 Not met
                                                             </span>
                                                         )}
@@ -453,7 +453,7 @@ export default function GoalsView() {
                                                         </span>
                                                     </div>
                                                 </div>
-                                                <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/8">
+                                                <div className="h-1.5 sm:h-2 w-full overflow-hidden rounded-full bg-foreground/8">
                                                     <div
                                                         className={`h-full transition-[width] duration-300 ${
                                                             goal.metYesterday
@@ -467,25 +467,22 @@ export default function GoalsView() {
                                                 </div>
                                             </div>
                                         )}
-                                        <div className="space-y-3">
-                                            <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                                        <div className="space-y-3 min-w-0">
+                                            <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 min-w-0">
                                                 <span className="text-[10px] font-black uppercase tracking-widest text-muted shrink-0">
                                                     Progress
                                                 </span>
-                                                <span className="text-[11px] font-semibold text-muted tabular-nums min-w-0 text-center flex-1 px-1">
+                                                <span className="text-[10px] sm:text-[11px] font-semibold text-muted tabular-nums min-w-0 text-center flex-1 px-1 truncate">
                                                     {compactGoalTime(goal, goal.currentSeconds)}
-                                                    {goal.metToday && goal.type === "productive" && (
-                                                        <span className="text-primary"> · Met</span>
-                                                    )}
-                                                    {goal.metToday && goal.type === "unproductive" && (
-                                                        <span className="text-primary"> · Under max</span>
+                                                    {goal.metToday && (
+                                                        <span className="text-primary"> · {goal.type === "productive" ? "Met" : "Under max"}</span>
                                                     )}
                                                 </span>
                                                 <span className="text-xs font-bold text-muted tabular-nums shrink-0">
                                                     {Math.min(100, Math.max(0, Number(goal.progress) || 0))}%
                                                 </span>
                                             </div>
-                                            <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/5">
+                                            <div className="h-1.5 sm:h-2 w-full overflow-hidden rounded-full bg-foreground/5">
                                                 <div
                                                     className="h-full bg-primary transition-[width] duration-300"
                                                     style={{
@@ -517,15 +514,15 @@ export default function GoalsView() {
                                     setShowNewObjective(false);
                                     setEditingObjective(null);
                                 }}
-                                className="btn-ghost absolute right-6 top-6"
+                                className="btn-ghost absolute right-4 top-4 sm:right-6 sm:top-6"
                                 aria-label="Close"
                             >
-                                <X size={22} />
+                                <X size={20} />
                             </button>
-                            <h2 className="mb-2 text-3xl font-bold text-foreground">
+                            <h2 className="mb-2 text-2xl sm:text-3xl font-bold text-foreground">
                                 {editingObjective ? "Edit Objective" : "Set Objective"}
                             </h2>
-                            <p className="mb-8 text-sm text-muted">
+                            <p className="mb-6 sm:mb-8 text-xs sm:text-sm text-muted">
                                 {editingObjective ? "Save changes to this goal." : "New goals apply to today only."}
                             </p>
                             <form onSubmit={handleSaveObjective} className="space-y-6">
@@ -636,7 +633,7 @@ export default function GoalsView() {
                                         </p>
                                     </div>
                                 </div>
-                                <button type="submit" className="btn-primary-lg mt-4">
+                                <button type="submit" className="btn-primary-lg mt-4 w-full">
                                     {editingObjective ? "Update Objective" : "Create Objective"}
                                 </button>
                             </form>
@@ -652,14 +649,14 @@ export default function GoalsView() {
                             initial={{ scale: 0.8 }}
                             animate={{ scale: 1 }}
                             exit={{ scale: 0.8 }}
-                            className="modal-panel modal-panel-sm border-2 border-primary/35 p-10 text-center"
+                            className="modal-panel modal-panel-sm border-2 border-primary/35 p-8 sm:p-10 text-center"
                         >
-                            <Trophy size={64} className="mx-auto mb-6 text-yellow-400" />
-                            <h2 className="mb-2 text-3xl font-black text-foreground">Objective Achieved!</h2>
-                            <p className="mb-8 text-foreground/90">
+                            <Trophy size={56} className="mx-auto mb-6 text-yellow-400" />
+                            <h2 className="mb-2 text-2xl sm:text-3xl font-black text-foreground">Objective Achieved!</h2>
+                            <p className="mb-8 text-xs sm:text-sm text-foreground/90 truncate max-w-full">
                                 {celebratedObjective.label || celebratedObjective.website}
                             </p>
-                            <button type="button" onClick={() => setCelebratedObjective(null)} className="btn-primary-lg">
+                            <button type="button" onClick={() => setCelebratedObjective(null)} className="btn-primary-lg w-full">
                                 Awesome!
                             </button>
                         </motion.div>

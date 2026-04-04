@@ -290,536 +290,509 @@ export default function SettingsPage() {
 
     return (
         <div className="min-h-screen bg-background">
-            <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 md:flex-row md:px-8 lg:gap-12">
-                <aside className="w-full shrink-0 md:max-w-[220px] lg:max-w-[240px]">
-                    <button
-                        type="button"
-                        onClick={() => router.push("/")}
-                        className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-muted hover:text-foreground"
-                    >
-                        <ArrowLeft size={16} />
-                        Dashboard
-                    </button>
-                    <h1 className="text-2xl font-black tracking-tight text-foreground">Settings</h1>
-                    <p className="mt-1 text-xs font-medium text-muted">Control ProdLytics for your workflow.</p>
-                    <nav className="mt-8 space-y-1">
+            <div className="flex min-h-screen flex-col md:flex-row">
+                {/* Side Navigation / Category Picker */}
+                <aside className={cn(
+                    "flex flex-col border-r-ui bg-background transition-all duration-300 md:w-80",
+                    active ? "hidden md:flex" : "flex w-full"
+                )}>
+                    <div className="sticky top-0 z-20 flex items-center gap-4 border-b border-ui-muted bg-background/80 p-5 backdrop-blur-xl md:p-8 md:bg-transparent md:border-none">
+                        <button
+                            onClick={() => router.push("/")}
+                            className="flex h-10 w-10 items-center justify-center rounded-xl border border-ui bg-foreground/[0.03] text-muted md:hidden"
+                        >
+                            <ArrowLeft size={20} />
+                        </button>
+                        <div>
+                            <h1 className="text-xl font-black tracking-tight text-foreground md:text-2xl">Settings</h1>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Hacker OS</p>
+                        </div>
+                    </div>
+
+                    <nav className="flex-1 space-y-1.5 overflow-y-auto p-4 md:px-6 md:py-2">
                         {navSections.map((s) => (
                             <button
                                 key={s.id}
-                                type="button"
-                                onClick={() => {
-                                    setActive(s.id);
-                                    document.getElementById(`section-${s.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                                }}
+                                onClick={() => setActive(s.id)}
                                 className={cn(
-                                    "flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors",
-                                    active === s.id
-                                        ? "bg-primary/15 text-primary"
-                                        : "text-muted hover:bg-foreground/[0.04] hover:text-foreground"
+                                    "sidebar-nav-btn group w-full border-ui-muted bg-foreground/[0.02] text-muted hover:border-ui hover:bg-foreground/5 hover:text-foreground",
+                                    active === s.id && "border-primary/35 bg-primary/10 text-primary hover:border-primary/40 hover:bg-primary/[0.14]"
                                 )}
                             >
-                                <s.icon size={18} className="shrink-0 opacity-90" />
-                                {s.label}
+                                <s.icon size={20} className={cn("transition-transform group-hover:scale-110", active === s.id && "text-primary")} />
+                                <span className="font-bold">{s.label}</span>
                             </button>
                         ))}
                     </nav>
+
+                    <div className="mt-auto border-t-ui-muted p-4 md:p-6">
+                        <button
+                            onClick={() => logout()}
+                            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-muted transition-all hover:bg-destructive/10 hover:text-destructive"
+                        >
+                            <LogOut size={18} />
+                            <span>Sign out</span>
+                        </button>
+                    </div>
                 </aside>
 
-                <main className="min-w-0 flex-1 space-y-10 pb-16">
-                    {user.isAnonymous ? (
-                        <div className="rounded-2xl border-2 border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm font-medium text-foreground">
-                            You&apos;re using an anonymous session.{" "}
-                            <Link href="/auth/register" className="font-bold text-primary underline">
-                                Create an account
-                            </Link>{" "}
-                            for profile, billing, and full data export.
+                {/* Main Content Area */}
+                <main className={cn(
+                    "relative min-w-0 flex-1 flex-col overflow-y-auto bg-foreground/[0.01]",
+                    active ? "flex" : "hidden md:flex"
+                )}>
+                    {active && (
+                        <div className="sticky top-0 z-30 flex items-center gap-4 bg-background/80 p-4 backdrop-blur-xl md:hidden">
+                            <button
+                                onClick={() => setActive(null)}
+                                className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shadow-lg shadow-primary/25"
+                            >
+                                <ArrowLeft size={20} />
+                            </button>
+                            <h2 className="text-lg font-black tracking-tight">
+                                {navSections.find(s => s.id === active)?.label}
+                            </h2>
                         </div>
-                    ) : null}
+                    )}
 
-                    {banner ? (
-                        <div className="rounded-2xl border border-ui bg-foreground/[0.03] px-4 py-3 text-sm font-medium text-foreground">
-                            {banner}
-                        </div>
-                    ) : null}
+                    <div className="mx-auto w-full max-w-4xl p-6 md:p-12 lg:p-16">
+                        {banner && (
+                            <div className="mb-8 rounded-2xl border-2 border-primary/20 bg-primary/5 px-6 py-4 text-sm font-bold text-primary shadow-xl shadow-primary/5">
+                                {banner}
+                            </div>
+                        )}
 
-                    {loadSettings || !merged ? (
-                        <div className="flex items-center gap-2 text-muted">
-                            <Loader2 className="h-5 w-5 animate-spin" />
-                            Loading preferences…
-                        </div>
-                    ) : (
-                        <>
-                            {registered ? (
-                                <section id="section-profile" className="scroll-mt-8 space-y-6">
-                                    <h2 className="text-lg font-black text-foreground">Profile</h2>
-                                    <form onSubmit={saveProfile} className="glass-card space-y-4 rounded-3xl border-2 border-ui p-6">
-                                        <label className="block">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-muted">Name</span>
-                                            <input
-                                                value={profileName}
-                                                onChange={(e) => setProfileName(e.target.value)}
-                                                className="mt-1 w-full rounded-xl border border-ui bg-background px-4 py-2.5 text-sm font-medium"
-                                            />
-                                        </label>
-                                        <label className="block">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-muted">Email</span>
-                                            <input
-                                                type="email"
-                                                value={profileEmail}
-                                                onChange={(e) => setProfileEmail(e.target.value)}
-                                                className="mt-1 w-full rounded-xl border border-ui bg-background px-4 py-2.5 text-sm font-medium"
-                                            />
-                                        </label>
-                                        <label className="block">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-muted">
-                                                Profile picture URL
-                                            </span>
-                                            <input
-                                                value={profileAvatar}
-                                                onChange={(e) => setProfileAvatar(e.target.value)}
-                                                placeholder="https://…"
-                                                className="mt-1 w-full rounded-xl border border-ui bg-background px-4 py-2.5 text-sm font-medium"
-                                            />
-                                        </label>
-                                        <button
-                                            type="submit"
-                                            disabled={saving}
-                                            className="rounded-2xl bg-primary px-5 py-2.5 text-xs font-black uppercase tracking-widest text-white disabled:opacity-50"
-                                        >
-                                            Save profile
-                                        </button>
-                                    </form>
-
-                                    {user.hasPassword ? (
-                                        <form onSubmit={savePassword} className="glass-card space-y-4 rounded-3xl border-2 border-ui p-6">
-                                            <h3 className="text-sm font-black text-foreground">Change password</h3>
-                                            <p className="text-xs text-muted">
-                                                For accounts that sign in with email and password.
-                                            </p>
-                                            <label className="block">
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-muted">
-                                                    Current password
-                                                </span>
+                        {loadSettings || !merged ? (
+                            <div className="flex h-64 items-center justify-center gap-3 text-muted">
+                                <Loader2 className="animate-spin" size={24} />
+                                <span className="font-bold uppercase tracking-widest text-xs">Syncing Preferences…</span>
+                            </div>
+                        ) : (
+                            <div className="space-y-16 pb-20">
+                                {active === "profile" && registered && (
+                                    <section id="section-profile" className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                                        <div className="space-y-1 border-l-4 border-primary pl-5">
+                                            <h2 className="text-2xl font-black text-foreground">Account Profile</h2>
+                                            <p className="text-xs font-semibold text-muted">Identify yourself within the ProdLytics ecosystem.</p>
+                                        </div>
+                                        <form onSubmit={saveProfile} className="glass-card space-y-6 rounded-[32px] border-2 border-ui p-8 shadow-2xl shadow-primary/5">
+                                            <div className="grid gap-6 md:grid-cols-2">
+                                                <div className="space-y-2">
+                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted/80">Full Identity</span>
+                                                    <input
+                                                        value={profileName}
+                                                        onChange={(e) => setProfileName(e.target.value)}
+                                                        className="w-full rounded-2xl border border-ui bg-background px-5 py-3 text-sm font-bold shadow-inner transition-all focus:border-primary/40 focus:ring-4 focus:ring-primary/10"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted/80">Digital Address</span>
+                                                    <input
+                                                        type="email"
+                                                        value={profileEmail}
+                                                        onChange={(e) => setProfileEmail(e.target.value)}
+                                                        className="w-full rounded-2xl border border-ui bg-background px-5 py-3 text-sm font-bold shadow-inner transition-all focus:border-primary/40 focus:ring-4 focus:ring-primary/10"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted/80">Avatar Matrix Link</span>
                                                 <input
-                                                    type="password"
-                                                    value={pwdCurrent}
-                                                    onChange={(e) => setPwdCurrent(e.target.value)}
-                                                    className="mt-1 w-full rounded-xl border border-ui bg-background px-4 py-2.5 text-sm"
-                                                    autoComplete="current-password"
+                                                    value={profileAvatar}
+                                                    onChange={(e) => setProfileAvatar(e.target.value)}
+                                                    placeholder="https://images.prodltyics.io/user-avatar..."
+                                                    className="w-full rounded-2xl border border-ui bg-background px-5 py-3 text-sm font-bold shadow-inner transition-all focus:border-primary/40 focus:ring-4 focus:ring-primary/10"
                                                 />
-                                            </label>
-                                            <label className="block">
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-muted">
-                                                    New password
-                                                </span>
-                                                <input
-                                                    type="password"
-                                                    value={pwdNew}
-                                                    onChange={(e) => setPwdNew(e.target.value)}
-                                                    className="mt-1 w-full rounded-xl border border-ui bg-background px-4 py-2.5 text-sm"
-                                                    autoComplete="new-password"
-                                                />
-                                            </label>
+                                            </div>
                                             <button
                                                 type="submit"
                                                 disabled={saving}
-                                                className="rounded-2xl border-2 border-ui px-5 py-2.5 text-xs font-black uppercase tracking-widest disabled:opacity-50"
+                                                className="w-full rounded-2xl bg-primary py-4 text-xs font-black uppercase tracking-[0.25em] text-white shadow-xl shadow-primary/30 transition-all hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50"
                                             >
-                                                Update password
+                                                Commit Profile Changes
                                             </button>
                                         </form>
-                                    ) : (
-                                        <div className="glass-card rounded-3xl border-2 border-ui p-6 text-sm text-muted">
-                                            Password change isn&apos;t shown for Google-only accounts. Manage security in your Google
-                                            account.
-                                        </div>
-                                    )}
-                                </section>
-                            ) : null}
 
-                            <section id="section-productivity" className="scroll-mt-8 space-y-4">
-                                <h2 className="text-lg font-black text-foreground">Productivity & goals</h2>
-                                <div className="glass-card space-y-6 rounded-3xl border-2 border-ui p-6">
-                                    <label className="block">
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted">
-                                            Daily productivity goal (hours)
-                                        </span>
-                                        <input
-                                            type="number"
-                                            min={0.5}
-                                            max={16}
-                                            step={0.5}
-                                            value={merged.goals.dailyHours}
-                                            onChange={(e) =>
-                                                setSettings((prev) => ({
-                                                    ...prev,
-                                                    goals: { ...prev.goals, dailyHours: Number(e.target.value) },
-                                                }))
-                                            }
-                                            className="mt-1 w-full max-w-xs rounded-xl border border-ui bg-background px-4 py-2.5 text-sm font-bold"
-                                        />
-                                    </label>
-                                    {[
-                                        ["enableGoalTracking", "Track goals against browsing"],
-                                        ["enableStreaks", "Streak tracking"],
-                                        ["enableDeepWorkTracking", "Deep work tracking"],
-                                    ].map(([key, label]) => (
-                                        <div key={key} className="flex items-center justify-between gap-4">
-                                            <span className="text-sm font-medium text-foreground/90">{label}</span>
-                                            <Toggle
-                                                checked={merged.goals[key]}
-                                                onChange={(v) =>
-                                                    setSettings((prev) => ({
-                                                        ...prev,
-                                                        goals: { ...prev.goals, [key]: v },
-                                                    }))
-                                                }
-                                            />
-                                        </div>
-                                    ))}
-                                    <button
-                                        type="button"
-                                        disabled={saving}
-                                        onClick={() => patchSettings({ goals: merged.goals })}
-                                        className="rounded-2xl bg-primary px-5 py-2.5 text-xs font-black uppercase tracking-widest text-white disabled:opacity-50"
-                                    >
-                                        Save productivity settings
-                                    </button>
-                                </div>
-                            </section>
-
-                            <section id="section-ai" className="scroll-mt-8 space-y-4">
-                                <h2 className="text-lg font-black text-foreground">AI insights</h2>
-                                <div className="glass-card space-y-6 rounded-3xl border-2 border-ui p-6">
-                                    {[
-                                        ["enabled", "AI insights"],
-                                        ["predictive", "Predictive analytics"],
-                                        ["suggestions", "Personalized suggestions"],
-                                        ["cognitiveLoad", "Cognitive load analysis"],
-                                    ].map(([key, label]) => (
-                                        <div key={key} className="flex items-center justify-between gap-4">
-                                            <span className="text-sm font-medium text-foreground/90">{label}</span>
-                                            <Toggle
-                                                checked={merged.aiSettings[key]}
-                                                onChange={(v) =>
-                                                    setSettings((prev) => ({
-                                                        ...prev,
-                                                        aiSettings: { ...prev.aiSettings, [key]: v },
-                                                    }))
-                                                }
-                                            />
-                                        </div>
-                                    ))}
-                                    <label className="block max-w-xs">
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted">
-                                            Insight frequency
-                                        </span>
-                                        <select
-                                            value={merged.aiSettings.frequency}
-                                            onChange={(e) =>
-                                                setSettings((prev) => ({
-                                                    ...prev,
-                                                    aiSettings: { ...prev.aiSettings, frequency: e.target.value },
-                                                }))
-                                            }
-                                            className="mt-1 w-full rounded-xl border border-ui bg-background px-4 py-2.5 text-sm font-medium"
-                                        >
-                                            <option value="daily">Daily</option>
-                                            <option value="weekly">Weekly</option>
-                                        </select>
-                                    </label>
-                                    <button
-                                        type="button"
-                                        disabled={saving}
-                                        onClick={() => patchSettings({ aiSettings: merged.aiSettings })}
-                                        className="rounded-2xl bg-primary px-5 py-2.5 text-xs font-black uppercase tracking-widest text-white disabled:opacity-50"
-                                    >
-                                        Save AI settings
-                                    </button>
-                                </div>
-                            </section>
-
-                            <section id="section-notifications" className="scroll-mt-8 space-y-4">
-                                <h2 className="text-lg font-black text-foreground">Notifications</h2>
-                                <div className="glass-card space-y-6 rounded-3xl border-2 border-ui p-6">
-                                    {[
-                                        ["browser", "Browser notifications"],
-                                        ["distractionAlerts", "Distraction alerts"],
-                                        ["goalReminders", "Goal reminders"],
-                                        ["weeklyReports", "Weekly report"],
-                                    ].map(([key, label]) => (
-                                        <div key={key} className="flex items-center justify-between gap-4">
-                                            <span className="text-sm font-medium text-foreground/90">{label}</span>
-                                            <Toggle
-                                                checked={merged.notifications[key]}
-                                                onChange={(v) =>
-                                                    setSettings((prev) => ({
-                                                        ...prev,
-                                                        notifications: { ...prev.notifications, [key]: v },
-                                                    }))
-                                                }
-                                            />
-                                        </div>
-                                    ))}
-                                    <button
-                                        type="button"
-                                        disabled={saving}
-                                        onClick={() => patchSettings({ notifications: merged.notifications })}
-                                        className="rounded-2xl bg-primary px-5 py-2.5 text-xs font-black uppercase tracking-widest text-white disabled:opacity-50"
-                                    >
-                                        Save notifications
-                                    </button>
-                                </div>
-                            </section>
-
-                            <section id="section-privacy" className="scroll-mt-8 space-y-4">
-                                <h2 className="text-lg font-black text-foreground">Privacy & data</h2>
-                                <div className="glass-card space-y-6 rounded-3xl border-2 border-ui p-6">
-                                    <div className="flex items-center justify-between gap-4">
-                                        <span className="text-sm font-medium text-foreground/90">Tracking enabled</span>
-                                        <Toggle
-                                            checked={merged.privacy.trackingEnabled}
-                                            onChange={(v) =>
-                                                setSettings((prev) => ({
-                                                    ...prev,
-                                                    privacy: { ...prev.privacy, trackingEnabled: v },
-                                                }))
-                                            }
-                                        />
-                                    </div>
-                                    <label className="block max-w-md">
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted">
-                                            Pause tracking until (optional)
-                                        </span>
-                                        <input
-                                            type="datetime-local"
-                                            value={
-                                                merged.privacy.pauseTrackingUntil
-                                                    ? new Date(merged.privacy.pauseTrackingUntil).toISOString().slice(0, 16)
-                                                    : ""
-                                            }
-                                            onChange={(e) => {
-                                                const v = e.target.value;
-                                                setSettings((prev) => ({
-                                                    ...prev,
-                                                    privacy: {
-                                                        ...prev.privacy,
-                                                        pauseTrackingUntil: v ? new Date(v).toISOString() : null,
-                                                    },
-                                                }));
-                                            }}
-                                            className="mt-1 w-full rounded-xl border border-ui bg-background px-4 py-2.5 text-sm"
-                                        />
-                                    </label>
-                                    <button
-                                        type="button"
-                                        disabled={saving}
-                                        onClick={() => patchSettings({ privacy: merged.privacy })}
-                                        className="rounded-2xl bg-primary px-5 py-2.5 text-xs font-black uppercase tracking-widest text-white disabled:opacity-50"
-                                    >
-                                        Save privacy preferences
-                                    </button>
-                                    <div className="border-t border-ui pt-6 space-y-3">
-                                        <button
-                                            type="button"
-                                            disabled={saving}
-                                            onClick={clearBrowsingData}
-                                            className="rounded-2xl border-2 border-ui px-5 py-2.5 text-xs font-black uppercase tracking-widest"
-                                        >
-                                            Clear browsing data
-                                        </button>
-                                        {registered ? (
-                                        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-                                            <button
-                                                type="button"
-                                                disabled={saving}
-                                                onClick={downloadMyDataZip}
-                                                className={cn(
-                                                    "inline-flex items-center justify-center gap-2 rounded-2xl border-2 px-5 py-2.5 text-xs font-black uppercase tracking-widest transition-all",
-                                                    user.isPremium || user.subscription === "pro"
-                                                        ? "border-secondary/40 bg-secondary/10 text-foreground hover:bg-secondary/20"
-                                                        : "border-ui-muted bg-foreground/[0.03] text-muted opacity-80"
-                                                )}
-                                            >
-                                                {user.isPremium || user.subscription === "pro" ? (
-                                                    <Table2 size={16} />
-                                                ) : (
-                                                    <Shield size={14} className="text-primary" />
-                                                )}
-                                                Download CSV (ZIP)
-                                                {!(user.isPremium || user.subscription === "pro") && (
-                                                    <span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-[8px] text-primary">
-                                                        PRO
-                                                    </span>
-                                                )}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                disabled={saving}
-                                                onClick={downloadMyDataPdf}
-                                                className={cn(
-                                                    "inline-flex items-center justify-center gap-2 rounded-2xl border-2 px-5 py-2.5 text-xs font-black uppercase tracking-widest transition-all",
-                                                    user.isPremium || user.subscription === "pro"
-                                                        ? "border-secondary/40 bg-secondary/10 text-foreground hover:bg-secondary/20"
-                                                        : "border-ui-muted bg-foreground/[0.03] text-muted opacity-80"
-                                                )}
-                                            >
-                                                {user.isPremium || user.subscription === "pro" ? (
-                                                    <FileDown size={16} />
-                                                ) : (
-                                                    <Shield size={14} className="text-primary" />
-                                                )}
-                                                Download data PDF
-                                                {!(user.isPremium || user.subscription === "pro") && (
-                                                    <span className="ml-1 rounded-full bg-primary/10 px-2 py-0.5 text-[8px] text-primary">
-                                                        PRO
-                                                    </span>
-                                                )}
-                                            </button>
-                                        </div>
-                                        ) : null}
-                                    </div>
-                                    {registered ? (
-                                        <div className="border-t border-destructive/30 pt-6">
-                                            <h3 className="text-sm font-black text-destructive">Delete account</h3>
-                                            <p className="mt-1 text-xs text-muted">
-                                                Type your password to confirm if your account uses one; Google-only accounts can
-                                                confirm with an empty field.
-                                            </p>
-                                            <input
-                                                type="password"
-                                                value={deleteConfirm}
-                                                onChange={(e) => setDeleteConfirm(e.target.value)}
-                                                placeholder="Current password"
-                                                className="mt-3 w-full max-w-sm rounded-xl border border-ui bg-background px-4 py-2.5 text-sm"
-                                            />
-                                            <button
-                                                type="button"
-                                                disabled={saving}
-                                                onClick={deleteAccount}
-                                                className="mt-3 rounded-2xl bg-destructive/90 px-5 py-2.5 text-xs font-black uppercase tracking-widest text-white"
-                                            >
-                                                Delete account permanently
-                                            </button>
-                                        </div>
-                                    ) : null}
-                                </div>
-                            </section>
-
-                            <section id="section-appearance" className="scroll-mt-8 space-y-4">
-                                <h2 className="text-lg font-black text-foreground">Appearance</h2>
-                                <div className="glass-card space-y-6 rounded-3xl border-2 border-ui p-6">
-                                    <label className="block max-w-xs">
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted">Theme</span>
-                                        <select
-                                            value={merged.appearance.theme}
-                                            onChange={(e) => {
-                                                const v = e.target.value;
-                                                setSettings((prev) => ({
-                                                    ...prev,
-                                                    appearance: { ...prev.appearance, theme: v },
-                                                }));
-                                                if (v === "light" || v === "dark") setTheme(v);
-                                                if (v === "midnight") setTheme("dark");
-                                            }}
-                                            className="mt-1 w-full rounded-xl border border-ui bg-background px-4 py-2.5 text-sm font-medium"
-                                        >
-                                            <option value="dark">Dark</option>
-                                            <option value="light">Light</option>
-                                            <option value="midnight">Midnight</option>
-                                        </select>
-                                    </label>
-                                    <label className="block max-w-xs">
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted">UI density</span>
-                                        <select
-                                            value={merged.appearance.density}
-                                            onChange={(e) =>
-                                                setSettings((prev) => ({
-                                                    ...prev,
-                                                    appearance: { ...prev.appearance, density: e.target.value },
-                                                }))
-                                            }
-                                            className="mt-1 w-full rounded-xl border border-ui bg-background px-4 py-2.5 text-sm font-medium"
-                                        >
-                                            <option value="normal">Normal</option>
-                                            <option value="compact">Compact</option>
-                                        </select>
-                                    </label>
-                                    <p className="text-xs text-muted">
-                                        Dashboard density is saved to your account; full layout support may roll out in a future
-                                        update.
-                                    </p>
-                                    <button
-                                        type="button"
-                                        disabled={saving}
-                                        onClick={() => patchSettings({ appearance: merged.appearance })}
-                                        className="rounded-2xl bg-primary px-5 py-2.5 text-xs font-black uppercase tracking-widest text-white disabled:opacity-50"
-                                    >
-                                        Save appearance
-                                    </button>
-                                </div>
-                            </section>
-
-                            {registered ? (
-                                <section id="section-billing" className="scroll-mt-8 space-y-4">
-                                    <h2 className="text-lg font-black text-foreground">Subscription & billing</h2>
-                                    <div className="glass-card space-y-4 rounded-3xl border-2 border-ui p-6">
-                                        <div className="flex flex-wrap items-end justify-between gap-4">
-                                            <div>
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-muted">Current plan</p>
-                                                <p className="text-2xl font-black capitalize text-foreground">
-                                                    {user.subscription === "pro" || user.isPremium ? "Pro" : "Free"}
-                                                </p>
-                                                <p className="text-xs text-muted">
-                                                    {user.subscription === "pro" || user.isPremium
-                                                        ? "Premium features unlocked."
-                                                        : "Upgrade for advanced AI and insights."}
-                                                </p>
-                                            </div>
-                                            <Link
-                                                href="/upgrade"
-                                                className="rounded-2xl bg-primary px-5 py-2.5 text-xs font-black uppercase tracking-widest text-white"
-                                            >
-                                                Upgrade
-                                            </Link>
-                                        </div>
-                                        {(user.subscription === "pro" || user.isPremium) && user.stripeCustomerId ? (
-                                            <div className="border-t border-ui pt-4">
+                                        {user.hasPassword ? (
+                                            <form onSubmit={savePassword} className="glass-card space-y-6 rounded-[32px] border-2 border-ui p-8 mt-12">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-2 w-2 rounded-full bg-secondary" />
+                                                    <h3 className="text-sm font-black uppercase tracking-wider text-foreground">Security Protocol</h3>
+                                                </div>
+                                                <div className="grid gap-6 md:grid-cols-2">
+                                                    <div className="space-y-2">
+                                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted/80">Current Key</span>
+                                                        <input
+                                                            type="password"
+                                                            value={pwdCurrent}
+                                                            onChange={(e) => setPwdCurrent(e.target.value)}
+                                                            className="w-full rounded-2xl border border-ui bg-background px-5 py-3 text-sm font-bold"
+                                                            autoComplete="current-password"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted/80">New Matrix Key</span>
+                                                        <input
+                                                            type="password"
+                                                            value={pwdNew}
+                                                            onChange={(e) => setPwdNew(e.target.value)}
+                                                            className="w-full rounded-2xl border border-ui bg-background px-5 py-3 text-sm font-bold"
+                                                            autoComplete="new-password"
+                                                        />
+                                                    </div>
+                                                </div>
                                                 <button
-                                                    type="button"
+                                                    type="submit"
                                                     disabled={saving}
-                                                    onClick={openBillingPortal}
-                                                    className="rounded-2xl border-2 border-ui px-5 py-2.5 text-xs font-black uppercase tracking-widest"
+                                                    className="rounded-[18px] border-2 border-ui px-8 py-3 text-xs font-black uppercase tracking-widest transition-all hover:bg-foreground/5 disabled:opacity-50"
                                                 >
-                                                    Manage or cancel subscription
+                                                    Rotate Security Keys
                                                 </button>
-                                                <p className="mt-2 text-xs text-muted">
-                                                    Opens Stripe Customer Portal to update payment method or cancel.
-                                                </p>
+                                            </form>
+                                        ) : (
+                                            <div className="glass-card rounded-3xl border-2 border-ui p-6 text-sm font-bold text-muted bg-foreground/[0.02]">
+                                                Google Protocol Detected. Access credentials managed via Google Cloud.
                                             </div>
-                                        ) : null}
-                                        {(user.subscription === "pro" || user.isPremium) && !user.stripeCustomerId ? (
-                                            <p className="text-xs text-muted">
-                                                Subscription active; billing management may be unavailable until Stripe customer ID
-                                                is linked.
-                                            </p>
-                                        ) : null}
-                                    </div>
-                                </section>
-                            ) : null}
+                                        )}
+                                    </section>
+                                )}
 
-                            <div className="flex justify-end border-t border-ui pt-8">
-                                <button
-                                    type="button"
-                                    onClick={() => logout()}
-                                    className="inline-flex items-center gap-2 text-sm font-bold text-muted hover:text-destructive"
-                                >
-                                    <LogOut size={16} />
-                                    Sign out
-                                </button>
+                                {active === "productivity" && (
+                                    <section id="section-productivity" className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                                        <div className="space-y-1 border-l-4 border-primary pl-5">
+                                            <h2 className="text-2xl font-black text-foreground">Optimization Goals</h2>
+                                            <p className="text-xs font-semibold text-muted">Calibrate your focus and target output.</p>
+                                        </div>
+                                        <div className="glass-card space-y-8 rounded-[32px] border-2 border-ui p-8 shadow-2xl shadow-primary/5">
+                                            <div className="p-6 rounded-3xl bg-primary/5 border border-primary/10">
+                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">System Focus Capacity (Hours/Day)</span>
+                                                <div className="mt-4 flex items-center gap-6">
+                                                    <input
+                                                        type="range"
+                                                        min={0.5}
+                                                        max={16}
+                                                        step={0.5}
+                                                        value={merged.goals.dailyHours}
+                                                        onChange={(e) => setSettings(prev => ({...prev, goals: {...prev.goals, dailyHours: Number(e.target.value)}}))}
+                                                        className="h-2 flex-1 accent-primary"
+                                                    />
+                                                    <span className="text-2xl font-black text-primary">{merged.goals.dailyHours}h</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="grid gap-4">
+                                                {[
+                                                    ["enableGoalTracking", "Automated Goal Monitoring", "Track active targets against real-time browsing telemetry."],
+                                                    ["enableStreaks", "Performance Continuity", "Maintain and visualize daily performance streaks."],
+                                                    ["enableDeepWorkTracking", "Deep Work Pulse", "Bio-metric inspired tracking for uninterrupted focus blocks."]
+                                                ].map(([key, title, desc]) => (
+                                                    <div key={key} className="flex items-center justify-between gap-6 p-4 rounded-2xl border border-ui/50 bg-foreground/[0.02]">
+                                                        <div className="space-y-0.5">
+                                                            <p className="text-sm font-black text-foreground">{title}</p>
+                                                            <p className="text-[10px] font-medium text-muted leading-tight max-w-xs">{desc}</p>
+                                                        </div>
+                                                        <Toggle
+                                                            checked={merged.goals[key]}
+                                                            onChange={(v) => setSettings(prev => ({...prev, goals: {...prev.goals, [key]: v}}))}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                disabled={saving}
+                                                onClick={() => patchSettings({ goals: merged.goals })}
+                                                className="w-full rounded-2xl bg-secondary py-4 text-xs font-black uppercase tracking-[0.25em] text-white shadow-xl shadow-secondary/20 transition-all hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50"
+                                            >
+                                                Apply Parameters
+                                            </button>
+                                        </div>
+                                    </section>
+                                )}
+
+                                {active === "ai" && (
+                                    <section id="section-ai" className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                                        <div className="space-y-1 border-l-4 border-primary pl-5">
+                                            <h2 className="text-2xl font-black text-foreground">AI Intelligence</h2>
+                                            <p className="text-xs font-semibold text-muted">Configure the neural engine for insights.</p>
+                                        </div>
+                                        <div className="glass-card space-y-8 rounded-[32px] border-2 border-ui p-8">
+                                            <div className="grid gap-4">
+                                                {[
+                                                    ["enabled", "Neural Synthesis", "Master switch for AI processing."],
+                                                    ["predictive", "Future State Projection", "Predict performance bottlenecks before they occur."],
+                                                    ["suggestions", "Adaptive Coaching", "Real-time workflow adjustments based on focus states."],
+                                                    ["cognitiveLoad", "Bio-Load Monitoring", "Analyze the mental cost of your current tasks."]
+                                                ].map(([key, title, desc]) => (
+                                                    <div key={key} className="flex items-center justify-between gap-6 p-4 rounded-2xl border border-ui/50 bg-foreground/[0.02]">
+                                                        <div className="space-y-1">
+                                                            <p className="text-sm font-black text-foreground">{title}</p>
+                                                            <p className="text-[10px] font-medium text-muted leading-tight max-w-xs">{desc}</p>
+                                                        </div>
+                                                        <Toggle
+                                                            checked={merged.aiSettings[key]}
+                                                            onChange={(v) => setSettings(prev => ({...prev, aiSettings: {...prev.aiSettings, [key]: v}}))}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                disabled={saving}
+                                                onClick={() => patchSettings({ aiSettings: merged.aiSettings })}
+                                                className="w-full rounded-[20px] bg-primary py-4 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-primary/20"
+                                            >
+                                                Synchronize Neural Engine
+                                            </button>
+                                        </div>
+                                    </section>
+                                )}
+
+                                {active === "notifications" && (
+                                    <section id="section-notifications" className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                                        <div className="space-y-1 border-l-4 border-primary pl-5">
+                                            <h2 className="text-2xl font-black text-foreground">System Alerts</h2>
+                                            <p className="text-xs font-semibold text-muted">Customize how the platform communicates.</p>
+                                        </div>
+                                        <div className="glass-card space-y-6 rounded-[32px] border-2 border-ui p-8">
+                                            <div className="grid gap-4">
+                                                {[
+                                                    ["browser", "OS Integration", "Push alerts via web browser notifications."],
+                                                    ["distractionAlerts", "Anomaly Detection", "Get alerted when focus drops below safe thresholds."],
+                                                    ["goalReminders", "Target Pulse", "Reminders for incomplete objectives."],
+                                                    ["weeklyReports", "Synthesis Reports", "Detailed weekly summary of all telemetry data."]
+                                                ].map(([key, title, desc]) => (
+                                                    <div key={key} className="flex items-center justify-between gap-6 p-4 rounded-xl border border-ui/30">
+                                                        <div className="space-y-0.5">
+                                                            <p className="text-sm font-black text-foreground">{title}</p>
+                                                            <p className="text-[10px] font-medium text-muted">{desc}</p>
+                                                        </div>
+                                                        <Toggle
+                                                            checked={merged.notifications[key]}
+                                                            onChange={(v) => setSettings(prev => ({...prev, notifications: {...prev.notifications, [key]: v}}))}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                disabled={saving}
+                                                onClick={() => patchSettings({ notifications: merged.notifications })}
+                                                className="w-full rounded-2xl bg-foreground text-background py-4 text-xs font-black uppercase tracking-widest hover:invert transition-all"
+                                            >
+                                                Update Alert Protocol
+                                            </button>
+                                        </div>
+                                    </section>
+                                )}
+
+                                {active === "privacy" && (
+                                    <section id="section-privacy" className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                                        <div className="space-y-1 border-l-4 border-primary pl-5">
+                                            <h2 className="text-2xl font-black text-foreground">Privacy Shield</h2>
+                                            <p className="text-xs font-semibold text-muted">Control your data footprint and tracking states.</p>
+                                        </div>
+                                        <div className="glass-card space-y-8 rounded-[32px] border-2 border-ui p-8 shadow-2xl shadow-primary/5">
+                                            <div className="flex items-center justify-between p-5 rounded-2xl bg-foreground/[0.03] border-2 border-ui">
+                                                <div className="space-y-1">
+                                                    <p className="text-sm font-black text-foreground uppercase tracking-wider">Master Stealth Mode</p>
+                                                    <p className="text-[10px] font-bold text-muted uppercase">Enable or disable all telemetry collection.</p>
+                                                </div>
+                                                <Toggle
+                                                    checked={merged.privacy.trackingEnabled}
+                                                    onChange={(v) => setSettings(prev => ({...prev, privacy: {...prev.privacy, trackingEnabled: v}}))}
+                                                />
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted/80">Scheduled Stealth (Until)</span>
+                                                <input
+                                                    type="datetime-local"
+                                                    value={merged.privacy.pauseTrackingUntil ? new Date(merged.privacy.pauseTrackingUntil).toISOString().slice(0, 16) : ""}
+                                                    onChange={(e) => {
+                                                        const v = e.target.value;
+                                                        setSettings(prev => ({...prev, privacy: {...prev.privacy, pauseTrackingUntil: v ? new Date(v).toISOString() : null}}));
+                                                    }}
+                                                    className="w-full rounded-2xl border border-ui bg-background px-5 py-3 text-sm font-bold shadow-inner"
+                                                />
+                                            </div>
+
+                                            <div className="pt-8 border-t border-ui-muted space-y-6">
+                                                <div className="flex flex-col gap-4 sm:flex-row">
+                                                    <button
+                                                        type="button"
+                                                        onClick={clearBrowsingData}
+                                                        className="flex-1 rounded-2xl border-2 border-destructive/30 bg-destructive/5 px-6 py-4 text-xs font-black uppercase tracking-widest text-destructive hover:bg-destructive hover:text-white transition-all shadow-lg shadow-destructive/5"
+                                                    >
+                                                        Purge Telemetry Data
+                                                    </button>
+                                                </div>
+
+                                                {registered && (
+                                                    <div className="grid gap-3 sm:grid-cols-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={downloadMyDataZip}
+                                                            className={cn(
+                                                                "group flex items-center justify-between rounded-2xl border-2 p-5 transition-all",
+                                                                user.isPremium || user.subscription === "pro"
+                                                                    ? "border-primary/40 bg-primary/5 text-foreground hover:bg-primary/10"
+                                                                    : "border-ui-muted bg-foreground/[0.02] text-muted opacity-60"
+                                                            )}
+                                                        >
+                                                            <div className="flex items-center gap-4">
+                                                                <Table2 size={24} className="text-primary" />
+                                                                <div className="text-left">
+                                                                    <p className="text-xs font-black uppercase tracking-widest text-foreground">Export CSV</p>
+                                                                    <p className="text-[10px] font-bold text-muted">Full Raw Logs</p>
+                                                                </div>
+                                                            </div>
+                                                            {!(user.isPremium || user.subscription === "pro") && <Shield size={16} className="text-primary" />}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={downloadMyDataPdf}
+                                                            className={cn(
+                                                                "group flex items-center justify-between rounded-2xl border-2 p-5 transition-all",
+                                                                user.isPremium || user.subscription === "pro"
+                                                                    ? "border-secondary/40 bg-secondary/5 text-foreground hover:bg-secondary/10"
+                                                                    : "border-ui-muted bg-foreground/[0.02] text-muted opacity-60"
+                                                            )}
+                                                        >
+                                                            <div className="flex items-center gap-4">
+                                                                <FileDown size={24} className="text-secondary" />
+                                                                <div className="text-left">
+                                                                    <p className="text-xs font-black uppercase tracking-widest text-foreground">Export PDF</p>
+                                                                    <p className="text-[10px] font-bold text-muted">Analytic Summary</p>
+                                                                </div>
+                                                            </div>
+                                                            {!(user.isPremium || user.subscription === "pro") && <Shield size={16} className="text-secondary" />}
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </section>
+                                )}
+
+                                {active === "appearance" && (
+                                    <section id="section-appearance" className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                                        <div className="space-y-1 border-l-4 border-primary pl-5">
+                                            <h2 className="text-2xl font-black text-foreground">Interface Aesthetics</h2>
+                                            <p className="text-xs font-semibold text-muted">Customize the visual identity of your dashboard.</p>
+                                        </div>
+                                        <div className="glass-card space-y-8 rounded-[32px] border-2 border-ui p-8 shadow-2xl shadow-primary/5">
+                                            <div className="grid gap-8 md:grid-cols-2">
+                                                <div className="space-y-4">
+                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted/80">Ambient Theme</span>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        {["dark", "light"].map(t => (
+                                                            <button
+                                                                key={t}
+                                                                onClick={() => {
+                                                                    setSettings(prev => ({...prev, appearance: {...prev.appearance, theme: t}}));
+                                                                    setTheme(t);
+                                                                }}
+                                                                className={cn(
+                                                                    "rounded-2xl border-2 p-4 text-xs font-black uppercase tracking-widest transition-all",
+                                                                    merged.appearance.theme === t ? "border-primary bg-primary/10 text-primary" : "border-ui bg-background text-muted"
+                                                                )}
+                                                            >
+                                                                {t}
+                                                            </button>
+                                                        ))}
+                                                        <button
+                                                            onClick={() => {
+                                                                setSettings(prev => ({...prev, appearance: {...prev.appearance, theme: 'midnight'}}));
+                                                                setTheme('dark');
+                                                            }}
+                                                            className={cn(
+                                                                "col-span-2 rounded-2xl border-2 p-4 text-xs font-black uppercase tracking-widest transition-all",
+                                                                merged.appearance.theme === 'midnight' ? "border-primary bg-primary/10 text-primary shadow-[0_0_20px_rgba(109,40,217,0.2)]" : "border-ui bg-background text-muted"
+                                                            )}
+                                                        >
+                                                            Midnight Black
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-4">
+                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted/80">Data Density</span>
+                                                    <div className="grid gap-3">
+                                                        {["normal", "compact"].map(d => (
+                                                            <button
+                                                                key={d}
+                                                                onClick={() => setSettings(prev => ({...prev, appearance: {...prev.appearance, density: d}}))}
+                                                                className={cn(
+                                                                    "rounded-2xl border-2 p-4 text-xs font-black uppercase tracking-widest transition-all",
+                                                                    merged.appearance.density === d ? "border-secondary bg-secondary/10 text-secondary" : "border-ui bg-background text-muted"
+                                                                )}
+                                                            >
+                                                                {d} Mode
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => patchSettings({ appearance: merged.appearance })}
+                                                className="w-full rounded-2xl bg-primary py-4 text-xs font-black uppercase tracking-widest text-white shadow-xl shadow-primary/30"
+                                            >
+                                                Commit Visual Settings
+                                            </button>
+                                        </div>
+                                    </section>
+                                )}
+
+                                {active === "billing" && registered && (
+                                    <section id="section-billing" className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                                        <div className="space-y-1 border-l-4 border-amber-400 pl-5">
+                                            <h2 className="text-2xl font-black text-foreground">Matrix Tier & Billing</h2>
+                                            <p className="text-xs font-semibold text-muted">Manage your subscription and fiscal connection.</p>
+                                        </div>
+                                        <div className="glass-card space-y-8 rounded-[32px] border-2 border-ui p-8 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5">
+                                            <div className="flex flex-wrap items-center justify-between gap-6 p-8 rounded-[28px] border-2 border-primary/20 bg-background shadow-2xl">
+                                                <div className="space-y-2">
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted/80">Current Operational Status</p>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className={cn(
+                                                            "rounded-full px-4 py-1.5 text-xs font-black uppercase tracking-widest",
+                                                            user.subscription === "pro" || user.isPremium ? "bg-primary text-white shadow-lg shadow-primary/30" : "bg-muted/20 text-muted"
+                                                        )}>
+                                                            {user.subscription === "pro" || user.isPremium ? "PRO ACTIVATED" : "FREE TIER"}
+                                                        </span>
+                                                        {(user.subscription === "pro" || user.isPremium) && <Crown className="text-amber-400" size={24} />}
+                                                    </div>
+                                                </div>
+                                                <Link href="/upgrade" className="rounded-2xl bg-foreground text-background px-8 py-4 text-xs font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl">
+                                                    Modify Tier
+                                                </Link>
+                                            </div>
+
+                                            {((user.subscription === "pro" || user.isPremium) && user.stripeCustomerId) ? (
+                                                <div className="p-8 rounded-[28px] border-2 border-ui bg-foreground/[0.02]">
+                                                    <h4 className="text-sm font-black uppercase tracking-widest text-foreground">Stripe Connection</h4>
+                                                    <p className="mt-2 text-xs font-medium text-muted leading-relaxed">Your subscription is linked to a Stripe customer ID. Exit the ProdLytics interface to manage billing in the secure Stripe portal.</p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={openBillingPortal}
+                                                        className="mt-6 rounded-xl border-2 border-primary/40 px-6 py-3 text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary hover:text-white transition-all"
+                                                    >
+                                                        Launch Portal
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="p-8 rounded-[28px] border-2 border-ui bg-foreground/[0.02] flex items-center gap-4">
+                                                    <Shield size={24} className="text-muted/40" />
+                                                    <p className="text-xs font-bold text-muted uppercase tracking-wider">No active Stripe session detected for this ID.</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </section>
+                                )}
                             </div>
-                        </>
-                    )}
+                        )}
+                    </div>
                 </main>
             </div>
         </div>

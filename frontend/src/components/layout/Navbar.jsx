@@ -33,8 +33,8 @@ export default function Navbar() {
     if (!user) return null;
 
     return (
-        <header className="sticky top-0 z-50 flex min-h-20 w-full flex-wrap items-center justify-between gap-3 border-b-ui-muted bg-background/60 px-4 py-3 backdrop-blur-md transition-all sm:h-20 sm:flex-nowrap sm:px-8 sm:py-0">
-            <div className="relative w-full max-w-xl flex-1 group sm:w-96">
+        <header className="sticky top-0 z-50 flex h-16 w-full items-center justify-between gap-3 border-b-ui-muted bg-background/60 px-4 backdrop-blur-md transition-all sm:h-20 sm:px-8">
+            <div className="relative flex-1 group max-w-[48px] overflow-hidden transition-all duration-300 focus-within:max-w-xl sm:max-w-xl">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-primary transition-colors" size={18} />
                 <input
                     type="search"
@@ -43,9 +43,9 @@ export default function Navbar() {
                     onKeyDown={(e) => {
                         if (e.key === "Escape") setActivitySearchQuery("");
                     }}
-                    placeholder="Search sites, goals, blocklist…"
+                    placeholder="Search…"
                     autoComplete="off"
-                    aria-label="Search activity and sites"
+                    aria-label="Search activity"
                     className="w-full rounded-2xl border border-ui bg-foreground/[0.03] py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted/60 transition-all focus:border-primary/40 focus:bg-background focus:ring-4 focus:ring-primary/10 focus:outline-none"
                 />
             </div>
