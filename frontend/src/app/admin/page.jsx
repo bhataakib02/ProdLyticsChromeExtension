@@ -249,23 +249,72 @@ export default function AdminPage() {
         }
     }, [activeTab, fetchPolicies]);
 
-    const downloadPolicyPDF = () => {
-        const content = policies[policyKey];
-        if (!content) return;
+    // Also load policies immediately on mount so PDF/ZIP exports work right away
+    useEffect(() => {
+        if (user?.role === "admin") {
+            fetchPolicies();
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.role]);
+
+    const downloadPolicyPDF = async () => {
+        // Auto-fetch if not yet loaded
+        let content = policies[policyKey];
+        if (!content) {
+            await fetchPolicies();
+            // Read from ref is not possible, re-read via API directly
+            try {
+                const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+                const res = await fetch("/api/admin/site-config", {
+                    headers: { Authorization: `Bearer ${token}` },
+                    cache: "no-store"
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    content = data.find(c => c.key === policyKey)?.value || "";
+                }
+            } catch { /**/ }
+        }
+        if (!content) {
+            alert("No policy content found. Please save content first.");
+            return;
+        }
         const doc = new jsPDF();
         doc.setFontSize(20);
         doc.text(policyKey.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '), 14, 22);
         doc.setFontSize(10);
         doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 30);
-
         const splitText = doc.splitTextToSize(content, 180);
         doc.text(splitText, 14, 40);
         doc.save(`${policyKey}.pdf`);
     };
 
     const downloadPoliciesZip = async () => {
+        let pols = { ...policies };
+        // If all empty, fetch first
+        const hasContent = Object.values(pols).some(v => v);
+        if (!hasContent) {
+            try {
+                const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+                const res = await fetch("/api/admin/site-config", {
+                    headers: { Authorization: `Bearer ${token}` },
+                    cache: "no-store"
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    ["privacy_policy", "terms_of_service", "cookie_policy"].forEach(k => {
+                        pols[k] = data.find(c => c.key === k)?.value || "";
+                    });
+                }
+            } catch { /**/ }
+        }
+        const anyContent = Object.values(pols).some(v => v);
+        if (!anyContent) {
+            alert("No policy content to export. Please save content first.");
+            return;
+        }
         const zip = new JSZip();
-        Object.entries(policies).forEach(([key, val]) => {
+        Object.entries(pols).forEach(([key, val]) => {
             if (val) zip.file(`${key}.txt`, val);
         });
         const blob = await zip.generateAsync({ type: "blob" });
@@ -274,6 +323,7 @@ export default function AdminPage() {
         a.href = url;
         a.download = "ProdLytics_Policies.zip";
         a.click();
+        URL.revokeObjectURL(url);
     };
 
     const toggleUserSelection = (id) => {
