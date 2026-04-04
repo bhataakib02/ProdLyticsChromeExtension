@@ -17,6 +17,7 @@ import {
     LogOut,
     Table2,
     FileDown,
+    Crown,
 } from "lucide-react";
 import { useAuth, API_URL } from "@/context/AuthContext";
 import { useTheme } from "@/components/layout/Providers";
@@ -146,10 +147,10 @@ export default function SettingsPage() {
         try {
             const res = await axios.patch(
                 `${API_URL}/auth/profile`,
-                { name: profileName, email: profileEmail, avatar: profileAvatar },
+                { name: profileName, email: profileEmail },
                 { headers: authHeaders() }
             );
-            updateUser({ name: res.data.name, email: res.data.email, avatar: res.data.avatar });
+            updateUser({ name: res.data.name, email: res.data.email });
             setBanner("Profile updated.");
         } catch (e) {
             setBanner(e.response?.data?.error || "Update failed.");
@@ -395,15 +396,6 @@ export default function SettingsPage() {
                                                     />
                                                 </div>
                                             </div>
-                                            <div className="space-y-2">
-                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted/80">Avatar Matrix Link</span>
-                                                <input
-                                                    value={profileAvatar}
-                                                    onChange={(e) => setProfileAvatar(e.target.value)}
-                                                    placeholder="https://images.prodltyics.io/user-avatar..."
-                                                    className="w-full rounded-2xl border border-ui bg-background px-5 py-3 text-sm font-bold shadow-inner transition-all focus:border-primary/40 focus:ring-4 focus:ring-primary/10"
-                                                />
-                                            </div>
                                             <button
                                                 type="submit"
                                                 disabled={saving}
@@ -417,11 +409,11 @@ export default function SettingsPage() {
                                             <form onSubmit={savePassword} className="glass-card space-y-6 rounded-[32px] border-2 border-ui p-8 mt-12">
                                                 <div className="flex items-center gap-3">
                                                     <div className="h-2 w-2 rounded-full bg-secondary" />
-                                                    <h3 className="text-sm font-black uppercase tracking-wider text-foreground">Security Protocol</h3>
+                                                    <h3 className="text-sm font-black uppercase tracking-wider text-foreground">Change Password</h3>
                                                 </div>
                                                 <div className="grid gap-6 md:grid-cols-2">
                                                     <div className="space-y-2">
-                                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted/80">Current Key</span>
+                                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted/80">Current Password</span>
                                                         <input
                                                             type="password"
                                                             value={pwdCurrent}
@@ -431,7 +423,7 @@ export default function SettingsPage() {
                                                         />
                                                     </div>
                                                     <div className="space-y-2">
-                                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted/80">New Matrix Key</span>
+                                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted/80">New Password</span>
                                                         <input
                                                             type="password"
                                                             value={pwdNew}
@@ -446,7 +438,7 @@ export default function SettingsPage() {
                                                     disabled={saving}
                                                     className="rounded-[18px] border-2 border-ui px-8 py-3 text-xs font-black uppercase tracking-widest transition-all hover:bg-foreground/5 disabled:opacity-50"
                                                 >
-                                                    Rotate Security Keys
+                                                    Update Password
                                                 </button>
                                             </form>
                                         ) : (
@@ -460,12 +452,12 @@ export default function SettingsPage() {
                                 {active === "productivity" && (
                                     <section id="section-productivity" className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
                                         <div className="space-y-1 border-l-4 border-primary pl-5">
-                                            <h2 className="text-2xl font-black text-foreground">Optimization Goals</h2>
-                                            <p className="text-xs font-semibold text-muted">Calibrate your focus and target output.</p>
+                                            <h2 className="text-2xl font-black text-foreground">Productivity Goals</h2>
+                                            <p className="text-xs font-semibold text-muted">Set your daily focus and productivity targets.</p>
                                         </div>
                                         <div className="glass-card space-y-8 rounded-[32px] border-2 border-ui p-8 shadow-2xl shadow-primary/5">
                                             <div className="p-6 rounded-3xl bg-primary/5 border border-primary/10">
-                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">System Focus Capacity (Hours/Day)</span>
+                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Daily Focus Goal (Hours)</span>
                                                 <div className="mt-4 flex items-center gap-6">
                                                     <input
                                                         type="range"
@@ -513,16 +505,16 @@ export default function SettingsPage() {
                                 {active === "ai" && (
                                     <section id="section-ai" className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
                                         <div className="space-y-1 border-l-4 border-primary pl-5">
-                                            <h2 className="text-2xl font-black text-foreground">AI Intelligence</h2>
-                                            <p className="text-xs font-semibold text-muted">Configure the neural engine for insights.</p>
+                                            <h2 className="text-2xl font-black text-foreground">AI Assistant</h2>
+                                            <p className="text-xs font-semibold text-muted">Configure AI insights and automation.</p>
                                         </div>
                                         <div className="glass-card space-y-8 rounded-[32px] border-2 border-ui p-8">
                                             <div className="grid gap-4">
                                                 {[
-                                                    ["enabled", "Neural Synthesis", "Master switch for AI processing."],
-                                                    ["predictive", "Future State Projection", "Predict performance bottlenecks before they occur."],
-                                                    ["suggestions", "Adaptive Coaching", "Real-time workflow adjustments based on focus states."],
-                                                    ["cognitiveLoad", "Bio-Load Monitoring", "Analyze the mental cost of your current tasks."]
+                                                    ["enabled", "AI Insights", "Enable or disable all AI-powered features."],
+                                                    ["predictive", "Predictive Analytics", "Anticipate productivity trends and bottlenecks."],
+                                                    ["suggestions", "Adaptive Suggestions", "Get real-time tips to stay focused."],
+                                                    ["cognitiveLoad", "Workload Analysis", "Monitor your estimated mental effort per task."]
                                                 ].map(([key, title, desc]) => (
                                                     <div key={key} className="flex items-center justify-between gap-6 p-4 rounded-2xl border border-ui/50 bg-foreground/[0.02]">
                                                         <div className="space-y-1">
@@ -542,7 +534,7 @@ export default function SettingsPage() {
                                                 onClick={() => patchSettings({ aiSettings: merged.aiSettings })}
                                                 className="w-full rounded-[20px] bg-primary py-4 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-primary/20"
                                             >
-                                                Synchronize Neural Engine
+                                                Synchronize AI Engine
                                             </button>
                                         </div>
                                     </section>
@@ -589,13 +581,13 @@ export default function SettingsPage() {
                                 {active === "privacy" && (
                                     <section id="section-privacy" className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
                                         <div className="space-y-1 border-l-4 border-primary pl-5">
-                                            <h2 className="text-2xl font-black text-foreground">Privacy Shield</h2>
-                                            <p className="text-xs font-semibold text-muted">Control your data footprint and tracking states.</p>
+                                            <h2 className="text-2xl font-black text-foreground">Privacy & Data</h2>
+                                            <p className="text-xs font-semibold text-muted">Manage your data and tracking preferences.</p>
                                         </div>
                                         <div className="glass-card space-y-8 rounded-[32px] border-2 border-ui p-8 shadow-2xl shadow-primary/5">
                                             <div className="flex items-center justify-between p-5 rounded-2xl bg-foreground/[0.03] border-2 border-ui">
                                                 <div className="space-y-1">
-                                                    <p className="text-sm font-black text-foreground uppercase tracking-wider">Master Stealth Mode</p>
+                                                    <p className="text-sm font-black text-foreground uppercase tracking-wider">Tracking State</p>
                                                     <p className="text-[10px] font-bold text-muted uppercase">Enable or disable all telemetry collection.</p>
                                                 </div>
                                                 <Toggle
@@ -605,7 +597,7 @@ export default function SettingsPage() {
                                             </div>
 
                                             <div className="space-y-3">
-                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted/80">Scheduled Stealth (Until)</span>
+                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted/80">Pause Tracking Until</span>
                                                 <input
                                                     type="datetime-local"
                                                     value={merged.privacy.pauseTrackingUntil ? new Date(merged.privacy.pauseTrackingUntil).toISOString().slice(0, 16) : ""}
@@ -747,13 +739,13 @@ export default function SettingsPage() {
                                 {active === "billing" && registered && (
                                     <section id="section-billing" className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
                                         <div className="space-y-1 border-l-4 border-amber-400 pl-5">
-                                            <h2 className="text-2xl font-black text-foreground">Matrix Tier & Billing</h2>
-                                            <p className="text-xs font-semibold text-muted">Manage your subscription and fiscal connection.</p>
+                                            <h2 className="text-2xl font-black text-foreground">Subscription & Billing</h2>
+                                            <p className="text-xs font-semibold text-muted">Manage your plan and payment details.</p>
                                         </div>
                                         <div className="glass-card space-y-8 rounded-[32px] border-2 border-ui p-8 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5">
                                             <div className="flex flex-wrap items-center justify-between gap-6 p-8 rounded-[28px] border-2 border-primary/20 bg-background shadow-2xl">
                                                 <div className="space-y-2">
-                                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted/80">Current Operational Status</p>
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted/80">Current Plan Status</p>
                                                     <div className="flex items-center gap-3">
                                                         <span className={cn(
                                                             "rounded-full px-4 py-1.5 text-xs font-black uppercase tracking-widest",
