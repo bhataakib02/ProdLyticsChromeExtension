@@ -119,35 +119,37 @@ export default function CookiePolicyPage() {
                                     to store local user state and tracking cache.
                                 </p>
                             </Section>
-
-                            <Section title="5. Contact Us & Cookie Inquiries">
-                                <p>
-                                    If you have any questions regarding this Cookie Policy, or if you wish to exercise your data rights, please contact our support team at:
-                                </p>
-                                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="rounded-lg bg-foreground/5 p-4 border border-foreground/10">
-                                        <p className="text-xs font-semibold uppercase tracking-wider text-foreground/50 mb-1">Primary Support</p>
-                                        <a className="text-sm font-medium text-primary hover:underline" href="mailto:thefreelancer2076@gmail.com">
-                                            thefreelancer2076@gmail.com
-                                        </a>
-                                    </div>
-                                    <div className="rounded-lg bg-foreground/5 p-4 border border-foreground/10">
-                                        <p className="text-xs font-semibold uppercase tracking-wider text-foreground/50 mb-1">Secondary Support</p>
-                                        <a className="text-sm font-medium text-primary hover:underline" href="mailto:crystalclear@gmail.com">
-                                            crystalclear@gmail.com
-                                        </a>
-                                    </div>
-                                </div>
-                                <p className="mt-4 text-sm italic text-foreground/60">
-                                    Our privacy team monitors both addresses above to help you with data access or preference management.
-                                </p>
-                            </Section>
                         </div>
                     </>
                 )}
 
+                {/* Contact section — always visible */}
+                <div className="mt-16 border-t border-foreground/10 pt-10">
+                    <h2 className="text-xl font-bold tracking-tight text-foreground mb-3">Contact Us &amp; Cookie Inquiries</h2>
+                    <p className="text-sm text-foreground/80 mb-6">
+                        If you have any questions about this Cookie Policy, or wish to manage your data rights, please contact our support team:
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="rounded-lg bg-foreground/5 p-4 border border-foreground/10">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-foreground/50 mb-1">Primary Support</p>
+                            <a className="text-sm font-medium text-primary hover:underline" href="mailto:thefreelancer2076@gmail.com">
+                                thefreelancer2076@gmail.com
+                            </a>
+                        </div>
+                        <div className="rounded-lg bg-foreground/5 p-4 border border-foreground/10">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-foreground/50 mb-1">Secondary Support</p>
+                            <a className="text-sm font-medium text-primary hover:underline" href="mailto:crystalclear@gmail.com">
+                                crystalclear@gmail.com
+                            </a>
+                        </div>
+                    </div>
+                    <p className="mt-4 text-sm italic text-foreground/60">
+                        Our privacy team monitors both addresses above to help you with data access or preference management.
+                    </p>
+                </div>
+
                 <Link
-                    className="mt-16 inline-flex items-center text-sm font-medium text-primary hover:opacity-80 transition-opacity"
+                    className="mt-10 inline-flex items-center text-sm font-medium text-primary hover:opacity-80 transition-opacity"
                     href="/"
                 >
                     <span>Return to ProdLytics Dashboard</span>
