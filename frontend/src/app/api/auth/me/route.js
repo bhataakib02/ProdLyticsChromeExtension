@@ -27,7 +27,7 @@ export async function GET(req) {
             NextResponse.json({
                 id: user._id.toString(),
                 email: anonymous ? "" : user.email,
-                name: anonymous ? "ProdLytics user" : user.name,
+                name: user.name || "ProdLytics user",
                 avatar: anonymous ? "" : user.avatar || "",
                 isAnonymous: anonymous,
                 isPremium: user.subscription ? user.subscription === "pro" : Boolean(user.isPremium),

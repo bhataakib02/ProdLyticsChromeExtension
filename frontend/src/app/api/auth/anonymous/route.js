@@ -55,9 +55,10 @@ export async function POST(req) {
             }
         }
 
+        const anonymousId = randomUUID().slice(0, 4).toUpperCase();
         const email = `anon-${randomUUID()}@anonymous.prodlytics`;
         const createPayload = {
-            name: "ProdLytics user",
+            name: `ProdLytics User #${anonymousId}`,
             email,
             isAnonymous: true,
             subscription: "free",
