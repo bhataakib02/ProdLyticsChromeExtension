@@ -966,7 +966,8 @@ export default function AdminPage() {
                                         </tbody>
                                     </table>
                                 </div>
-                            )}
+                            </div>
+                        )}
 
                             {adminSubTab === "payments" && (
                                 <div className="rounded-2xl border border-ui bg-background p-1 shadow-sm animate-in fade-in zoom-in-95 duration-300">
@@ -1103,7 +1104,8 @@ export default function AdminPage() {
                                         </tbody>
                                     </table>
                                 </div>
-                            )}
+                            </div>
+                        )}
                         </section>
                     </>
                 ) : (
